@@ -1,0 +1,15 @@
+{
+  "name": "nestjs-react-app",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "dev:api": "pnpm --filter api dev",
+    "dev:web": "pnpm --filter web dev"
+  },
+  "devDependencies": {
+    "turbo": "latest"
+  },
+  "packageManager": "pnpm@10.28.0"
+}

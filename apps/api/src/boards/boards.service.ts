@@ -1,9 +1,10 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { BoardStatus } from './boards-status.enum';
+import type { BoardStatus } from '@repo/shared';
+import { Board_Status } from '@repo/shared';
 import { v1 as uuid } from 'uuid';
 import { CreateBoardDto } from './dto/create-board.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { user, board } from 'generated/prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { user, board } from '../generated/prisma/client';
 
 @Injectable()
 export class BoardsService {
@@ -17,7 +18,7 @@ export class BoardsService {
             data : {
                 title,
                 description,
-                status: BoardStatus.PUBLIC,
+                status: Board_Status.PUBLIC,
                 userId: user.id
             }
         });

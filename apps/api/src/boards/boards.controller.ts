@@ -1,13 +1,13 @@
 import { Body, Controller, Delete, Get, Logger, Param, ParseIntPipe, Patch, Post, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { BoardsService } from './boards.service';
-import type { BoardStatus } from './boards-status.enum';
+import type { BoardStatus } from '@repo/shared';
 import { CreateBoardDto } from './dto/create-board.dto';
 import { BoardStatusValidationPipe } from './pipes/board-status-validation.pipe';
 
 import { AuthGuard } from '@nestjs/passport';
-import { GetUser } from 'src/auth/decorator/get-user.decorator';
-import type { user, board } from 'generated/prisma/client';
-import { JwtGuard } from 'src/auth/guard/jwt.guard';
+import { GetUser } from '../auth/decorator/get-user.decorator';
+import type { user, board } from '../generated/prisma/client';
+import { JwtGuard } from '../auth/guard/jwt.guard';
 
 @Controller('boards')
 @UseGuards(JwtGuard)

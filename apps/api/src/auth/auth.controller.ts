@@ -3,7 +3,7 @@ import { AuthService } from './auth.service';
 import { AuthCredentialDto } from './dto/auth-credential.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { GetUser } from './decorator/get-user.decorator';
-import type { user } from '../generated/prisma/client';
+import type { User } from '../generated/prisma/client';
 
 @Controller('auth')
 export class AuthController {
@@ -22,7 +22,7 @@ export class AuthController {
     @Post('/test')
     @UseGuards(AuthGuard())
     
-    test(@GetUser() user: user,) {
+    test(@GetUser() user: User,) {
         console.log('user', user);
     }
         

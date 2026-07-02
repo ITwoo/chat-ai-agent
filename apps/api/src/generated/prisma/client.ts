@@ -40,12 +40,12 @@ export type PrismaClient<LogOpts extends Prisma.LogLevel = never, OmitOpts exten
 export { Prisma }
 
 /**
- * Model board
+ * Model Board
  * 
  */
-export type board = Prisma.boardModel
+export type Board = Prisma.BoardModel
 /**
- * Model user
+ * Model User
  * 
  */
-export type user = Prisma.userModel
+export type User = Prisma.UserModel

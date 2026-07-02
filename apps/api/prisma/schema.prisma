@@ -14,12 +14,12 @@ model Board {
   description String @db.VarChar
   status      String @db.VarChar
   userId      Int?
-  user        user?  @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_c9951f13af7909d37c0e2aec484")
+  user        User?  @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_c9951f13af7909d37c0e2aec484")
 }
 
 model User {
   id       Int     @id(map: "PK_cace4a159ff9f2512dd42373760") @default(autoincrement())
   username String  @unique(map: "UQ_78a916df40e02a9deb1c4b75edb") @db.VarChar
   password String  @db.VarChar
-  board    board[]
+  board    Board[]
 }

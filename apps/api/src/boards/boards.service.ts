@@ -4,7 +4,7 @@ import { Board_Status } from '@repo/shared';
 import { v1 as uuid } from 'uuid';
 import { CreateBoardDto } from './dto/create-board.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { user, board } from '../generated/prisma/client';
+import { User, Board } from '../generated/prisma/client';
 
 @Injectable()
 export class BoardsService {
@@ -12,7 +12,7 @@ export class BoardsService {
          private readonly prisma: PrismaService,
     ) {}
 
-    async createBoard(createBoardDto: CreateBoardDto, user: user): Promise<board> {
+    async createBoard(createBoardDto: CreateBoardDto, user: User): Promise<Board> {
         const { title, description } = createBoardDto;
         const board = this.prisma.board.create({
             data : {
@@ -26,7 +26,7 @@ export class BoardsService {
         return board;
     }
 
-    async getBoardById(id: number): Promise<board> {
+    async getBoardById(id: number): Promise<Board> {
         const found = await this.prisma.board.findUnique({ where: { id } });
     
         if(!found) {
@@ -36,7 +36,7 @@ export class BoardsService {
         return found;
     }
 
-    async deleteBoard(id: number, user: user): Promise<void> {
+    async deleteBoard(id: number, user: User): Promise<void> {
         const result = await this.prisma.board.delete({ where: { id, userId: user.id } });
         console.log('result:', result);
         // if(result.affected === 0) {
@@ -44,14 +44,14 @@ export class BoardsService {
         // }
     }
 
-    async updateBoardStatus(id: number, status: BoardStatus): Promise<board> {
+    async updateBoardStatus(id: number, status: BoardStatus): Promise<Board> {
 
         const board = await this.prisma.board.update({ where: { id }, data: { status } });
         
         return board;
     }
 
-    async getAllBoards(user: user): Promise<board[]> {
+    async getAllBoards(user: User): Promise<Board[]> {
         return this.prisma.board.findMany({ where: { userId: user.id } });
     }
     

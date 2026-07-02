@@ -1,9 +1,11 @@
 name: Deploy to EC2
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   deploy:
@@ -13,10 +15,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Get GitHub Actions runner public IP
+        run: |
+          RUNNER_IP="$(curl -s https://checkip.amazonaws.com)"
+          echo "RUNNER_IP=${RUNNER_IP}" >> "$GITHUB_ENV"
+          echo "Runner IP: ${RUNNER_IP}"
+
+      - name: Allow SSH from current runner IP
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id "${{ vars.EC2_SECURITY_GROUP_ID }}" \
+            --ip-permissions "IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges=[{CidrIp=${RUNNER_IP}/32,Description='github-actions-deploy'}]" \
+          || true
+
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/chat-ai-agent-key.pem
+          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/chat-ai-agent-key.pem
           chmod 600 ~/.ssh/chat-ai-agent-key.pem
           ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
@@ -25,7 +46,7 @@ jobs:
           ssh -i ~/.ssh/chat-ai-agent-key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
 
-            cd /home/ec2-user/projects/chat-ai-agent
+            cd /home/ec2-user/apps/chat-ai-agent
 
             git fetch origin main
             git reset --hard origin/main
@@ -38,3 +59,13 @@ jobs:
 
             docker image prune -f
           EOF
+
+      - name: Revoke SSH from current runner IP
+        if: always()
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id "${{ vars.EC2_SECURITY_GROUP_ID }}" \
+            --protocol tcp \
+            --port 22 \
+            --cidr "${RUNNER_IP}/32" \
+          || true

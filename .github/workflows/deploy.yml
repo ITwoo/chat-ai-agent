@@ -1,0 +1,40 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/chat-ai-agent-key.pem
+          chmod 600 ~/.ssh/chat-ai-agent-key.pem
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy on EC2
+        run: |
+          ssh -i ~/.ssh/chat-ai-agent-key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+
+            cd /home/ec2-user/apps/chat-ai-agent
+
+            git fetch origin main
+            git reset --hard origin/main
+
+            docker compose -f docker-compose.ec2.yml build
+
+            docker compose -f docker-compose.ec2.yml run --rm api pnpm exec prisma migrate deploy
+
+            docker compose -f docker-compose.ec2.yml up -d
+
+            docker image prune -f
+          EOF

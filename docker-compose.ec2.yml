@@ -17,6 +17,10 @@ services:
     container_name: chat-ai-agent-web
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - /var/www/certbot:/var/www/certbot
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - api
     restart: unless-stopped

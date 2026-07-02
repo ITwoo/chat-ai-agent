@@ -6,6 +6,14 @@ on:
 permissions:
   id-token: write
   contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: itwoo
+  IMAGE_TAG: ${{ github.sha }}
+  API_IMAGE: ghcr.io/itwoo/chat-ai-agent-api
+  WEB_IMAGE: ghcr.io/itwoo/chat-ai-agent-web
 
 jobs:
   deploy:
@@ -14,6 +22,32 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build API image
+        run: |
+          docker build \
+            -f apps/api/Dockerfile \
+            -t "$API_IMAGE:$IMAGE_TAG" \
+            .
+
+      - name: Build Web image
+        run: |
+          docker build \
+            -f apps/web/Dockerfile \
+            -t "$WEB_IMAGE:$IMAGE_TAG" \
+            .
+
+      - name: Push API image
+        run: |
+          docker push "$API_IMAGE:$IMAGE_TAG"
+
+      - name: Push Web image
+        run: |
+          docker push "$WEB_IMAGE:$IMAGE_TAG"
 
       - name: Configure AWS credentials with OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -43,24 +77,44 @@ jobs:
 
       - name: Deploy on EC2
         run: |
-          ssh -i ~/.ssh/chat-ai-agent-key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          ssh -i ~/.ssh/chat-ai-agent-key.pem "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" << EOF
             set -e
 
             cd /home/ec2-user/projects/chat-ai-agent
 
+            echo "===== update source ====="
             git fetch origin main
             git reset --hard origin/main
 
-            docker compose -f docker-compose.ec2.yml config
+            echo "===== login to GHCR ====="
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-            docker compose -f docker-compose.ec2.yml build
+            echo "===== write image tag ====="
+            echo "IMAGE_TAG=${{ github.sha }}" > .env.deploy
 
-            docker compose -f docker-compose.ec2.yml run --rm api pnpm exec prisma migrate deploy
+            echo "===== compose config ====="
+            docker compose --env-file .env.deploy -f docker-compose.ec2.yml config
 
-            docker compose -f docker-compose.ec2.yml up -d --build --remove-orphans
+            echo "===== pull images ====="
+            docker compose --env-file .env.deploy -f docker-compose.ec2.yml pull
 
-            docker compose -f docker-compose.ec2.yml ps
+            echo "===== run migrations ====="
+            docker compose --env-file .env.deploy -f docker-compose.ec2.yml run --rm --no-deps api pnpm exec prisma migrate deploy
 
+            echo "===== deploy containers ====="
+            docker compose --env-file .env.deploy -f docker-compose.ec2.yml up -d --remove-orphans
+
+            echo "===== verify containers ====="
+            docker compose --env-file .env.deploy -f docker-compose.ec2.yml ps
+
+            echo "===== verify image tags ====="
+            docker inspect chat-ai-agent-web --format '{{.Config.Image}}'
+            docker inspect chat-ai-agent-api --format '{{.Config.Image}}'
+
+            echo "===== verify nginx config ====="
+            docker compose --env-file .env.deploy -f docker-compose.ec2.yml exec -T web grep -n "server_name" /etc/nginx/conf.d/default.conf
+
+            echo "===== prune old images ====="
             docker image prune -f
           EOF
 

@@ -1,8 +1,6 @@
 services:
   api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: ghcr.io/itwoo/chat-ai-agent-api:${IMAGE_TAG}
     container_name: chat-ai-agent-api
     env_file:
       - /home/ec2-user/env/chat-ai-agent-api.env
@@ -11,9 +9,7 @@ services:
     restart: unless-stopped
 
   web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
+    image: ghcr.io/itwoo/chat-ai-agent-web:${IMAGE_TAG}
     container_name: chat-ai-agent-web
     ports:
       - "80:80"

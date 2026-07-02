@@ -128,10 +128,10 @@ jobs:
             test "\$ACTUAL_API_IMAGE" = "\$EXPECTED_API_IMAGE"
 
             echo "===== verify nginx config strictly ====="
-            docker compose --env-file .env.deploy -f docker-compose.ec2.yml exec -T web grep -q "server_name woohyuk.dev www.woohyuk.dev;" /etc/nginx/conf.d/default.conf
+            docker compose --env-file .env.deploy -f docker-compose.ec2.yml exec -T web grep -q "server_name woohyuk.dev www.woohyuk.dev;" /etc/nginx/conf.d/default.conf < /dev/null
 
             echo "===== nginx server_name ====="
-            docker compose --env-file .env.deploy -f docker-compose.ec2.yml exec -T web grep -n "server_name" /etc/nginx/conf.d/default.conf
+            docker compose --env-file .env.deploy -f docker-compose.ec2.yml exec -T web grep -n "server_name" /etc/nginx/conf.d/default.conf < /dev/null
 
             echo "===== prune old dangling images ====="
             docker image prune -f

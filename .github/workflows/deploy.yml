@@ -51,11 +51,15 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
+            docker compose -f docker-compose.ec2.yml config
+
             docker compose -f docker-compose.ec2.yml build
 
             docker compose -f docker-compose.ec2.yml run --rm api pnpm exec prisma migrate deploy
 
-            docker compose -f docker-compose.ec2.yml up -d
+            docker compose -f docker-compose.ec2.yml up -d --remove-orphans
+
+            docker compose -f docker-compose.ec2.yml ps
 
             docker image prune -f
           EOF

@@ -46,7 +46,7 @@ jobs:
           ssh -i ~/.ssh/chat-ai-agent-key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
 
-            cd /home/ec2-user/apps/chat-ai-agent
+            cd /home/ec2-user/projects/chat-ai-agent
 
             git fetch origin main
             git reset --hard origin/main

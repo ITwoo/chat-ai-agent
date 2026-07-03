@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { PrismaExceptionFilter } from './prisma/prisma-exception.filter';
 
 async function bootstrap() {
@@ -15,7 +15,12 @@ async function bootstrap() {
   
   app.setGlobalPrefix('api');
   app.useGlobalFilters(new PrismaExceptionFilter());
-  
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }));
+
   await app.listen(process.env.PORT ?? 3000);
 
   Logger.log(`Application is running on: ${await app.getUrl()}`);

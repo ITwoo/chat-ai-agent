@@ -25,3 +25,9 @@ export interface CreateBoardRequest {
   title: string;
   description: string;
 }
+
+export interface UpdateBoardRequest {
+  title: string;
+  description: string;
+  status: BoardStatus;
+}

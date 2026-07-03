@@ -5,6 +5,7 @@ import { v1 as uuid } from 'uuid';
 import { CreateBoardDto } from './dto/create-board.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, Board } from '../generated/prisma/client';
+import { UpdateBoardDto } from './dto/update-board.dto';
 
 @Injectable()
 export class BoardsService {
@@ -42,6 +43,13 @@ export class BoardsService {
         // if(result.affected === 0) {
         //     throw new NotFoundException(`Can't find Board with id ${id}`);
         // }
+    }
+
+    async updateBoard(id: number, updateBoardDto: UpdateBoardDto): Promise<Board> {
+        const { title, description, status } = updateBoardDto;
+        const board = await this.prisma.board.update({ where: { id }, data: { title, description, status } });
+        
+        return board;
     }
 
     async updateBoardStatus(id: number, status: BoardStatus): Promise<Board> {

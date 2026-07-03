@@ -1,8 +1,14 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import { isLoggedIn } from '../../features/auth/utils/authStorage';
+import { useAuthStore } from '../../features/auth/store/authStore';
 
 export function ProtectedRoute() {
-  if (!isLoggedIn()) {
+  const authStatus = useAuthStore((state) => state.authStatus);
+
+  if (authStatus === 'loading') {
+    return <div>로딩 중...</div>;
+  }
+
+  if (authStatus === 'unauthenticated') {
     return <Navigate to="/login" replace />;
   }
 

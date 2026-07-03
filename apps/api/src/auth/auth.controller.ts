@@ -3,8 +3,8 @@ import { AuthService } from './auth.service';
 import { AuthCredentialDto } from './dto/auth-credential.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { GetUser } from './decorator/get-user.decorator';
+import type{ UserResponse } from '@repo/shared';
 import type { User } from '../generated/prisma/client';
-
 @Controller('auth')
 export class AuthController {
     constructor(private authService: AuthService) {}
@@ -19,11 +19,10 @@ export class AuthController {
         return this.authService.signIn(authCredentialDto);
     }
 
-    @Post('/test')
-    @UseGuards(AuthGuard())
-    
-    test(@GetUser() user: User,) {
-        console.log('user', user);
+    @Get('/me')
+    @UseGuards(AuthGuard('jwt'))    
+    getMe(@GetUser() user: User): UserResponse {
+        return { id: user.id, username: user.username };
     }
         
 }

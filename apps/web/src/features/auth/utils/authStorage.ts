@@ -12,6 +12,3 @@ export function removeAccessToken() {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
 }
 
-export function isLoggedIn() {
-  return Boolean(getAccessToken());
-}

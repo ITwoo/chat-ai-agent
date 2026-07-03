@@ -3,6 +3,7 @@ import type {
   LoginRequest,
   LoginResponse,
   RegisterRequest,
+  UserResponse,
 } from '@repo/shared';
 
 export const authApi = {
@@ -19,6 +20,12 @@ export const authApi = {
       method: 'POST',
       body: data,
       token: null, // 회원가입 시에는 토큰이 없으므로 null로 설정
+    });
+  },
+
+  getMe() : Promise<UserResponse> {
+    return http<UserResponse>('/auth/me', {
+      method: 'GET',
     });
   },
 };

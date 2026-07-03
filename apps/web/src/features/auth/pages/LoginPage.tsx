@@ -3,9 +3,11 @@ import type { SubmitEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api/authApi';
 import { saveAccessToken } from '../utils/authStorage';
+import { useAuthStore } from '../store/authStore';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const login = useAuthStore((state) => state.login);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -20,13 +22,12 @@ export function LoginPage() {
       setError(null);
       setIsSubmitting(true);
 
-      const result = await authApi.signIn({
+      await login({
         username,
         password,
       });
 
-      saveAccessToken(result.accessToken);
-      navigate('/boards');
+      navigate('/boards', { replace: true });
     } catch (error) {
       setError(error instanceof Error ? error.message : '로그인 실패');
     } finally {

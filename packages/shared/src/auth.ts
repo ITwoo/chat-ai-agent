@@ -11,3 +11,8 @@ export interface RegisterRequest {
   password: string;
   username: string;
 }
+
+export interface UserResponse {
+  id: number;
+  username: string;
+}

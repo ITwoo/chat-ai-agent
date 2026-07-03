@@ -1,16 +1,34 @@
+import { useEffect } from 'react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
-import {
-  isLoggedIn,
-  removeAccessToken,
-} from '../../features/auth/utils/authStorage';
+import { useAuthStore } from '../../features/auth/store/authStore';
 
 export function Layout() {
   const navigate = useNavigate();
 
+  const authStatus = useAuthStore((state) => state.authStatus);
+  const initAuth = useAuthStore((state) => state.initAuth);
+  const logout = useAuthStore((state) => state.logout);
+
+  useEffect(() => {
+    initAuth();
+
+    function handleUnauthorized() {
+      logout();
+    }
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
+  }, [initAuth, logout]);
+
   const handleLogout = () => {
-    removeAccessToken();
+    logout();
     navigate('/login');
   };
+
+  const isAuthenticated = authStatus === 'authenticated';
 
   return (
     <div>
@@ -18,7 +36,7 @@ export function Layout() {
         <Link to="/">Home</Link>
         <Link to="/boards">Boards</Link>
 
-        {isLoggedIn() ? (
+        {authStatus === 'loading' ? null : isAuthenticated ? (
           <button type="button" onClick={handleLogout}>
             Logout
           </button>

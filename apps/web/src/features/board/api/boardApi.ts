@@ -10,18 +10,16 @@ export const boardApi = {
     return http<BoardResponse>(`/boards/${id}`);
   },
 
-  create(data: CreateBoardRequest, token: string) {
+  create(data: CreateBoardRequest) {
     return http<Board>('/boards', {
       method: 'POST',
       body: data,
-      token,
     });
   },
 
-  remove(id: number, token: string) {
+  remove(id: number) {
     return http<void>(`/boards/${id}`, {
       method: 'DELETE',
-      token,
     });
   },
 };

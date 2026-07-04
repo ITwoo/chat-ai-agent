@@ -1,25 +1,196 @@
 import { Logger } from '@nestjs/common';
-import { MessageBody, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import {
+    ConnectedSocket,
+    MessageBody,
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    SubscribeMessage,
+    WebSocketGateway,
+    WebSocketServer,
+} from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { AddMessageDto } from './dto/add-message.dto';
+import { ChatService } from './chat.service';
+import { JoinRoomDto } from './dto/join-room.dto';
+import { SendMessageDto } from './dto/send-message.dto';
+import type { User } from '../generated/prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 
-@WebSocketGateway()
+type SocketUser = {
+    id: number;
+    username: string;
+}
+
+type AuthenticatedSocket = Socket & {
+    data: {
+        user?: User;
+    };
+};
+
+type JwtPayload = {
+    sub: number;
+    username: string;
+};
+
+@WebSocketGateway({
+    cors: {
+        origin: true,
+        credentials: true,
+    },
+})
+
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  @WebSocketServer()
-  server!: Server;
+    @WebSocketServer()
+    server!: Server;
 
-  private logger: Logger = new Logger('ChatGateway');
+    private readonly logger = new Logger(ChatGateway.name);
 
-  @SubscribeMessage('message')
-  handleMessage(@MessageBody() payload: AddMessageDto): AddMessageDto {
-    this.logger.log(`Received message: ${payload}`);
-    return payload;
-  }
+    constructor(
+        private readonly chatService: ChatService,
+        private readonly jwtService: JwtService,
+        private readonly configService: ConfigService,
+        private readonly prisma: PrismaService
+    ) { }
 
-  handleConnection(client: Socket, ...args: any[]) {
-    this.logger.log(`Client connected: ${client.id}`);
-  }
-  handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}`);
-  }
+    async handleConnection(client: AuthenticatedSocket) {
+
+        try {
+            const token = this.extractToken(client);
+            console.log(`1`)
+            if(!token) {
+                this.logger.warn(`Socket rejected. Missing token: ${client.id}`);
+                client.disconnect();
+                return;
+            }
+            console.log(token)
+            const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
+                secret: this.configService.getOrThrow<string>('JWT_SECRET'),
+            });
+            console.log(payload)
+            const user = await this.prisma.user.findUnique({
+                where: { id: payload.sub },
+                select: { id: true, username: true },
+            });
+            console.log(`4`)
+            if(!user) {
+                this.logger.warn(`Socket rejected. User not found: ${client.id}`);
+                client.disconnect();
+                return;
+            }
+            console.log(`5`)
+            client.data.user = user;
+
+            this.logger.log(`Socket connected: ${client.id}, User: ${user.username}`);
+
+        } catch (error) {
+            this.logger.warn('Socket rejected. Invalid token: ' + client.id);
+            client.disconnect();
+        }
+    }
+
+    handleDisconnect(client: AuthenticatedSocket) {
+        const username = client.data.user?.username || 'Unknown';
+
+        this.logger.log(`Client disconnected: ${client.id}, User: ${username}`);
+    }
+
+    @SubscribeMessage('join_room')
+    async handleJoinRoom(
+        @ConnectedSocket() client: AuthenticatedSocket,
+        @MessageBody() payload: JoinRoomDto,
+    ) {
+
+        const user = client.data.user;
+
+        if (!user) {
+            client.emit('chat_error', {
+                message: '인증 정보가 없습니다.',
+            });
+            return;
+        }
+
+        try {
+            await this.chatService.assertRoomOwner(payload.roomId, user.id);
+
+            const roomName = this.getRoomName(payload.roomId);
+
+            await client.join(roomName);
+
+            client.emit('joined_room', {
+                roomId: payload.roomId,
+            });
+
+            this.logger.log(`Client ${client.id} joined ${roomName}`);
+        } catch (error) {
+            client.emit('chat_error', {
+                message:
+                    error instanceof Error ? error.message : '방 참여에 실패했습니다.',
+            });
+        }
+    }
+
+    @SubscribeMessage('send_message')
+    async handleSendMessage(
+        @ConnectedSocket() client: AuthenticatedSocket,
+        @MessageBody() payload: SendMessageDto,
+    ) {
+        const user = client.data.user;
+
+        if (!user) {
+            client.emit('chat_error', {
+                message: '인증 정보가 없습니다.',
+            });
+            return;
+        }
+
+        try {
+            const userMessage = await this.chatService.saveUserMessage(
+                payload.roomId,
+                user,
+                payload.content,
+            );
+
+            const roomName = this.getRoomName(payload.roomId);
+
+            this.server.to(roomName).emit('message_created', userMessage);
+
+            const assistantContent = `임시 AI 응답: ${payload.content} 라고 말했네요.`;
+
+            const assistantMessage = await this.chatService.saveAssistantMessage(
+                payload.roomId,
+                user.id,
+                assistantContent,
+            );
+
+            this.server.to(roomName).emit('message_created', assistantMessage);
+            
+            
+        } catch (error) {
+            client.emit('chat_error', {
+                message:
+                    error instanceof Error ? error.message : '메시지 전송에 실패했습니다.',
+            });
+        }
+    }
+
+    private extractToken(client: AuthenticatedSocket): string | null {
+        const authToken = client.handshake.auth.token;
+
+        if(typeof authToken === 'string' && authToken.trim()) {
+            return authToken;
+        }
+        
+        const authorization = client.handshake.headers['authorization'];
+
+        if(typeof authorization === 'string' && authorization.startsWith('Bearer ')) {
+            return authorization.replace('Bearer ', '');
+        }
+
+        return null;
+    }
+
+    private getRoomName(roomId: number) {
+        return `chat_room:${roomId}`;
+    }
 }

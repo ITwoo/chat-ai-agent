@@ -1,9 +1,9 @@
 export const Board_Status = {
-  PUBLIC : 'PUBLIC',
-  PRIVATE : 'PRIVATE',
+  PUBLIC: 'PUBLIC',
+  PRIVATE: 'PRIVATE',
 } as const;
 
-export type BoardStatus = typeof Board_Status[keyof typeof Board_Status];
+export type BoardStatus = (typeof Board_Status)[keyof typeof Board_Status];
 
 export interface Board {
   id: number;
@@ -11,6 +11,8 @@ export interface Board {
   description: string;
   status: BoardStatus;
   userId: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface BoardResponse {
@@ -19,6 +21,8 @@ export interface BoardResponse {
   description: string;
   status: BoardStatus;
   userId: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateBoardRequest {
@@ -29,5 +33,5 @@ export interface CreateBoardRequest {
 export interface UpdateBoardRequest {
   title: string;
   description: string;
-  status: BoardStatus;
+  status?: BoardStatus;
 }

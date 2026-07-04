@@ -38,18 +38,24 @@ export type UserMinAggregateOutputType = {
   id: number | null
   username: string | null
   password: string | null
+  createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type UserMaxAggregateOutputType = {
   id: number | null
   username: string | null
   password: string | null
+  createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type UserCountAggregateOutputType = {
   id: number
   username: number
   password: number
+  createdAt: number
+  updatedAt: number
   _all: number
 }
 
@@ -66,18 +72,24 @@ export type UserMinAggregateInputType = {
   id?: true
   username?: true
   password?: true
+  createdAt?: true
+  updatedAt?: true
 }
 
 export type UserMaxAggregateInputType = {
   id?: true
   username?: true
   password?: true
+  createdAt?: true
+  updatedAt?: true
 }
 
 export type UserCountAggregateInputType = {
   id?: true
   username?: true
   password?: true
+  createdAt?: true
+  updatedAt?: true
   _all?: true
 }
 
@@ -171,6 +183,8 @@ export type UserGroupByOutputType = {
   id: number
   username: string
   password: string
+  createdAt: Date
+  updatedAt: Date
   _count: UserCountAggregateOutputType | null
   _avg: UserAvgAggregateOutputType | null
   _sum: UserSumAggregateOutputType | null
@@ -200,14 +214,20 @@ export type UserWhereInput = {
   id?: Prisma.IntFilter<"User"> | number
   username?: Prisma.StringFilter<"User"> | string
   password?: Prisma.StringFilter<"User"> | string
-  board?: Prisma.BoardListRelationFilter
+  createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  boards?: Prisma.BoardListRelationFilter
+  chatRooms?: Prisma.ChatRoomListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   username?: Prisma.SortOrder
   password?: Prisma.SortOrder
-  board?: Prisma.BoardOrderByRelationAggregateInput
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
+  boards?: Prisma.BoardOrderByRelationAggregateInput
+  chatRooms?: Prisma.ChatRoomOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -217,13 +237,18 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.UserWhereInput[]
   NOT?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
   password?: Prisma.StringFilter<"User"> | string
-  board?: Prisma.BoardListRelationFilter
+  createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  boards?: Prisma.BoardListRelationFilter
+  chatRooms?: Prisma.ChatRoomListRelationFilter
 }, "id" | "username">
 
 export type UserOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   username?: Prisma.SortOrder
   password?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
   _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
@@ -238,60 +263,77 @@ export type UserScalarWhereWithAggregatesInput = {
   id?: Prisma.IntWithAggregatesFilter<"User"> | number
   username?: Prisma.StringWithAggregatesFilter<"User"> | string
   password?: Prisma.StringWithAggregatesFilter<"User"> | string
+  createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
+  updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
 
 export type UserCreateInput = {
   username: string
   password: string
-  board?: Prisma.BoardCreateNestedManyWithoutUserInput
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  boards?: Prisma.BoardCreateNestedManyWithoutUserInput
+  chatRooms?: Prisma.ChatRoomCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
   id?: number
   username: string
   password: string
-  board?: Prisma.BoardUncheckedCreateNestedManyWithoutUserInput
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  boards?: Prisma.BoardUncheckedCreateNestedManyWithoutUserInput
+  chatRooms?: Prisma.ChatRoomUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.StringFieldUpdateOperationsInput | string
-  board?: Prisma.BoardUpdateManyWithoutUserNestedInput
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  boards?: Prisma.BoardUpdateManyWithoutUserNestedInput
+  chatRooms?: Prisma.ChatRoomUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   username?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.StringFieldUpdateOperationsInput | string
-  board?: Prisma.BoardUncheckedUpdateManyWithoutUserNestedInput
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  boards?: Prisma.BoardUncheckedUpdateManyWithoutUserNestedInput
+  chatRooms?: Prisma.ChatRoomUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
   id?: number
   username: string
   password: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type UserUpdateManyMutationInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   username?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.StringFieldUpdateOperationsInput | string
-}
-
-export type UserNullableScalarRelationFilter = {
-  is?: Prisma.UserWhereInput | null
-  isNot?: Prisma.UserWhereInput | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   username?: Prisma.SortOrder
   password?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type UserAvgOrderByAggregateInput = {
@@ -302,70 +344,169 @@ export type UserMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   username?: Prisma.SortOrder
   password?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   username?: Prisma.SortOrder
   password?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type UserSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
 }
 
-export type UserCreateNestedOneWithoutBoardInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutBoardInput, Prisma.UserUncheckedCreateWithoutBoardInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutBoardInput
+export type UserScalarRelationFilter = {
+  is?: Prisma.UserWhereInput
+  isNot?: Prisma.UserWhereInput
+}
+
+export type StringFieldUpdateOperationsInput = {
+  set?: string
+}
+
+export type DateTimeFieldUpdateOperationsInput = {
+  set?: Date | string
+}
+
+export type IntFieldUpdateOperationsInput = {
+  set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
+export type UserCreateNestedOneWithoutBoardsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutBoardsInput, Prisma.UserUncheckedCreateWithoutBoardsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutBoardsInput
   connect?: Prisma.UserWhereUniqueInput
 }
 
-export type UserUpdateOneWithoutBoardNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutBoardInput, Prisma.UserUncheckedCreateWithoutBoardInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutBoardInput
-  upsert?: Prisma.UserUpsertWithoutBoardInput
-  disconnect?: Prisma.UserWhereInput | boolean
-  delete?: Prisma.UserWhereInput | boolean
+export type UserUpdateOneRequiredWithoutBoardsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutBoardsInput, Prisma.UserUncheckedCreateWithoutBoardsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutBoardsInput
+  upsert?: Prisma.UserUpsertWithoutBoardsInput
   connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutBoardInput, Prisma.UserUpdateWithoutBoardInput>, Prisma.UserUncheckedUpdateWithoutBoardInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutBoardsInput, Prisma.UserUpdateWithoutBoardsInput>, Prisma.UserUncheckedUpdateWithoutBoardsInput>
 }
 
-export type UserCreateWithoutBoardInput = {
+export type UserCreateNestedOneWithoutChatRoomsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutChatRoomsInput, Prisma.UserUncheckedCreateWithoutChatRoomsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutChatRoomsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutChatRoomsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutChatRoomsInput, Prisma.UserUncheckedCreateWithoutChatRoomsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutChatRoomsInput
+  upsert?: Prisma.UserUpsertWithoutChatRoomsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutChatRoomsInput, Prisma.UserUpdateWithoutChatRoomsInput>, Prisma.UserUncheckedUpdateWithoutChatRoomsInput>
+}
+
+export type UserCreateWithoutBoardsInput = {
   username: string
   password: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  chatRooms?: Prisma.ChatRoomCreateNestedManyWithoutUserInput
 }
 
-export type UserUncheckedCreateWithoutBoardInput = {
+export type UserUncheckedCreateWithoutBoardsInput = {
   id?: number
   username: string
   password: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  chatRooms?: Prisma.ChatRoomUncheckedCreateNestedManyWithoutUserInput
 }
 
-export type UserCreateOrConnectWithoutBoardInput = {
+export type UserCreateOrConnectWithoutBoardsInput = {
   where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutBoardInput, Prisma.UserUncheckedCreateWithoutBoardInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutBoardsInput, Prisma.UserUncheckedCreateWithoutBoardsInput>
 }
 
-export type UserUpsertWithoutBoardInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutBoardInput, Prisma.UserUncheckedUpdateWithoutBoardInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutBoardInput, Prisma.UserUncheckedCreateWithoutBoardInput>
+export type UserUpsertWithoutBoardsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutBoardsInput, Prisma.UserUncheckedUpdateWithoutBoardsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutBoardsInput, Prisma.UserUncheckedCreateWithoutBoardsInput>
   where?: Prisma.UserWhereInput
 }
 
-export type UserUpdateToOneWithWhereWithoutBoardInput = {
+export type UserUpdateToOneWithWhereWithoutBoardsInput = {
   where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutBoardInput, Prisma.UserUncheckedUpdateWithoutBoardInput>
+  data: Prisma.XOR<Prisma.UserUpdateWithoutBoardsInput, Prisma.UserUncheckedUpdateWithoutBoardsInput>
 }
 
-export type UserUpdateWithoutBoardInput = {
+export type UserUpdateWithoutBoardsInput = {
   username?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chatRooms?: Prisma.ChatRoomUpdateManyWithoutUserNestedInput
 }
 
-export type UserUncheckedUpdateWithoutBoardInput = {
+export type UserUncheckedUpdateWithoutBoardsInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   username?: Prisma.StringFieldUpdateOperationsInput | string
   password?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chatRooms?: Prisma.ChatRoomUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutChatRoomsInput = {
+  username: string
+  password: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  boards?: Prisma.BoardCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutChatRoomsInput = {
+  id?: number
+  username: string
+  password: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  boards?: Prisma.BoardUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutChatRoomsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutChatRoomsInput, Prisma.UserUncheckedCreateWithoutChatRoomsInput>
+}
+
+export type UserUpsertWithoutChatRoomsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutChatRoomsInput, Prisma.UserUncheckedUpdateWithoutChatRoomsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutChatRoomsInput, Prisma.UserUncheckedCreateWithoutChatRoomsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutChatRoomsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutChatRoomsInput, Prisma.UserUncheckedUpdateWithoutChatRoomsInput>
+}
+
+export type UserUpdateWithoutChatRoomsInput = {
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  boards?: Prisma.BoardUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutChatRoomsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  boards?: Prisma.BoardUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -374,11 +515,13 @@ export type UserUncheckedUpdateWithoutBoardInput = {
  */
 
 export type UserCountOutputType = {
-  board: number
+  boards: number
+  chatRooms: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  board?: boolean | UserCountOutputTypeCountBoardArgs
+  boards?: boolean | UserCountOutputTypeCountBoardsArgs
+  chatRooms?: boolean | UserCountOutputTypeCountChatRoomsArgs
 }
 
 /**
@@ -394,8 +537,15 @@ export type UserCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensi
 /**
  * UserCountOutputType without action
  */
-export type UserCountOutputTypeCountBoardArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type UserCountOutputTypeCountBoardsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.BoardWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountChatRoomsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ChatRoomWhereInput
 }
 
 
@@ -403,7 +553,10 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   id?: boolean
   username?: boolean
   password?: boolean
-  board?: boolean | Prisma.User$boardArgs<ExtArgs>
+  createdAt?: boolean
+  updatedAt?: boolean
+  boards?: boolean | Prisma.User$boardsArgs<ExtArgs>
+  chatRooms?: boolean | Prisma.User$chatRoomsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -411,23 +564,30 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   id?: boolean
   username?: boolean
   password?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   username?: boolean
   password?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
   id?: boolean
   username?: boolean
   password?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "username" | "password", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "username" | "password" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  board?: boolean | Prisma.User$boardArgs<ExtArgs>
+  boards?: boolean | Prisma.User$boardsArgs<ExtArgs>
+  chatRooms?: boolean | Prisma.User$chatRoomsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -436,12 +596,15 @@ export type UserIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
 export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "User"
   objects: {
-    board: Prisma.$BoardPayload<ExtArgs>[]
+    boards: Prisma.$BoardPayload<ExtArgs>[]
+    chatRooms: Prisma.$ChatRoomPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
     username: string
     password: string
+    createdAt: Date
+    updatedAt: Date
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -836,7 +999,8 @@ readonly fields: UserFieldRefs;
  */
 export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  board<T extends Prisma.User$boardArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$boardArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BoardPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  boards<T extends Prisma.User$boardsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$boardsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BoardPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  chatRooms<T extends Prisma.User$chatRoomsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$chatRoomsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ChatRoomPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -869,6 +1033,8 @@ export interface UserFieldRefs {
   readonly id: Prisma.FieldRef<"User", 'Int'>
   readonly username: Prisma.FieldRef<"User", 'String'>
   readonly password: Prisma.FieldRef<"User", 'String'>
+  readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
 }
     
 
@@ -1262,9 +1428,9 @@ export type UserDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
 }
 
 /**
- * User.board
+ * User.boards
  */
-export type User$boardArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type User$boardsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
    * Select specific fields to fetch from the Board
    */
@@ -1283,6 +1449,30 @@ export type User$boardArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs
   take?: number
   skip?: number
   distinct?: Prisma.BoardScalarFieldEnum | Prisma.BoardScalarFieldEnum[]
+}
+
+/**
+ * User.chatRooms
+ */
+export type User$chatRoomsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ChatRoom
+   */
+  select?: Prisma.ChatRoomSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ChatRoom
+   */
+  omit?: Prisma.ChatRoomOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ChatRoomInclude<ExtArgs> | null
+  where?: Prisma.ChatRoomWhereInput
+  orderBy?: Prisma.ChatRoomOrderByWithRelationInput | Prisma.ChatRoomOrderByWithRelationInput[]
+  cursor?: Prisma.ChatRoomWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ChatRoomScalarFieldEnum | Prisma.ChatRoomScalarFieldEnum[]
 }
 
 /**

@@ -16,6 +16,7 @@ import type { User } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { AgentService } from '../agent/agent.service';
 
 type SocketUser = {
     id: number;
@@ -48,6 +49,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     constructor(
         private readonly chatService: ChatService,
+        private readonly agentService: AgentService,
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService,
         private readonly prisma: PrismaService
@@ -57,28 +59,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         try {
             const token = this.extractToken(client);
-            console.log(`1`)
+
             if(!token) {
                 this.logger.warn(`Socket rejected. Missing token: ${client.id}`);
                 client.disconnect();
                 return;
             }
-            console.log(token)
+
             const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
                 secret: this.configService.getOrThrow<string>('JWT_SECRET'),
             });
-            console.log(payload)
+
             const user = await this.prisma.user.findUnique({
                 where: { id: payload.sub },
                 select: { id: true, username: true },
             });
-            console.log(`4`)
+
             if(!user) {
                 this.logger.warn(`Socket rejected. User not found: ${client.id}`);
                 client.disconnect();
                 return;
             }
-            console.log(`5`)
+
             client.data.user = user;
 
             this.logger.log(`Socket connected: ${client.id}, User: ${user.username}`);
@@ -111,9 +113,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
 
         try {
-            await this.chatService.assertRoomOwner(payload.roomId, user.id);
-
             const roomName = this.getRoomName(payload.roomId);
+            
+            await this.chatService.assertRoomOwner(payload.roomId, user.id);
 
             await client.join(roomName);
 
@@ -145,17 +147,41 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
 
         try {
+
+            const roomName = this.getRoomName(payload.roomId);
+
             const userMessage = await this.chatService.saveUserMessage(
                 payload.roomId,
                 user,
                 payload.content,
             );
 
-            const roomName = this.getRoomName(payload.roomId);
 
             this.server.to(roomName).emit('message_created', userMessage);
 
-            const assistantContent = `임시 AI 응답: ${payload.content} 라고 말했네요.`;
+            const recentMessages = await this.chatService.getRecentMessages(
+                payload.roomId,
+                user.id,
+            );
+
+            this.server.to(roomName).emit('assistant_message_started', {
+                roomId: payload.roomId,
+            })
+
+            let assistantContent = '';
+
+            for await (const delta of this.agentService.streamReply(recentMessages)) {
+                assistantContent += delta
+
+                this.server.to(roomName).emit('assistant_message_delta', {
+                    roomId: payload.roomId,
+                    delta,
+                });
+            }
+
+            if(!assistantContent.trim()) {
+                throw new Error('AI 응답이 비어 있습니다.');
+            }
 
             const assistantMessage = await this.chatService.saveAssistantMessage(
                 payload.roomId,
@@ -163,8 +189,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 assistantContent,
             );
 
-            this.server.to(roomName).emit('message_created', assistantMessage);
-            
+            this.server.to(roomName).emit('assistant_message_completed', {
+                roomId: payload.roomId,
+                message: assistantMessage,
+            });            
             
         } catch (error) {
             client.emit('chat_error', {

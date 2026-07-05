@@ -110,4 +110,20 @@ export class ChatService {
 
         return message;
     }
+
+    async getRecentMessages(roomId: number, userId: number) {
+        await this.assertRoomOwner(roomId, userId);
+
+        const messages = await this.prisma.chatMessage.findMany({
+            where: {
+                roomId,
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+            take: 20,
+        });
+
+        return messages.reverse();
+    }
 }

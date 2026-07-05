@@ -5,6 +5,9 @@ import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { ChatModule } from './chat/chat.module';
+import { AgentController } from './agent/agent.controller';
+import { AgentService } from './agent/agent.service';
+import { AgentModule } from './agent/agent.module';
 
 @Module({
   imports: [
@@ -15,8 +18,9 @@ import { ChatModule } from './chat/chat.module';
     AuthModule,
     BoardsModule,
     ChatModule,
+    AgentModule,
   ],
-  controllers: [],
-  providers: [],
+  controllers: [AgentController],
+  providers: [AgentService],
 }) 
 export class AppModule {}

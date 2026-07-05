@@ -2,14 +2,13 @@ import type { ChatMessageResponse, ChatRoomResponse, CreateChatRoomRequest } fro
 import { http } from "../../api/http";
 
 export function createChatRoom(data: CreateChatRoomRequest){
-    console.log('createChatRoom', data);
     return http<ChatRoomResponse>('/chat/rooms', {
         method: 'POST',
         body: data,
     });
 }
 
-export function getChatRoom() {
+export function getChatRooms() {
     return http<ChatRoomResponse[]>('/chat/rooms');
 }
 

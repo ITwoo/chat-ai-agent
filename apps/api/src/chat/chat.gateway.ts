@@ -46,6 +46,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     server!: Server;
 
     private readonly logger = new Logger(ChatGateway.name);
+    
+    private readonly processingRooms = new Set<string>();
+    private readonly cancelledRooms = new Set<string>();
+    private readonly abortControllers = new Map<string, AbortController>();
 
     constructor(
         private readonly chatService: ChatService,
@@ -146,9 +150,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             return;
         }
 
-        try {
+        const processingKey = `${user.id}:${payload.roomId}`;
 
-            const roomName = this.getRoomName(payload.roomId);
+        if(this.processingRooms.has(processingKey)) {
+            client.emit('chat_error', {
+                message: '이미 이 채팅방에서 AI가 응답 중입니다.',
+            });
+            return;
+        }
+
+        this.processingRooms.add(processingKey);
+
+        const roomName = this.getRoomName(payload.roomId);
+
+        let userMessageId: number | null = null;
+
+        try {
 
             const userMessage = await this.chatService.saveUserMessage(
                 payload.roomId,
@@ -156,6 +173,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 payload.content,
             );
 
+            userMessageId = userMessage.id;
+            
             this.server.to(roomName).emit('message_created', userMessage);
 
             const updatedRoom = await this.chatService.updateRoomTitleFromFirstMessage(
@@ -176,14 +195,50 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             })
 
             let assistantContent = '';
+            let isCancelled = false;
 
-            for await (const delta of this.agentService.streamReply(recentMessages)) {
+            const abortController = new AbortController();
+            this.abortControllers.set(processingKey, abortController)
+
+            for await (const delta of this.agentService.streamReply(
+                recentMessages, 
+                abortController.signal,
+            )) {
+                if(this.cancelledRooms.has(processingKey)) {
+                    isCancelled = true;
+                    console.log('바로 나가지는거 맞나?')
+                    break;
+                }
+                
                 assistantContent += delta
 
                 this.server.to(roomName).emit('assistant_message_delta', {
                     roomId: payload.roomId,
                     delta,
                 });
+            }
+
+            if(isCancelled) {
+                if(userMessageId) {
+                    const { userMessage, assistantMessage } = await this.chatService.cancelGeneration(
+                        payload.roomId,
+                        user.id,
+                        userMessageId,
+                    );
+
+                    this.server.to(roomName).emit('message_updated', userMessage);
+
+                    this.server.to(roomName).emit('assistant_message_cancelled', {
+                        roomId: payload.roomId,
+                        message: assistantMessage,
+                    });
+                } else {
+                    this.server.to(roomName).emit('assistant_message_cancelled', {
+                        roomId: payload.roomId,
+                    });
+                }
+
+                return;
             }
 
             if(!assistantContent.trim()) {
@@ -202,12 +257,89 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             });            
             
         } catch (error) {
+            if(
+                this.cancelledRooms.has(processingKey) ||
+                this.isAbortError(error)
+            ) {
+                if(userMessageId) {
+                    const { userMessage, assistantMessage } = await this.chatService.cancelGeneration(
+                        payload.roomId,
+                        user.id,
+                        userMessageId,
+                    );
+
+                    this.server.to(roomName).emit('message_updated', userMessage);
+
+                    this.server.to(roomName).emit('assistant_message_cancelled', {
+                        roomId: payload.roomId,
+                        message: assistantMessage,
+                    });
+                } else {
+                    this.server.to(roomName).emit('assistant_message_cancelled', {
+                        roomId: payload.roomId,
+                    });
+                }
+
+                return;
+            }
+            
             client.emit('chat_error', {
                 message:
                     error instanceof Error ? error.message : '메시지 전송에 실패했습니다.',
             });
+        } finally {
+            this.processingRooms.delete(processingKey);
+            this.cancelledRooms.delete(processingKey);
+            this.abortControllers.delete(processingKey);
         }
     }
+
+    @SubscribeMessage('leave_room')
+    async handleLeaveRoom(
+        @ConnectedSocket() client: AuthenticatedSocket,
+        @MessageBody() payload: JoinRoomDto,
+    ) {
+        const roomName = this.getRoomName(payload.roomId);
+
+        await client.leave(roomName);
+
+        client.emit('left_room', {
+            roomId: payload.roomId,
+        });
+
+        this.logger.log(`Client ${client.id} left ${roomName}`);
+    }
+
+    @SubscribeMessage('stop_generation')
+    handleStopGeneration(
+        @ConnectedSocket() client: AuthenticatedSocket,
+        @MessageBody() payload: JoinRoomDto,
+    ) {
+        const user =  client.data.user;
+
+        if(!user){
+            client.emit('chat_error', {
+                message: '인증 정보가 없습니다.',
+            });
+            return;
+        }
+
+        const processingKey = `${user.id}:${payload.roomId}`;
+
+        this.cancelledRooms.add(processingKey);
+
+        const abortController = this.abortControllers.get(processingKey);
+        abortController?.abort();
+
+        const roomName = this.getRoomName(payload.roomId);
+
+        this.server.to(roomName).emit('assistant_message_cancelled', {
+            roomId: payload.roomId,
+        })
+
+        this.logger.log(`Generation stop requested. userId ${user.id}, roomId=${payload.roomId}`)
+    }
+
 
     private extractToken(client: AuthenticatedSocket): string | null {
         const authToken = client.handshake.auth.token;
@@ -227,5 +359,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     private getRoomName(roomId: number) {
         return `chat_room:${roomId}`;
+    }
+
+    private isAbortError(error:  unknown) {
+        if(!(error instanceof Error)) {
+            return false;
+        }
+
+        return (
+            error.name === 'AbortError'  ||
+            error.name === 'ModelAbortError' ||
+            error.message.toLowerCase().includes('abort')
+        );
     }
 }

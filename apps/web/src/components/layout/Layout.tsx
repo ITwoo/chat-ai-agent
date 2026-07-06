@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../features/auth/store/authStore';
 
 export function Layout() {
@@ -9,6 +9,9 @@ export function Layout() {
     const initAuth = useAuthStore((state) => state.initAuth);
     const logout = useAuthStore((state) => state.logout);
     const user = useAuthStore((state) => state.user);
+
+    const location = useLocation();
+    const isChatPage = location.pathname.startsWith('/chat');
 
     useEffect(() => {
         initAuth();
@@ -40,8 +43,8 @@ export function Layout() {
         ].join(' ');
 
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-900">
-            <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/80 backdrop-blur">
+        <div className="flex h-screen flex-col overflow-hidden bg-gray-50 text-gray-900">
+            <header className="shrink-0 border-b border-gray-200 bg-white/80 backdrop-blur">
                 <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
                     <div className="flex items-center gap-8">
                         <Link to="/" className="flex items-center gap-2">
@@ -105,7 +108,13 @@ export function Layout() {
                 </div>
             </header>
 
-            <main className="mx-auto max-w-5xl px-6 py-10">
+            <main
+                className={
+                    isChatPage
+                        ? 'min-h-0 flex-1 overflow-hidden'
+                        : 'mx-auto min-h-0 w-full max-w-5xl flex-1 overflow-y-auto px-6 py-10'
+                }
+            >
                 <Outlet />
             </main>
         </div>

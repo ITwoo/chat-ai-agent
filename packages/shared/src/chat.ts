@@ -7,6 +7,13 @@ export const ChatMessageRole = {
 export type ChatMessageRole =
   (typeof ChatMessageRole)[keyof typeof ChatMessageRole];
 
+export const ChatMessageStatus = {
+    COMPLETED: 'COMPLETED',
+    CANCELLED: 'CANCELLED',
+    FAILED: 'FAILED',
+} as const;
+
+export type ChatMessageStatus = (typeof ChatMessageStatus)[keyof typeof ChatMessageStatus];
 export interface ChatRoomResponse {
   id: number;
   title: string;
@@ -20,6 +27,7 @@ export interface ChatMessageResponse {
   roomId: number;
   role: ChatMessageRole;
   content: string;
+  status: ChatMessageStatus;
   createdAt: string;
 }
 

@@ -24,3 +24,12 @@ export const ChatMessageRole = {
 } as const
 
 export type ChatMessageRole = (typeof ChatMessageRole)[keyof typeof ChatMessageRole]
+
+
+export const ChatMessageStatus = {
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  FAILED: 'FAILED'
+} as const
+
+export type ChatMessageStatus = (typeof ChatMessageStatus)[keyof typeof ChatMessageStatus]

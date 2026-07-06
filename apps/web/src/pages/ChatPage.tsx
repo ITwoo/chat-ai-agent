@@ -1,7 +1,7 @@
 import type { ChatMessageResponse, ChatRoomResponse } from "@repo/shared";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { connectChatSocket, disconnectChatSocket } from "../features/chat/chatSocket";
-import { createChatRoom, getChatMessages, getChatRooms } from "../features/chat/chatApi";
+import { createChatRoom, deleteChatRoom, getChatMessages, getChatRooms, updateChatRoomTitle } from "../features/chat/chatApi";
 import { ChatRoomSidebar } from "../features/chat/components/ChatRoomSidebar";
 import { ChatMessageList } from "../features/chat/components/ChatMessageList";
 import { ChatInput } from "../features/chat/components/ChatInput";
@@ -13,12 +13,19 @@ export function ChatPage() {
     const [streamingText, setStreamingText] = useState('');
     const [isAssistantStreaming, setIsAssistantStreaming] = useState(false);
     const [content, setContent] = useState('');
+    const [isSending, setIsSending] = useState(false);
+
+    const selectedRoomIdRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        selectedRoomIdRef.current = room?.id ?? null;
+    }, [room]);
 
     useEffect(() => {
         const socket = connectChatSocket();
 
         const handleAnyEvent = (eventName: string, ...args: unknown[]) => {
-            console.log('[socket event]', eventName, args);
+            // console.log('[socket event]', eventName, args);
         };
 
         const handleConnect = () => {
@@ -30,19 +37,33 @@ export function ChatPage() {
         };
 
         const handleMessageCreated = (message: ChatMessageResponse) => {
+
+            if (message.roomId !== selectedRoomIdRef.current) {
+                return;
+            }
+
             console.log('[message_created]', message);
 
             setMessages((prev) => [...prev, message]);
         };
 
         const handleAssistantStarted = (data: { roomId: number }) => {
+            if (data.roomId !== selectedRoomIdRef.current) {
+                return;
+            }
+
             console.log('[assistant_message_started]', data);
 
+            setIsSending(false);
             setIsAssistantStreaming(true);
             setStreamingText('');
         };
 
         const handleAssistantDelta = (data: { roomId: number; delta: string }) => {
+            if (data.roomId !== selectedRoomIdRef.current) {
+                return;
+            }
+
             console.log('[assistant_message_delta]', data);
 
             setStreamingText((prev) => prev + data.delta);
@@ -52,43 +73,88 @@ export function ChatPage() {
             roomId: number;
             message: ChatMessageResponse;
         }) => {
+            if (data.roomId !== selectedRoomIdRef.current) {
+                loadRooms();
+                return;
+            }
+
             console.log('[assistant_message_completed]', data);
 
+            setIsSending(false);
             setIsAssistantStreaming(false);
             setStreamingText('');
 
             setMessages((prev) => [...prev, data.message]);
+
+            loadRooms();
         };
 
         const handleChatError = (error: { message: string }) => {
             console.error('[chat_error]', error);
+
+            setIsSending(false);
+            setIsAssistantStreaming(false);
+            setStreamingText('');
+
             alert(error.message);
         };
 
         const handleChatRoomUpdated = (updatedRoom: ChatRoomResponse) => {
             console.log('[chat_room_updated]', updatedRoom);
 
-            setRooms((prev) =>
-                prev.map((room) =>
-                    room.id === updatedRoom.id ? updatedRoom : room,
-                ),
-            );
+            setRooms((prev) => [
+                updatedRoom,
+                ...prev.filter((room) => room.id !== updatedRoom.id),
+            ]);
 
             setRoom((prev) =>
                 prev?.id === updatedRoom.id ? updatedRoom : prev,
             );
         }
 
+        const handleAssistantCancelled = (data: { roomId: number; message?: ChatMessageResponse; }) => {
+            if (data.roomId !== selectedRoomIdRef.current) {
+                return;
+            }
+
+            console.log('[assistant_message_cancelled]', data);
+
+            setIsSending(false);
+            setIsAssistantStreaming(false);
+            setStreamingText('');
+
+            const cancelledMessage = data.message;
+
+            if (!cancelledMessage) {
+                return;
+            }
+
+            setMessages((prev) => [...prev, cancelledMessage]);
+        }
+
+        const handleMessageUpdated = (updatedMessage: ChatMessageResponse) => {
+            if (updatedMessage.roomId !== selectedRoomIdRef.current) {
+                return;
+            }
+
+            setMessages((prev) =>
+                prev.map((message) =>
+                    message.id === updatedMessage.id ? updatedMessage : message
+                )
+            );
+        }
 
         socket.onAny(handleAnyEvent);
 
         socket.on('connect', handleConnect);
         socket.on('disconnect', handleDisconnect);
         socket.on('message_created', handleMessageCreated);
+        socket.on('message_updated', handleMessageUpdated);
         socket.on('chat_room_updated', handleChatRoomUpdated)
         socket.on('assistant_message_started', handleAssistantStarted);
         socket.on('assistant_message_delta', handleAssistantDelta);
         socket.on('assistant_message_completed', handleAssistantCompleted);
+        socket.on('assistant_message_cancelled', handleAssistantCancelled);
         socket.on('chat_error', handleChatError);
 
         return () => {
@@ -97,10 +163,12 @@ export function ChatPage() {
             socket.off('connect', handleConnect);
             socket.off('disconnect', handleDisconnect);
             socket.off('message_created', handleMessageCreated);
+            socket.off('message_updated', handleMessageUpdated);
             socket.off('chat_room_updated', handleChatRoomUpdated)
             socket.off('assistant_message_started', handleAssistantStarted);
             socket.off('assistant_message_delta', handleAssistantDelta);
             socket.off('assistant_message_completed', handleAssistantCompleted);
+            socket.off('assistant_message_cancelled', handleAssistantCancelled);
             socket.off('chat_error', handleChatError);
 
             disconnectChatSocket();
@@ -126,6 +194,10 @@ export function ChatPage() {
             return;
         }
 
+        if (isSending || isAssistantStreaming) {
+            return;
+        }
+
         if (!content.trim()) {
             alert('메시지를 입력해주세요.');
             return;
@@ -138,9 +210,13 @@ export function ChatPage() {
             content: content,
         };
 
+        setIsSending(true);
+
         console.log('[socket emit] send_message', payload);
 
         socket.emit('send_message', payload);
+
+        moveRoomToTop(room.id);
 
         setContent('');
     };
@@ -153,7 +229,17 @@ export function ChatPage() {
     const enterRoom = async (targetRoom: ChatRoomResponse) => {
         const socket = connectChatSocket();
 
+        const previousRoomId = selectedRoomIdRef.current;
+
+        if (previousRoomId && previousRoomId !== targetRoom.id) {
+            socket.emit('leave_room', {
+                roomId: previousRoomId,
+            });
+        }
+
         setRoom(targetRoom);
+        selectedRoomIdRef.current = targetRoom.id;
+
         setStreamingText('');
         setIsAssistantStreaming(false);
 
@@ -165,17 +251,92 @@ export function ChatPage() {
         });
     };
 
+    const handleDeleteRoom = async (targetRoom: ChatRoomResponse) => {
+        const ok = window.confirm(`"${targetRoom.title}" 채팅방을 삭제할까요?`);
+
+        if (!ok) {
+            return;
+        }
+
+        await deleteChatRoom(targetRoom.id);
+
+        setRooms((prev) => prev.filter((room) => room.id !== targetRoom.id));
+
+        if (room?.id === targetRoom.id) {
+            setRoom(null);
+            setMessages([]);
+            setStreamingText('');
+            setIsAssistantStreaming(false);
+        }
+    };
+
+    const handleEditRoom = async (targetRoom: ChatRoomResponse) => {
+        const title = window.prompt('채팅방 제목을 입력하세요.', targetRoom.title);
+
+        if (title === null) {
+            return;
+        }
+
+        if (!title.trim()) {
+            alert('제목을 입력해주세요.');
+            return;
+        }
+
+        const updatedRoom = await updateChatRoomTitle(targetRoom.id, title.trim());
+
+        setRooms(
+            (prev) => prev.map((room) => (room.id === updatedRoom.id ? updatedRoom : room)),
+        );
+
+        setRoom((prev) => (prev?.id === updatedRoom.id ? updatedRoom : prev));
+
+    }
+
+    const moveRoomToTop = (targetRoomId: number) => {
+        setRooms((prev) => {
+            const targetRoom = prev.find((room) => room.id === targetRoomId);
+
+            if (!targetRoom) {
+                return prev;
+            }
+
+            return [
+                targetRoom,
+                ...prev.filter((room) => room.id !== targetRoomId),
+            ];
+        });
+    };
+
+    const handleStopGeneration = () => {
+        if (!room) {
+            return;
+        }
+
+        const socket = connectChatSocket();
+
+        socket.emit('stop_generation', {
+            roomId: room.id,
+        });
+
+        setIsSending(false);
+        setIsAssistantStreaming(false);
+        setStreamingText('');
+
+    }
+
     return (
-        <div className="mx-auto grid max-w-6xl grid-cols-[280px_1fr] gap-6 px-6 py-10">
+        <div className="mx-auto grid h-[calc(100vh-96px)] max-w-6xl grid-cols-[280px_1fr] gap-6 px-6 py-6">
             <ChatRoomSidebar
                 rooms={rooms}
                 selectedRoomId={room?.id}
                 onCreateRoom={handleCreateRoom}
                 onEnterRoom={enterRoom}
+                onDeleteRoom={handleDeleteRoom}
+                onEditRoom={handleEditRoom}
             />
 
-            <main className="flex min-h-[720px] flex-col rounded-2xl border bg-white shadow-sm">
-                <header className="border-b px-6 py-4">
+            <main className="flex min-h-0 flex-col overflow-hidden rounded-2xl border bg-white shadow-sm">
+                <header className="shrink-0 border-b px-6 py-4">
                     {room ? (
                         <>
                             <h1 className="text-xl font-bold">{room.title}</h1>
@@ -200,9 +361,11 @@ export function ChatPage() {
 
                 <ChatInput
                     value={content}
-                    disabled={!room || isAssistantStreaming}
+                    disabled={!room || isSending || isAssistantStreaming}
+                    isAssistantStreaming={isAssistantStreaming}
                     onChange={setContent}
                     onSend={handleSendMessage}
+                    onStop={handleStopGeneration}
                 />
             </main>
         </div>

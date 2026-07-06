@@ -1,9 +1,9 @@
-export const Board_Status = {
+export const BoardStatus = {
   PUBLIC: 'PUBLIC',
   PRIVATE: 'PRIVATE',
 } as const;
 
-export type BoardStatus = (typeof Board_Status)[keyof typeof Board_Status];
+export type BoardStatus = (typeof BoardStatus)[keyof typeof BoardStatus];
 
 export interface Board {
   id: number;

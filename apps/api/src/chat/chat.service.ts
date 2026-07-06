@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChatMessageRole } from '../generated/prisma/client';
+import { ChatMessageStatus } from '@repo/shared';
 
 type ChatUser = {
     id: number;
@@ -117,6 +118,7 @@ export class ChatService {
         const messages = await this.prisma.chatMessage.findMany({
             where: {
                 roomId,
+                status: ChatMessageStatus.COMPLETED,
             },
             orderBy: {
                 createdAt: 'desc',
@@ -146,6 +148,71 @@ export class ChatService {
             },
         });
     }
+
+    async deleteRoom(roomId: number,  userId: number): Promise<void> {
+        await this.assertRoomOwner(roomId, userId);
+
+        await this.prisma.chatRoom.delete({
+            where: {
+                id: roomId,
+            }
+        })
+    }
+
+    async updateRoomTitle(roomId: number, userId: number, title: string) {
+        await this.assertRoomOwner(roomId, userId);
+
+        return  this.prisma.chatRoom.update({
+            where: {
+                id: roomId,
+            },
+            data: {
+                title: title.trim(),
+                updatedAt: new Date(),
+            }
+        })
+    }
+
+    async cancelGeneration(
+        roomId: number,
+        userId: number,
+        userMessageId: number,
+    ) {
+        await this.assertRoomOwner(roomId, userId);
+
+        const userMessage = await this.prisma.chatMessage.update({
+            where: {
+                id: userMessageId,
+            },
+            data: {
+                status: ChatMessageStatus.CANCELLED,
+            },
+        });
+
+        const assistantMessage = await this.prisma.chatMessage.create({
+            data: {
+                roomId,
+                role: ChatMessageRole.ASSISTANT,
+                content: '[응답이 중단되었습니다.]',
+                status: ChatMessageStatus.CANCELLED,
+            },
+        });
+
+        await this.prisma.chatRoom.update({
+            where: {
+                id: roomId,
+            },
+            data: {
+                updatedAt: new Date(),
+            },
+        });
+
+        return {
+            userMessage,
+            assistantMessage,
+        };
+    }
+
 
     private createRoomTitle(content: string){
         const normalized = content.replace(/\s+/g, ' ').trim();

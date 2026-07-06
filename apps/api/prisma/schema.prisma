@@ -19,6 +19,12 @@ enum ChatMessageRole {
   SYSTEM
 }
 
+enum  ChatMessageStatus {
+    COMPLETED
+    CANCELLED
+    FAILED
+}
+
 model User {
   id       Int    @id @default(autoincrement())
   username String @unique @db.VarChar(50)
@@ -73,10 +79,12 @@ model ChatMessage {
 
   role    ChatMessageRole
   content String          @db.Text
+  status  ChatMessageStatus @default(COMPLETED)
 
   createdAt DateTime @default(now())
 
   @@index([roomId])
   @@index([roomId, createdAt])
   @@index([createdAt])
+  @@index([status])
 }

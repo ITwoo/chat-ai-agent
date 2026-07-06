@@ -73,7 +73,7 @@ export class AgentService {
         return this.messageContentToString(lastMessage.content)
     }
 
-    async *streamReply(messages: ChatMessage[]): AsyncGenerator<string> {
+    async *streamReply(messages: ChatMessage[], signal?: AbortSignal): AsyncGenerator<string> {
         const langchainMessages = this.toLangChainMessages(messages);
 
         const stream = await this.graph.stream(
@@ -82,6 +82,7 @@ export class AgentService {
             },
             {
                 streamMode: 'messages',
+                signal,
             }
         );
 

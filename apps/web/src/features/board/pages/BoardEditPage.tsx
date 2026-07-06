@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { SubmitEvent } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { boardApi } from '../api/boardApi';
-import { Board_Status, type BoardStatus } from '@repo/shared';
+import { BoardStatus } from '@repo/shared';
 
 export function BoardEditPage() {
     const navigate = useNavigate();
@@ -12,7 +12,7 @@ export function BoardEditPage() {
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [status, setStatus] = useState<BoardStatus>(Board_Status.PUBLIC);
+    const [status, setStatus] = useState<BoardStatus>(BoardStatus.PUBLIC);
 
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);

@@ -1,18 +1,22 @@
 type ChatInputProps = {
     value: string;
     disabled: boolean;
+    isAssistantStreaming: boolean;
     onChange: (value: string) => void;
     onSend: () => void;
+    onStop: () => void;
 };
 
 export function ChatInput({
     value,
     disabled,
+    isAssistantStreaming,
     onChange,
     onSend,
+    onStop,
 }: ChatInputProps) {
     return (
-        <footer className="border-t bg-white px-6 py-4">
+        <footer className="shrink-0 border-t bg-white px-6 py-4">
             <div className="flex gap-3">
                 <textarea
                     value={value}
@@ -32,13 +36,24 @@ export function ChatInput({
                     }
                 />
 
-                <button
-                    onClick={onSend}
-                    disabled={disabled}
-                    className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-gray-300"
-                >
-                    전송
-                </button>
+                {isAssistantStreaming ? (
+                    <button
+                        type="button"
+                        onClick={onStop}
+                        className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700"
+                    >
+                        중지
+                    </button>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={onSend}
+                        disabled={disabled}
+                        className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-gray-300"
+                    >
+                        전송
+                    </button>
+                )}
             </div>
         </footer>
     );

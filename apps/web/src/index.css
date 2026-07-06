@@ -3,16 +3,16 @@
 html,
 body,
 #root {
-  min-height: 100%;
+    min-height: 100%;
 }
 
 body {
-  margin: 0;
-  background: #f9fafb;
+    margin: 0;
+    background: #f9fafb;
 }
 
 button,
 input,
 textarea {
-  font: inherit;
+    font: inherit;
 }

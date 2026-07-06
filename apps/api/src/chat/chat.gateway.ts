@@ -156,8 +156,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 payload.content,
             );
 
-
             this.server.to(roomName).emit('message_created', userMessage);
+
+            const updatedRoom = await this.chatService.updateRoomTitleFromFirstMessage(
+                payload.roomId,
+                user.id,
+                payload.content,
+            );
+
+            this.server.to(roomName).emit('chat_room_updated', updatedRoom)
 
             const recentMessages = await this.chatService.getRecentMessages(
                 payload.roomId,

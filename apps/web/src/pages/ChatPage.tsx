@@ -6,7 +6,7 @@ import { ChatRoomSidebar } from "../features/chat/components/ChatRoomSidebar";
 import { ChatMessageList } from "../features/chat/components/ChatMessageList";
 import { ChatInput } from "../features/chat/components/ChatInput";
 
-export function ChatTestPage() {
+export function ChatPage() {
     const [rooms, setRooms] = useState<ChatRoomResponse[]>([]);
     const [room, setRoom] = useState<ChatRoomResponse | null>(null);
     const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
@@ -65,11 +65,27 @@ export function ChatTestPage() {
             alert(error.message);
         };
 
+        const handleChatRoomUpdated = (updatedRoom: ChatRoomResponse) => {
+            console.log('[chat_room_updated]', updatedRoom);
+
+            setRooms((prev) =>
+                prev.map((room) =>
+                    room.id === updatedRoom.id ? updatedRoom : room,
+                ),
+            );
+
+            setRoom((prev) =>
+                prev?.id === updatedRoom.id ? updatedRoom : prev,
+            );
+        }
+
+
         socket.onAny(handleAnyEvent);
 
         socket.on('connect', handleConnect);
         socket.on('disconnect', handleDisconnect);
         socket.on('message_created', handleMessageCreated);
+        socket.on('chat_room_updated', handleChatRoomUpdated)
         socket.on('assistant_message_started', handleAssistantStarted);
         socket.on('assistant_message_delta', handleAssistantDelta);
         socket.on('assistant_message_completed', handleAssistantCompleted);
@@ -81,6 +97,7 @@ export function ChatTestPage() {
             socket.off('connect', handleConnect);
             socket.off('disconnect', handleDisconnect);
             socket.off('message_created', handleMessageCreated);
+            socket.off('chat_room_updated', handleChatRoomUpdated)
             socket.off('assistant_message_started', handleAssistantStarted);
             socket.off('assistant_message_delta', handleAssistantDelta);
             socket.off('assistant_message_completed', handleAssistantCompleted);
@@ -166,7 +183,7 @@ export function ChatTestPage() {
                         </>
                     ) : (
                         <>
-                            <h1 className="text-xl font-bold">채팅 테스트</h1>
+                            <h1 className="text-xl font-bold">AI 채팅</h1>
                             <p className="mt-1 text-sm text-gray-500">
                                 왼쪽에서 채팅방을 선택하거나 새 채팅을 만들어주세요.
                             </p>
@@ -174,7 +191,7 @@ export function ChatTestPage() {
                     )}
                 </header>
 
-                <ChatMessageList 
+                <ChatMessageList
                     room={room}
                     messages={messages}
                     isAssistantStreaming={isAssistantStreaming}

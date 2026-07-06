@@ -126,4 +126,38 @@ export class ChatService {
 
         return messages.reverse();
     }
+
+    async updateRoomTitleFromFirstMessage(roomId: number, userId: number, content: string) {
+        const room = await this.assertRoomOwner(roomId, userId);
+
+        if(room.title !== '새 채팅') {
+            return room;
+        }
+
+        const title = this.createRoomTitle(content);
+
+        return this.prisma.chatRoom.update({
+            where: {
+                id: roomId,
+            },
+            data: {
+                title,
+                updatedAt: new Date(),
+            },
+        });
+    }
+
+    private createRoomTitle(content: string){
+        const normalized = content.replace(/\s+/g, ' ').trim();
+
+        if(!normalized) {
+            return '새 채팅';
+        }
+
+        if(normalized.length <= 30) {
+            return normalized;
+        }
+
+        return `${normalized.slice(0, 30)}...`;
+    }
 }

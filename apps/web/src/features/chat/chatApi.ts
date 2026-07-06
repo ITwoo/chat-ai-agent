@@ -1,7 +1,7 @@
 import type { ChatMessageResponse, ChatRoomResponse, CreateChatRoomRequest } from "@repo/shared";
 import { http } from "../../api/http";
 
-export function createChatRoom(data: CreateChatRoomRequest){
+export function createChatRoom(data: CreateChatRoomRequest) {
     return http<ChatRoomResponse>('/chat/rooms', {
         method: 'POST',
         body: data,

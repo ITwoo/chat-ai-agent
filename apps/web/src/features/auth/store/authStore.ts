@@ -22,7 +22,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     initAuth: async () => {
         const token = getAccessToken();
 
-        if(!token) {
+        if (!token) {
             set({
                 user: null,
                 authStatus: 'unauthenticated',
@@ -48,7 +48,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     login: async (data: LoginRequest) => {
         const response = await authApi.signIn(data);
-        
+
         saveAccessToken(response.accessToken);
 
         const user = await authApi.getMe();
@@ -61,7 +61,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     logout: () => {
         removeAccessToken();
-        
+
         set({
             user: null,
             authStatus: 'unauthenticated',

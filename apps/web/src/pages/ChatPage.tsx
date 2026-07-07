@@ -16,6 +16,7 @@ export function ChatPage() {
     const [isSending, setIsSending] = useState(false);
 
     const selectedRoomIdRef = useRef<number | null>(null);
+    const loadMessagesRequestIdRef = useRef(0);
 
     useEffect(() => {
         selectedRoomIdRef.current = room?.id ?? null;
@@ -43,8 +44,8 @@ export function ChatPage() {
             }
 
             console.log('[message_created]', message);
-
-            setMessages((prev) => [...prev, message]);
+            
+            appendMessage(message);
         };
 
         const handleAssistantStarted = (data: { roomId: number }) => {
@@ -84,7 +85,7 @@ export function ChatPage() {
             setIsAssistantStreaming(false);
             setStreamingText('');
 
-            setMessages((prev) => [...prev, data.message]);
+            appendMessage(data.message);
 
             loadRooms();
         };
@@ -129,7 +130,7 @@ export function ChatPage() {
                 return;
             }
 
-            setMessages((prev) => [...prev, cancelledMessage]);
+            appendMessage(cancelledMessage);
         }
 
         const handleMessageUpdated = (updatedMessage: ChatMessageResponse) => {
@@ -137,12 +138,23 @@ export function ChatPage() {
                 return;
             }
 
-            setMessages((prev) =>
-                prev.map((message) =>
-                    message.id === updatedMessage.id ? updatedMessage : message
-                )
-            );
+            upsertMessage(updatedMessage);            
         }
+
+        const handleAssistantFailed =(data:  {
+            roomId:number;
+            message:  ChatMessageResponse
+        }) => {
+            if(data.roomId!== selectedRoomIdRef.current){
+                return;
+            }
+
+            setIsSending(false);
+            setIsAssistantStreaming(false);
+            setStreamingText('');
+
+            appendMessage(data.message);
+        };
 
         socket.onAny(handleAnyEvent);
 
@@ -155,6 +167,7 @@ export function ChatPage() {
         socket.on('assistant_message_delta', handleAssistantDelta);
         socket.on('assistant_message_completed', handleAssistantCompleted);
         socket.on('assistant_message_cancelled', handleAssistantCancelled);
+        socket.on('assistant_message_failed', handleAssistantFailed);
         socket.on('chat_error', handleChatError);
 
         return () => {
@@ -169,6 +182,7 @@ export function ChatPage() {
             socket.off('assistant_message_delta', handleAssistantDelta);
             socket.off('assistant_message_completed', handleAssistantCompleted);
             socket.off('assistant_message_cancelled', handleAssistantCancelled);
+            socket.off('assistant_message_failed', handleAssistantFailed);
             socket.off('chat_error', handleChatError);
 
             disconnectChatSocket();
@@ -240,10 +254,24 @@ export function ChatPage() {
         setRoom(targetRoom);
         selectedRoomIdRef.current = targetRoom.id;
 
+        setMessages([]);
         setStreamingText('');
+        setIsSending(false);
         setIsAssistantStreaming(false);
 
+        const requestId = loadMessagesRequestIdRef.current + 1;
+        loadMessagesRequestIdRef.current = requestId;
+
         const messages = await getChatMessages(targetRoom.id);
+
+        if(requestId !== loadMessagesRequestIdRef.current) {
+            return;
+        }
+
+        if(selectedRoomIdRef.current !== targetRoom.id) {
+            return;
+        }
+
         setMessages(messages);
 
         socket.emit('join_room', {
@@ -258,14 +286,36 @@ export function ChatPage() {
             return;
         }
 
+        const socket = connectChatSocket();
+
+        const isCurrentRoom = room?.id === targetRoom.id;
+
+        if(isCurrentRoom) {
+            if(isAssistantStreaming || isSending) {
+                socket.emit('stop_generation', {
+                    roomId: targetRoom.id,
+                });
+            }
+
+            socket.emit('leave_room', {
+                roomId: targetRoom.id,
+            });
+        }
+
         await deleteChatRoom(targetRoom.id);
 
         setRooms((prev) => prev.filter((room) => room.id !== targetRoom.id));
 
-        if (room?.id === targetRoom.id) {
+        if (isCurrentRoom) {
+            loadMessagesRequestIdRef.current +=1;
+            
             setRoom(null);
+            selectedRoomIdRef.current = null;
+
             setMessages([]);
+            setContent('');
             setStreamingText('');
+            setIsSending(false);
             setIsAssistantStreaming(false);
         }
     };
@@ -322,6 +372,30 @@ export function ChatPage() {
         setIsAssistantStreaming(false);
         setStreamingText('');
 
+    }
+
+    const appendMessage = (message: ChatMessageResponse) => {
+        setMessages((prev) => {
+            const exists = prev.some((prevMessage) => prevMessage.id === message.id);
+
+            if(exists) {
+                return prev;
+            }
+
+            return [...prev, message];
+        });
+    };
+
+    const upsertMessage = (message: ChatMessageResponse) => {
+        setMessages((prev) => {
+            const exists = prev.some((prevMessage) => prevMessage.id === message.id);
+
+            if(!exists) {
+                return [...prev, message];
+            }
+
+            return prev.map((prevMessage) => prevMessage.id === message.id ? message: prevMessage);
+        })
     }
 
     return (

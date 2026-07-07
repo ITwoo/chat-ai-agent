@@ -213,6 +213,46 @@ export class ChatService {
         };
     }
 
+    async failGeneration(
+        roomId: number,
+        userId: number,
+        userMessageId: number,
+    ) {
+        await this.assertRoomOwner(roomId, userId);
+
+        const userMessage = await this.prisma.chatMessage.update({
+            where : {
+                id: userMessageId,
+            },
+            data: {
+                status: ChatMessageStatus.FAILED,
+            },
+        });
+
+        const assistantMessage = await this.prisma.chatMessage.create({
+            data: {
+                roomId,
+                role: ChatMessageRole.ASSISTANT,
+                content: '[응답 생성에 실패했습니다.]',
+                status: ChatMessageStatus.FAILED,
+            },
+        });
+
+        await this.prisma.chatRoom.update({
+            where: {
+                id:  roomId,
+            },
+            data: {
+                updatedAt: new Date(),
+            },
+        });
+
+        return {
+            userMessage,
+            assistantMessage,
+        };
+    }
+
 
     private createRoomTitle(content: string){
         const normalized = content.replace(/\s+/g, ' ').trim();

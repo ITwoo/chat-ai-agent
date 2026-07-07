@@ -283,10 +283,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 return;
             }
             
+            if(userMessageId) {
+                const { userMessage, assistantMessage } = await this.chatService.failGeneration(
+                    payload.roomId,
+                    user.id,
+                    userMessageId,
+                );
+
+                this.server.to(roomName).emit('message_updated', userMessage);
+
+                this.server.to(roomName).emit('assistant_message_failed', {
+                    roomId: payload.roomId,
+                    message:  assistantMessage,
+                });
+
+                return;
+            }
+
             client.emit('chat_error', {
                 message:
                     error instanceof Error ? error.message : '메시지 전송에 실패했습니다.',
             });
+            
         } finally {
             this.processingRooms.delete(processingKey);
             this.cancelledRooms.delete(processingKey);

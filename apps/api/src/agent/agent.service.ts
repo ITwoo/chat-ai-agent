@@ -74,6 +74,7 @@ export class AgentService {
     }
 
     async *streamReply(messages: ChatMessage[], signal?: AbortSignal): AsyncGenerator<string> {
+
         const langchainMessages = this.toLangChainMessages(messages);
 
         const stream = await this.graph.stream(

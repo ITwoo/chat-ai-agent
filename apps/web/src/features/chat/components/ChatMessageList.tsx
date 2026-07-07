@@ -48,6 +48,7 @@ export function ChatMessageList({
             {messages.map((message) => {
                 const isUser = message.role === 'USER';
                 const isCancelled = message.status === 'CANCELLED';
+                const isFailled= message.status === 'FAILED';
 
                 return (
                     <div
@@ -58,7 +59,7 @@ export function ChatMessageList({
                             className={`max-w-[75%] rounded-2xl px-4 py-3 ${isUser
                                     ? 'bg-gray-900 text-white'
                                     : 'border bg-white text-gray-900'
-                                } ${isCancelled ? 'opacity-60' : ''}`}
+                                } ${isCancelled || isFailled ? 'opacity-60' : ''}`}
                         >
                             <p
                                 className={`mb-1 text-xs font-semibold ${isUser ? 'text-gray-300' : 'text-gray-500'
@@ -69,6 +70,11 @@ export function ChatMessageList({
                             {isCancelled && (
                                 <p className="mb-1 text-xs text-red-500">
                                     중단된 메시지
+                                </p>
+                            )}
+                            {isFailled && (
+                                <p className="mb-1 text-xs text-red-500">
+                                    실패한 메시지
                                 </p>
                             )}
                             <p className="whitespace-pre-wrap text-sm leading-6">

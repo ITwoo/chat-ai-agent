@@ -6,6 +6,7 @@ type ChatMessageListProps = {
     messages: ChatMessageResponse[];
     isAssistantStreaming: boolean;
     streamingText: string;
+    isLoading: boolean;
 };
 
 export function ChatMessageList({
@@ -13,6 +14,7 @@ export function ChatMessageList({
     messages,
     isAssistantStreaming,
     streamingText,
+    isLoading,
 }: ChatMessageListProps) {
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -33,6 +35,16 @@ export function ChatMessageList({
         );
     }
 
+    if (isLoading) {
+        return (
+            <section className="min-h-0 flex-1 overflow-y-auto bg-gray-50 px-6 py-6">
+                <div className="flex min-h-full items-center justify-center text-gray-500">
+                    메시지를 불러오는 중...
+                </div>
+            </section>
+        );
+    }
+
     if (messages.length === 0 && !isAssistantStreaming) {
         return (
             <section className="min-h-0 flex-1 overflow-y-auto bg-gray-50 px-6 py-6">
@@ -48,7 +60,7 @@ export function ChatMessageList({
             {messages.map((message) => {
                 const isUser = message.role === 'USER';
                 const isCancelled = message.status === 'CANCELLED';
-                const isFailled= message.status === 'FAILED';
+                const isFailled = message.status === 'FAILED';
 
                 return (
                     <div
@@ -57,8 +69,8 @@ export function ChatMessageList({
                     >
                         <div
                             className={`max-w-[75%] rounded-2xl px-4 py-3 ${isUser
-                                    ? 'bg-gray-900 text-white'
-                                    : 'border bg-white text-gray-900'
+                                ? 'bg-gray-900 text-white'
+                                : 'border bg-white text-gray-900'
                                 } ${isCancelled || isFailled ? 'opacity-60' : ''}`}
                         >
                             <p

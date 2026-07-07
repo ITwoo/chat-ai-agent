@@ -14,6 +14,7 @@ export function ChatPage() {
     const [isAssistantStreaming, setIsAssistantStreaming] = useState(false);
     const [content, setContent] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const [isMessagesLoading, setIsMessagesLoading] = useState(false);
 
     const selectedRoomIdRef = useRef<number | null>(null);
     const loadMessagesRequestIdRef = useRef(0);
@@ -258,25 +259,32 @@ export function ChatPage() {
         setStreamingText('');
         setIsSending(false);
         setIsAssistantStreaming(false);
-
-        const requestId = loadMessagesRequestIdRef.current + 1;
-        loadMessagesRequestIdRef.current = requestId;
-
-        const messages = await getChatMessages(targetRoom.id);
-
-        if(requestId !== loadMessagesRequestIdRef.current) {
-            return;
-        }
-
-        if(selectedRoomIdRef.current !== targetRoom.id) {
-            return;
-        }
-
-        setMessages(messages);
+        setIsMessagesLoading(true);
 
         socket.emit('join_room', {
             roomId: targetRoom.id,
         });
+
+        const requestId = loadMessagesRequestIdRef.current + 1;
+        loadMessagesRequestIdRef.current = requestId;
+
+        try {
+            const messages = await getChatMessages(targetRoom.id);
+
+            if(requestId !== loadMessagesRequestIdRef.current) {
+                return;
+            }
+
+            if(selectedRoomIdRef.current !== targetRoom.id) {
+                return;
+            }
+
+            setMessages(messages);
+        } finally {
+            if(requestId === loadMessagesRequestIdRef.current && selectedRoomIdRef.current === targetRoom.id) {
+                setIsMessagesLoading(false);
+            }   
+        }
     };
 
     const handleDeleteRoom = async (targetRoom: ChatRoomResponse) => {
@@ -317,6 +325,7 @@ export function ChatPage() {
             setStreamingText('');
             setIsSending(false);
             setIsAssistantStreaming(false);
+            setIsMessagesLoading(false);
         }
     };
 
@@ -431,11 +440,12 @@ export function ChatPage() {
                     messages={messages}
                     isAssistantStreaming={isAssistantStreaming}
                     streamingText={streamingText}
+                    isLoading={isMessagesLoading}
                 />
 
                 <ChatInput
                     value={content}
-                    disabled={!room || isSending || isAssistantStreaming}
+                    disabled={!room || isSending || isAssistantStreaming || isMessagesLoading}
                     isAssistantStreaming={isAssistantStreaming}
                     onChange={setContent}
                     onSend={handleSendMessage}

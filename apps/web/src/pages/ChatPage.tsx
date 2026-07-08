@@ -15,6 +15,7 @@ export function ChatPage() {
     const [content, setContent] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
     const selectedRoomIdRef = useRef<number | null>(null);
     const loadMessagesRequestIdRef = useRef(0);
@@ -22,6 +23,20 @@ export function ChatPage() {
     useEffect(() => {
         selectedRoomIdRef.current = room?.id ?? null;
     }, [room]);
+
+    useEffect(() => {
+        if (!errorMessage) {
+            return;
+        }
+
+        const timerId = window.setTimeout(() => {
+            setErrorMessage('');
+        }, 3000);
+
+        return () => {
+            window.clearTimeout(timerId);
+        };
+    }, [errorMessage]);
 
     useEffect(() => {
         const socket = connectChatSocket();
@@ -35,10 +50,10 @@ export function ChatPage() {
 
             const currentRoomId = selectedRoomIdRef.current;
 
-            if(!currentRoomId) {
+            if (!currentRoomId) {
                 return;
             }
-            
+
             socket.emit('join_room', {
                 roomId: currentRoomId,
             });
@@ -59,7 +74,7 @@ export function ChatPage() {
             }
 
             console.log('[message_created]', message);
-            
+
             appendMessage(message);
         };
 
@@ -112,7 +127,8 @@ export function ChatPage() {
             setIsAssistantStreaming(false);
             setStreamingText('');
 
-            alert(error.message);
+            setErrorMessage(error.message);
+
         };
 
         const handleChatRoomUpdated = (updatedRoom: ChatRoomResponse) => {
@@ -153,14 +169,14 @@ export function ChatPage() {
                 return;
             }
 
-            upsertMessage(updatedMessage);            
+            upsertMessage(updatedMessage);
         }
 
-        const handleAssistantFailed =(data:  {
-            roomId:number;
-            message:  ChatMessageResponse
+        const handleAssistantFailed = (data: {
+            roomId: number;
+            message: ChatMessageResponse
         }) => {
-            if(data.roomId!== selectedRoomIdRef.current){
+            if (data.roomId !== selectedRoomIdRef.current) {
                 return;
             }
 
@@ -219,7 +235,7 @@ export function ChatPage() {
 
     const handleSendMessage = async () => {
         if (!room) {
-            alert('먼저 채팅방을 만들어야 합니다.');
+            setErrorMessage('먼저 채팅방을 만들어야 합니다.');
             return;
         }
 
@@ -228,7 +244,7 @@ export function ChatPage() {
         }
 
         if (!content.trim()) {
-            alert('메시지를 입력해주세요.');
+            setErrorMessage('메시지를 입력해주세요.');
             return;
         }
 
@@ -239,6 +255,7 @@ export function ChatPage() {
             content: content,
         };
 
+        setErrorMessage('');
         setIsSending(true);
 
         console.log('[socket emit] send_message', payload);
@@ -251,19 +268,19 @@ export function ChatPage() {
     };
 
     const handleRetryMessage = (message: ChatMessageResponse) => {
-        if(!room) {
-            alert('먼저 채팅방을 선택해야 합니다.');
+        if (!room) {
+            setErrorMessage('먼저 채팅방을 선택해야 합니다.');
             return;
         }
 
-        if(isSending || isAssistantStreaming || isMessagesLoading) {
+        if (isSending || isAssistantStreaming || isMessagesLoading) {
             return;
         }
 
         const retryContent = message.content.trim();
 
-        if(!retryContent) {
-            alert('재시도할 메시지가 없습니다.');
+        if (!retryContent) {
+            setErrorMessage('재시도할 메시지가 없습니다.');
             return;
         }
 
@@ -274,6 +291,7 @@ export function ChatPage() {
             content: retryContent,
         };
 
+        setErrorMessage('');
         setIsSending(true);
         setStreamingText('');
 
@@ -319,19 +337,19 @@ export function ChatPage() {
         try {
             const messages = await getChatMessages(targetRoom.id);
 
-            if(requestId !== loadMessagesRequestIdRef.current) {
+            if (requestId !== loadMessagesRequestIdRef.current) {
                 return;
             }
 
-            if(selectedRoomIdRef.current !== targetRoom.id) {
+            if (selectedRoomIdRef.current !== targetRoom.id) {
                 return;
             }
 
             setMessages(messages);
         } finally {
-            if(requestId === loadMessagesRequestIdRef.current && selectedRoomIdRef.current === targetRoom.id) {
+            if (requestId === loadMessagesRequestIdRef.current && selectedRoomIdRef.current === targetRoom.id) {
                 setIsMessagesLoading(false);
-            }   
+            }
         }
     };
 
@@ -346,8 +364,8 @@ export function ChatPage() {
 
         const isCurrentRoom = room?.id === targetRoom.id;
 
-        if(isCurrentRoom) {
-            if(isAssistantStreaming || isSending) {
+        if (isCurrentRoom) {
+            if (isAssistantStreaming || isSending) {
                 socket.emit('stop_generation', {
                     roomId: targetRoom.id,
                 });
@@ -363,8 +381,8 @@ export function ChatPage() {
         setRooms((prev) => prev.filter((room) => room.id !== targetRoom.id));
 
         if (isCurrentRoom) {
-            loadMessagesRequestIdRef.current +=1;
-            
+            loadMessagesRequestIdRef.current += 1;
+
             setRoom(null);
             selectedRoomIdRef.current = null;
 
@@ -385,9 +403,12 @@ export function ChatPage() {
         }
 
         if (!title.trim()) {
-            alert('제목을 입력해주세요.');
+            setErrorMessage('제목을 입력해주세요.');
             return;
         }
+
+        setErrorMessage('');
+
 
         const updatedRoom = await updateChatRoomTitle(targetRoom.id, title.trim());
 
@@ -435,7 +456,7 @@ export function ChatPage() {
         setMessages((prev) => {
             const exists = prev.some((prevMessage) => prevMessage.id === message.id);
 
-            if(exists) {
+            if (exists) {
                 return prev;
             }
 
@@ -447,11 +468,11 @@ export function ChatPage() {
         setMessages((prev) => {
             const exists = prev.some((prevMessage) => prevMessage.id === message.id);
 
-            if(!exists) {
+            if (!exists) {
                 return [...prev, message];
             }
 
-            return prev.map((prevMessage) => prevMessage.id === message.id ? message: prevMessage);
+            return prev.map((prevMessage) => prevMessage.id === message.id ? message : prevMessage);
         })
     }
 
@@ -483,6 +504,22 @@ export function ChatPage() {
                     )}
                 </header>
 
+                {errorMessage && (
+                    <div className="shrink-0 px-6 pt-4">
+                        <div className="flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            <p>{errorMessage}</p>
+
+                            <button
+                                type="button"
+                                onClick={() => setErrorMessage('')}
+                                className="shrink-0 text-xs font-semibold text-red-500 hover:text-red-700"
+                            >
+                                닫기
+                            </button>
+                        </div>
+                    </div>
+                )}
+                
                 <ChatMessageList
                     room={room}
                     messages={messages}

@@ -4,8 +4,7 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ChatMessageRole } from '../generated/prisma/client';
-import { ChatMessageStatus } from '@repo/shared';
+import { ChatMessageRole, ChatMessageStatus } from '../generated/prisma/client';
 
 type ChatUser = {
     id: number;
@@ -51,24 +50,13 @@ export class ChatService {
     async saveUserMessage(roomId: number, user: ChatUser, content: string) {
         await this.assertRoomOwner(roomId, user.id);
 
-        const message = await this.prisma.chatMessage.create({
-            data: {
-                roomId,
-                role: ChatMessageRole.USER,
-                content,
-            },
+        const userMessage = await this.createMessage({
+            roomId,
+            role: ChatMessageRole.USER,
+            content,
         });
-
-        await this.prisma.chatRoom.update({
-            where: {
-                id: roomId,
-            },
-            data: {
-                updatedAt: new Date(),
-            },
-        });
-
-        return message;
+        
+        return userMessage;
     }
 
     async assertRoomOwner(roomId: number, userId: number) {
@@ -89,27 +77,16 @@ export class ChatService {
         return room;
     }
 
-    async saveAssistantMessage(roomId: number, userId: number, content: string) {
+    async saveAssistantMessage(roomId: number, userId: number, assistantContent: string) {
         await this.assertRoomOwner(roomId, userId);
 
-        const message = await this.prisma.chatMessage.create({
-            data: {
-                roomId,
-                role: ChatMessageRole.ASSISTANT,
-                content,
-            },
-        });
+        const assistantMessage = await this.createMessage({
+            roomId,
+            role: ChatMessageRole.ASSISTANT,
+            content: assistantContent
+        });        
 
-        await this.prisma.chatRoom.update({
-            where: {
-                id: roomId,
-            },
-            data: {
-                updatedAt: new Date(),
-            },
-        });
-
-        return message;
+        return assistantMessage;
     }
 
     async getRecentMessages(roomId: number, userId: number) {
@@ -180,23 +157,19 @@ export class ChatService {
     ) {
         await this.assertRoomOwner(roomId, userId);
 
-        const userMessage = await this.prisma.chatMessage.update({
-            where: {
-                id: userMessageId,
-            },
-            data: {
-                status: ChatMessageStatus.CANCELLED,
-            },
+        const userMessage = await this.updateMessageStatus(
+            userMessageId,
+            ChatMessageStatus.CANCELLED,
+        );
+
+
+        const assistantMessage = await this.createMessage({
+            roomId,
+            role: ChatMessageRole.ASSISTANT,
+            content: '[응답이 중단되었습니다.]',
+            status: ChatMessageStatus.CANCELLED,
         });
 
-        const assistantMessage = await this.prisma.chatMessage.create({
-            data: {
-                roomId,
-                role: ChatMessageRole.ASSISTANT,
-                content: '[응답이 중단되었습니다.]',
-                status: ChatMessageStatus.CANCELLED,
-            },
-        });
 
         await this.prisma.chatRoom.update({
             where: {
@@ -220,22 +193,16 @@ export class ChatService {
     ) {
         await this.assertRoomOwner(roomId, userId);
 
-        const userMessage = await this.prisma.chatMessage.update({
-            where : {
-                id: userMessageId,
-            },
-            data: {
-                status: ChatMessageStatus.FAILED,
-            },
-        });
+        const userMessage = await this.updateMessageStatus(
+            userMessageId,
+            ChatMessageStatus.FAILED,
+        );
 
-        const assistantMessage = await this.prisma.chatMessage.create({
-            data: {
-                roomId,
-                role: ChatMessageRole.ASSISTANT,
-                content: '[응답 생성에 실패했습니다.]',
-                status: ChatMessageStatus.FAILED,
-            },
+        const assistantMessage = await this.createMessage({
+            roomId,
+            role: ChatMessageRole.ASSISTANT,
+            content: '[응답 생성에 실패했습니다.]',
+            status: ChatMessageStatus.FAILED,
         });
 
         await this.prisma.chatRoom.update({
@@ -266,5 +233,50 @@ export class ChatService {
         }
 
         return `${normalized.slice(0, 30)}...`;
+    }
+
+    private async createMessage(params: {
+        roomId: number;
+        role: ChatMessageRole;
+        content: string;
+        status?: ChatMessageStatus;
+    }) {
+        const message = await this.prisma.chatMessage.create({
+            data: {
+                roomId: params.roomId,
+                role: params.role,
+                content: params.content,
+                status: params.status ?? ChatMessageStatus.COMPLETED,
+            },
+        });
+
+        await this.touchRoomUpdatedAt(params.roomId);
+
+        return message;
+    }
+
+    private async updateMessageStatus(
+        messageId: number,
+        status: ChatMessageStatus,
+    ) {
+        return this.prisma.chatMessage.update({
+            where: {
+                id: messageId,
+            },
+            data: {
+                status,
+            },
+        });
+    }
+
+    private async touchRoomUpdatedAt(roomId: number) {
+        return this.prisma.chatRoom.update({
+            where: {
+                id: roomId,
+            },
+            data: {
+                updatedAt: new Date(),
+            }
+        })
     }
 }

@@ -185,7 +185,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
             this.server.to(roomName).emit('chat_room_updated', updatedRoom)
 
-            const recentMessages = await this.chatService.getRecentMessages(
+            const contextMessages = await this.chatService.getContextMessages(
                 payload.roomId,
                 user.id,
             );
@@ -201,7 +201,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             this.abortControllers.set(processingKey, abortController)
 
             for await (const delta of this.agentService.streamReply(
-                recentMessages, 
+                contextMessages, 
                 abortController.signal,
             )) {
                 if(this.cancelledRooms.has(processingKey)) {

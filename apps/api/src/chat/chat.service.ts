@@ -99,6 +99,13 @@ export class ChatService {
         return assistantMessage;
     }
 
+    async getContextMessages(
+        roomId: number,
+        userId: number,
+    ): Promise<ChatMessage[]> {
+        return this.getRecentMessages(roomId, userId);
+    }
+
     async getRecentMessages(roomId: number, userId: number): Promise<ChatMessage[]> {
         await this.assertRoomOwner(roomId, userId);
 
@@ -110,7 +117,7 @@ export class ChatService {
             orderBy: {
                 createdAt: 'desc',
             },
-            take: 20,
+            take: RECENT_CONTEXT_MESSAGE_LIMIT,
         });
 
         return messages.reverse();

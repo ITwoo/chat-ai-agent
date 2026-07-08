@@ -1,5 +1,5 @@
 import type { ChatMessageResponse, ChatRoomResponse } from '@repo/shared';
-import { useEffect, useRef } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 
 type ChatMessageListProps = {
     room: ChatRoomResponse | null;
@@ -10,6 +10,68 @@ type ChatMessageListProps = {
     onRetryMessage: (message: ChatMessageResponse) => void;
     isRetryDisabled: boolean;
 };
+
+type MessageContentPart =
+    | {
+        type: 'text';
+        content: string;
+    }
+    | {
+        type: 'code';
+        content: string;
+        language?: string
+    };
+
+function parseMessageContent(content: string): MessageContentPart[] {
+    const parts: MessageContentPart[] = [];
+    const codeBlockRegex = /```([^\n`]*)\n([\s\S]*?)```/g;
+
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = codeBlockRegex.exec(content)) !== null) {
+        const [fullMatch, rawLanguage, codeContent] = match;
+
+        const textBeforeCode = content.slice(lastIndex, match.index);
+
+        if (textBeforeCode) {
+            parts.push({
+                type: 'text',
+                content: textBeforeCode,
+            });
+        }
+
+        const language = rawLanguage.trim();
+
+        parts.push({
+            type: 'code',
+            language: language || undefined,
+            content: codeContent.replace(/\n$/, ''),
+        });
+
+        lastIndex = match.index + fullMatch.length;
+    }
+
+    const remainingText = content.slice(lastIndex);
+
+    if (remainingText) {
+        parts.push({
+            type: 'text',
+            content: remainingText,
+        });
+    }
+
+    if (parts.length === 0) {
+        return [
+            {
+                type: 'text',
+                content,
+            },
+        ];
+    }
+
+    return parts;
+}
 
 export function ChatMessageList({
     room,
@@ -22,12 +84,87 @@ export function ChatMessageList({
 }: ChatMessageListProps) {
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
+    const [copiedCodeKey, setCopiedCodeKey] = useState<string | null>(null);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({
             behavior: 'smooth',
         });
     }, [messages, streamingText, isAssistantStreaming]);
+
+    const handleCopyCode = async (code: string, codeKey: string) => {
+        try {
+            await navigator.clipboard.writeText(code);
+
+            setCopiedCodeKey(codeKey);
+
+            window.setTimeout(() => {
+                setCopiedCodeKey((prev) => (prev === codeKey ? null : prev));
+            }, 1500);
+        } catch (error) {
+            console.error('[copy code error]', error);
+        }
+    }
+
+    const renderMessageContent = (message: ChatMessageResponse, isUser: boolean) => {
+        const parts = parseMessageContent(message.content);
+
+        return (
+            <div className="space-y-3">
+                {parts.map((part, index) => {
+                    if (part.type === 'text') {
+                        return (
+                            <p
+                                key={`${message.id}-text-${index}`}
+                                className="whitespace-pre-wrap break-words text-sm leading-6"
+                            >
+                                {part.content}
+                            </p>
+                        );
+                    }
+
+                    const codeKey = `${message.id}-code-${index}`;
+                    const isCopied = copiedCodeKey === codeKey;
+
+                    return (
+                        <div
+                            key={codeKey}
+                            className={`overflow-hidden rounded-xl border text-sm ${isUser
+                                    ? 'border-white/10 bg-black/30'
+                                    : 'border-gray-800 bg-gray-950 text-gray-100'
+                                }`}
+                        >
+                            <div
+                                className={`flex items-center justify-between gap-3 border-b px-3 py-2 text-xs ${isUser
+                                        ? 'border-white/10 text-gray-300'
+                                        : 'border-gray-800 text-gray-400'
+                                    }`}
+                            >
+                                <span className="truncate">
+                                    {part.language || 'code'}
+                                </span>
+
+                                <button
+                                    type="button"
+                                    onClick={() => handleCopyCode(part.content, codeKey)}
+                                    className={`shrink-0 font-semibold hover:underline ${isUser ? 'text-blue-200' : 'text-blue-300'
+                                        }`}
+                                >
+                                    {isCopied ? '복사됨' : '복사'}
+                                </button>
+                            </div>
+
+                            <pre className="overflow-x-auto px-3 py-3">
+                                <code className="font-mono text-xs leading-6">
+                                    {part.content}
+                                </code>
+                            </pre>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
 
     if (!room) {
         return (
@@ -93,10 +230,8 @@ export function ChatMessageList({
                                 <p className="mb-1 text-xs text-red-500">
                                     실패한 메시지
                                 </p>
-                            )}
-                            <p className="whitespace-pre-wrap break-words text-sm leading-6">
-                                {message.content}
-                            </p>
+                            )}                            
+                            {renderMessageContent(message, isUser)}
                             {canRetry && (
                                 <button
                                     type="button"

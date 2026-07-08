@@ -180,7 +180,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             const updatedRoom = await this.chatService.updateRoomTitleFromFirstMessage(
                 payload.roomId,
                 user.id,
-                payload.content,
+                userMessage.content,
             );
 
             this.server.to(roomName).emit('chat_room_updated', updatedRoom)

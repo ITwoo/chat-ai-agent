@@ -1,4 +1,5 @@
 import {
+    BadRequestException,
     ForbiddenException,
     Injectable,
     NotFoundException,
@@ -57,12 +58,14 @@ export class ChatService {
     async saveUserMessage(roomId: number, user: ChatUser, content: string): Promise<ChatMessage> {
         await this.assertRoomOwner(roomId, user.id);
 
+        const normalizedContent = this.normalizeMessageContent(content);
+
         const userMessage = await this.createMessage({
             roomId,
             role: ChatMessageRole.USER,
-            content,
+            content: normalizedContent,
         });
-        
+
         return userMessage;
     }
 
@@ -91,7 +94,7 @@ export class ChatService {
             roomId,
             role: ChatMessageRole.ASSISTANT,
             content: assistantContent
-        });        
+        });
 
         return assistantMessage;
     }
@@ -116,7 +119,7 @@ export class ChatService {
     async updateRoomTitleFromFirstMessage(roomId: number, userId: number, content: string): Promise<ChatRoom> {
         const room = await this.assertRoomOwner(roomId, userId);
 
-        if(room.title !== '새 채팅') {
+        if (room.title !== '새 채팅') {
             return room;
         }
 
@@ -133,7 +136,7 @@ export class ChatService {
         });
     }
 
-    async deleteRoom(roomId: number,  userId: number): Promise<void> {
+    async deleteRoom(roomId: number, userId: number): Promise<void> {
         await this.assertRoomOwner(roomId, userId);
 
         await this.prisma.chatRoom.delete({
@@ -146,12 +149,14 @@ export class ChatService {
     async updateRoomTitle(roomId: number, userId: number, title: string): Promise<ChatRoom> {
         await this.assertRoomOwner(roomId, userId);
 
-        return  this.prisma.chatRoom.update({
+        const normalizedTitle = this.normalizeRoomTitle(title);
+
+        return this.prisma.chatRoom.update({
             where: {
                 id: roomId,
             },
             data: {
-                title: title.trim(),
+                title: normalizedTitle,
                 updatedAt: new Date(),
             }
         });
@@ -214,7 +219,7 @@ export class ChatService {
 
         await this.prisma.chatRoom.update({
             where: {
-                id:  roomId,
+                id: roomId,
             },
             data: {
                 updatedAt: new Date(),
@@ -231,11 +236,11 @@ export class ChatService {
     private createRoomTitle(content: string): string {
         const normalized = content.replace(/\s+/g, ' ').trim();
 
-        if(!normalized) {
+        if (!normalized) {
             return '새 채팅';
         }
 
-        if(normalized.length <= 30) {
+        if (normalized.length <= 30) {
             return normalized;
         }
 
@@ -285,5 +290,25 @@ export class ChatService {
                 updatedAt: new Date(),
             }
         })
+    }
+
+    private normalizeMessageContent(content: string): string {
+        const normalized = content.trim();
+
+        if (!normalized) {
+            throw new BadRequestException('메시지를 입력해주세요.');
+        }
+
+        return normalized;
+    }
+
+    private normalizeRoomTitle(title: string): string {
+        const normalized = title.replace(/\s+/g, ' ').trim();
+
+        if (!normalized) {
+            throw new BadRequestException('채팅방 제목을 입력해주세요.');
+        }
+
+        return normalized;
     }
 }

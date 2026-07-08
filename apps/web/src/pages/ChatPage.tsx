@@ -236,6 +236,40 @@ export function ChatPage() {
         setContent('');
     };
 
+    const handleRetryMessage = (message: ChatMessageResponse) => {
+        if(!room) {
+            alert('먼저 채팅방을 선택해야 합니다.');
+            return;
+        }
+
+        if(isSending || isAssistantStreaming || isMessagesLoading) {
+            return;
+        }
+
+        const retryContent = message.content.trim();
+
+        if(!retryContent) {
+            alert('재시도할 메시지가 없습니다.');
+            return;
+        }
+
+        const socket = connectChatSocket();
+
+        const payload = {
+            roomId: room.id,
+            content: retryContent,
+        };
+
+        setIsSending(true);
+        setStreamingText('');
+
+        console.log('[socket emit] retry send_message', payload);
+
+        socket.emit('send_message', payload);
+
+        moveRoomToTop(room.id);
+    }
+
     const loadRooms = async () => {
         const rooms = await getChatRooms();
         setRooms(rooms);
@@ -441,6 +475,8 @@ export function ChatPage() {
                     isAssistantStreaming={isAssistantStreaming}
                     streamingText={streamingText}
                     isLoading={isMessagesLoading}
+                    onRetryMessage={handleRetryMessage}
+                    isRetryDisabled={isSending || isAssistantStreaming || isMessagesLoading}
                 />
 
                 <ChatInput

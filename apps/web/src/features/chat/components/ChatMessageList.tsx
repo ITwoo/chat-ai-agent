@@ -7,6 +7,8 @@ type ChatMessageListProps = {
     isAssistantStreaming: boolean;
     streamingText: string;
     isLoading: boolean;
+    onRetryMessage: (message: ChatMessageResponse) => void;
+    isRetryDisabled: boolean;
 };
 
 export function ChatMessageList({
@@ -15,6 +17,8 @@ export function ChatMessageList({
     isAssistantStreaming,
     streamingText,
     isLoading,
+    onRetryMessage,
+    isRetryDisabled,
 }: ChatMessageListProps) {
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -60,7 +64,8 @@ export function ChatMessageList({
             {messages.map((message) => {
                 const isUser = message.role === 'USER';
                 const isCancelled = message.status === 'CANCELLED';
-                const isFailled = message.status === 'FAILED';
+                const isFailed = message.status === 'FAILED';
+                const canRetry = isUser && isFailed;
 
                 return (
                     <div
@@ -71,7 +76,7 @@ export function ChatMessageList({
                             className={`max-w-[75%] rounded-2xl px-4 py-3 ${isUser
                                 ? 'bg-gray-900 text-white'
                                 : 'border bg-white text-gray-900'
-                                } ${isCancelled || isFailled ? 'opacity-60' : ''}`}
+                                } ${isCancelled || isFailed ? 'opacity-60' : ''}`}
                         >
                             <p
                                 className={`mb-1 text-xs font-semibold ${isUser ? 'text-gray-300' : 'text-gray-500'
@@ -84,7 +89,7 @@ export function ChatMessageList({
                                     중단된 메시지
                                 </p>
                             )}
-                            {isFailled && (
+                            {isFailed && (
                                 <p className="mb-1 text-xs text-red-500">
                                     실패한 메시지
                                 </p>
@@ -92,6 +97,16 @@ export function ChatMessageList({
                             <p className="whitespace-pre-wrap text-sm leading-6">
                                 {message.content}
                             </p>
+                            {canRetry && (
+                                <button
+                                    type="button"
+                                    disabled={isRetryDisabled}
+                                    onClick={() => onRetryMessage(message)}
+                                    className="mt-2 text-xs font-semibold text-blue-300 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    재시도
+                                </button>
+                            )}
                         </div>
                     </div>
                 );

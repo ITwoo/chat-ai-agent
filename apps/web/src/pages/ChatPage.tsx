@@ -32,6 +32,20 @@ export function ChatPage() {
 
         const handleConnect = () => {
             console.log('[socket connected]', socket.id);
+
+            const currentRoomId = selectedRoomIdRef.current;
+
+            if(!currentRoomId) {
+                return;
+            }
+            
+            socket.emit('join_room', {
+                roomId: currentRoomId,
+            });
+
+            console.log('[socket emit] reconnect join_room', {
+                roomId: currentRoomId,
+            });
         };
 
         const handleDisconnect = (reason: string) => {

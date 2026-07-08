@@ -16,6 +16,7 @@ export function ChatPage() {
     const [isSending, setIsSending] = useState(false);
     const [isMessagesLoading, setIsMessagesLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [isRoomsLoading, setIsRoomsLoading] = useState(false);
 
     const selectedRoomIdRef = useRef<number | null>(null);
     const loadMessagesRequestIdRef = useRef(0);
@@ -221,16 +222,29 @@ export function ChatPage() {
     }, []);
 
     useEffect(() => {
-        loadRooms();
+        loadRooms({ showLoading: true });
     }, []);
 
     const handleCreateRoom = async () => {
-        const createdRoom = await createChatRoom({
-            title: '새 채팅',
-        });
 
-        await loadRooms();
-        await enterRoom(createdRoom);
+        try {
+            setErrorMessage('');
+
+            const createdRoom = await createChatRoom({
+                title: '새 채팅',
+            });
+            
+            await loadRooms();
+            await enterRoom(createdRoom);
+        } catch (error) {
+            console.error('[createRoom error]', error);
+
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : '채팅방을 생성하지 못했습니다.',
+            );
+        }
     };
 
     const handleSendMessage = async () => {
@@ -302,9 +316,28 @@ export function ChatPage() {
         moveRoomToTop(room.id);
     }
 
-    const loadRooms = async () => {
-        const rooms = await getChatRooms();
-        setRooms(rooms);
+    const loadRooms = async (options?: { showLoading?: boolean }) => {
+        const showLoading = options?.showLoading ?? false;
+
+        if(showLoading) {
+            setIsRoomsLoading(true);
+        }
+        try {
+            const rooms = await getChatRooms();
+            setRooms(rooms);
+        } catch (error) {
+            console.error('[loadrooms error]', error);
+
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : '채팅방 목록을 불러오지 못했습니다.',
+            );
+        } finally {
+            if (showLoading) {
+                setIsRoomsLoading(false);
+            }
+        }
     }
 
     const enterRoom = async (targetRoom: ChatRoomResponse) => {
@@ -481,6 +514,7 @@ export function ChatPage() {
             <ChatRoomSidebar
                 rooms={rooms}
                 selectedRoomId={room?.id}
+                isLoading={isRoomsLoading}
                 onCreateRoom={handleCreateRoom}
                 onEnterRoom={enterRoom}
                 onDeleteRoom={handleDeleteRoom}

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 type ChatRoomSidebarProps = {
     rooms: ChatRoomResponse[];
     selectedRoomId?: number;
+    isLoading: boolean;
     onCreateRoom: () => void;
     onEnterRoom: (room: ChatRoomResponse) => void;
     onDeleteRoom: (room: ChatRoomResponse) => void;
@@ -13,6 +14,7 @@ type ChatRoomSidebarProps = {
 export function ChatRoomSidebar({
     rooms,
     selectedRoomId,
+    isLoading,
     onCreateRoom,
     onEnterRoom,
     onDeleteRoom,
@@ -64,6 +66,8 @@ export function ChatRoomSidebar({
                 <h2 className="text-lg font-bold">채팅방</h2>
 
                 <button
+                    type="button"
+                    disabled={isLoading}
                     onClick={() => {
                         closeMenu();
                         onCreateRoom();
@@ -76,13 +80,26 @@ export function ChatRoomSidebar({
             </div>
 
             <div className="space-y-2">
-                {rooms.length === 0 && (
+                {isLoading && (
+                    <>
+                        {Array.from({ length: 5 }).map((_, index) => (
+                            <div
+                                key={index}
+                                className="rounded-xl border bg-white px-3 py-3"
+                            >
+                                <div className="h-4 w-3/4 animate-pulse rounded bg-gray-200" />
+                                <div className="mt-2 h-3 w-1/2 animate-pulse rounded bg-gray-100" />
+                            </div>
+                        ))}
+                    </>
+                )}
+                {!isLoading && rooms.length === 0 && (
                     <div className="rounded-lg border border-dashed p-4 text-sm text-gray-500">
                         아직 채팅방이 없습니다.
                     </div>
                 )}
 
-                {rooms.map((chatRoom) => {
+                {!isLoading && rooms.map((chatRoom) => {
                     const isSelected = selectedRoomId === chatRoom.id;
                     const isMenuOpen = openedMenuRoomId === chatRoom.id;
 

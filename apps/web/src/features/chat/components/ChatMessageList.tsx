@@ -31,7 +31,7 @@ export function ChatMessageList({
 
     if (!room) {
         return (
-            <section className="min-h-0 flex-1 overflow-y-auto bg-gray-50 px-6 py-6">
+            <section className="min-h-0 flex-1 overflow-y-auto bg-gray-50 px-4 py-4 md:px-6 md:py-6">
                 <div className="flex min-h-full items-center justify-center text-gray-500">
                     채팅방을 선택하면 메시지가 표시됩니다.
                 </div>
@@ -41,7 +41,7 @@ export function ChatMessageList({
 
     if (isLoading) {
         return (
-            <section className="min-h-0 flex-1 overflow-y-auto bg-gray-50 px-6 py-6">
+            <section className="min-h-0 flex-1 overflow-y-auto bg-gray-50 px-4 py-4 md:px-6 md:py-6">
                 <div className="flex min-h-full items-center justify-center text-gray-500">
                     메시지를 불러오는 중...
                 </div>
@@ -51,7 +51,7 @@ export function ChatMessageList({
 
     if (messages.length === 0 && !isAssistantStreaming) {
         return (
-            <section className="min-h-0 flex-1 overflow-y-auto bg-gray-50 px-6 py-6">
+            <section className="min-h-0 flex-1 overflow-y-auto bg-gray-50 px-4 py-4 md:px-6 md:py-6">
                 <div className="flex min-h-full items-center justify-center text-gray-500">
                     아직 메시지가 없습니다. 첫 메시지를 보내보세요.
                 </div>
@@ -60,7 +60,7 @@ export function ChatMessageList({
     }
 
     return (
-        <section className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-gray-50 px-6 py-6">
+        <section className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-gray-50 px-4 py-4 md:px-6 md:py-6">
             {messages.map((message) => {
                 const isUser = message.role === 'USER';
                 const isCancelled = message.status === 'CANCELLED';
@@ -73,7 +73,7 @@ export function ChatMessageList({
                         className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
                     >
                         <div
-                            className={`max-w-[75%] rounded-2xl px-4 py-3 ${isUser
+                            className={`max-w-[88%] rounded-2xl px-4 py-3 md:max-w-[75%] ${isUser
                                 ? 'bg-gray-900 text-white'
                                 : 'border bg-white text-gray-900'
                                 } ${isCancelled || isFailed ? 'opacity-60' : ''}`}
@@ -94,7 +94,7 @@ export function ChatMessageList({
                                     실패한 메시지
                                 </p>
                             )}
-                            <p className="whitespace-pre-wrap text-sm leading-6">
+                            <p className="whitespace-pre-wrap break-words text-sm leading-6">
                                 {message.content}
                             </p>
                             {canRetry && (
@@ -114,12 +114,12 @@ export function ChatMessageList({
 
             {isAssistantStreaming && (
                 <div className="flex justify-start">
-                    <div className="max-w-[75%] rounded-2xl border bg-white px-4 py-3 text-gray-900">
+                    <div className="max-w-[88%] rounded-2xl border bg-white px-4 py-3 text-gray-900 md:max-w-[75%]">
                         <p className="mb-1 text-xs font-semibold text-gray-500">
                             ASSISTANT
                         </p>
 
-                        <p className="whitespace-pre-wrap text-sm leading-6">
+                        <p className="whitespace-pre-wrap break-words text-sm leading-6">
                             {streamingText || '생각 중...'}
                         </p>
                     </div>

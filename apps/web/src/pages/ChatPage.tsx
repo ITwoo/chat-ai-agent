@@ -17,6 +17,7 @@ export function ChatPage() {
     const [isMessagesLoading, setIsMessagesLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [isRoomsLoading, setIsRoomsLoading] = useState(false);
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
     const selectedRoomIdRef = useRef<number | null>(null);
     const loadMessagesRequestIdRef = useRef(0);
@@ -38,6 +39,24 @@ export function ChatPage() {
             window.clearTimeout(timerId);
         };
     }, [errorMessage]);
+
+    useEffect(() => {
+        if (!isMobileSidebarOpen) {
+            return;
+        }
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setIsMobileSidebarOpen(false);
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isMobileSidebarOpen]);
 
     useEffect(() => {
         const socket = connectChatSocket();
@@ -233,9 +252,11 @@ export function ChatPage() {
             const createdRoom = await createChatRoom({
                 title: '새 채팅',
             });
-            
+
             await loadRooms();
             await enterRoom(createdRoom);
+
+            closeMobileSidebar();
         } catch (error) {
             console.error('[createRoom error]', error);
 
@@ -319,7 +340,7 @@ export function ChatPage() {
     const loadRooms = async (options?: { showLoading?: boolean }) => {
         const showLoading = options?.showLoading ?? false;
 
-        if(showLoading) {
+        if (showLoading) {
             setIsRoomsLoading(true);
         }
         try {
@@ -341,6 +362,8 @@ export function ChatPage() {
     }
 
     const enterRoom = async (targetRoom: ChatRoomResponse) => {
+        closeMobileSidebar();
+
         const socket = connectChatSocket();
 
         const previousRoomId = selectedRoomIdRef.current;
@@ -412,6 +435,8 @@ export function ChatPage() {
         await deleteChatRoom(targetRoom.id);
 
         setRooms((prev) => prev.filter((room) => room.id !== targetRoom.id));
+
+        closeMobileSidebar();
 
         if (isCurrentRoom) {
             loadMessagesRequestIdRef.current += 1;
@@ -509,12 +534,29 @@ export function ChatPage() {
         })
     }
 
+    const closeMobileSidebar = () => {
+        setIsMobileSidebarOpen(false);
+    };
+
     return (
-        <div className="mx-auto grid h-[calc(100vh-96px)] max-w-6xl grid-cols-[280px_1fr] gap-6 px-6 py-6">
+        <div className="mx-auto grid h-[calc(100dvh-96px)] max-w-6xl grid-cols-1 gap-4 px-4 py-4 md:grid-cols-[280px_1fr] md:gap-6 md:px-6 md:py-6">
+            {isMobileSidebarOpen && (
+                <button
+                    type="button"
+                    aria-label="채팅방 목록 닫기"
+                    onClick={closeMobileSidebar}
+                    className="fixed inset-0 z-40 bg-black/40 md:hidden"
+                />
+            )}
             <ChatRoomSidebar
                 rooms={rooms}
                 selectedRoomId={room?.id}
                 isLoading={isRoomsLoading}
+                className={`fixed bottom-0 left-0 top-0 z-50 w-80 max-w-[85vw] rounded-none transition-transform duration-200 md:static md:z-auto md:w-auto md:max-w-none md:rounded-2xl md:transition-none
+                    ${isMobileSidebarOpen
+                        ? 'translate-x-0'
+                        : '-translate-x-full md:translate-x-0'
+                    }`}
                 onCreateRoom={handleCreateRoom}
                 onEnterRoom={enterRoom}
                 onDeleteRoom={handleDeleteRoom}
@@ -522,24 +564,36 @@ export function ChatPage() {
             />
 
             <main className="flex min-h-0 flex-col overflow-hidden rounded-2xl border bg-white shadow-sm">
-                <header className="shrink-0 border-b px-6 py-4">
-                    {room ? (
-                        <>
-                            <h1 className="text-xl font-bold">{room.title}</h1>
-                            <p className="mt-1 text-sm text-gray-500">roomId: {room.id}</p>
-                        </>
-                    ) : (
-                        <>
-                            <h1 className="text-xl font-bold">AI 채팅</h1>
-                            <p className="mt-1 text-sm text-gray-500">
-                                왼쪽에서 채팅방을 선택하거나 새 채팅을 만들어주세요.
-                            </p>
-                        </>
-                    )}
+                <header className="shrink-0 border-b px-4 py-4 md:px-6">
+                    <div className="flex items-start gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setIsMobileSidebarOpen(true)}
+                            className="shrink-0 rounded-lg border px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 md:hidden"
+                        >
+                            채팅방
+                        </button>
+
+                        <div className="min-w-0 flex-1">
+                            {room ? (
+                                <>
+                                    <h1 className="truncate text-lg font-bold md:text-xl">{room.title}</h1>
+                                    <p className="mt-1 text-sm text-gray-500">roomId: {room.id}</p>
+                                </>
+                            ) : (
+                                <>
+                                    <h1 className="text-lg font-bold md:text-xl">AI 채팅</h1>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        채팅방을 선택하거나 새 채팅을 만들어주세요.
+                                    </p>
+                                </>
+                            )}
+                        </div>
+                    </div>
                 </header>
 
                 {errorMessage && (
-                    <div className="shrink-0 px-6 pt-4">
+                    <div className="shrink-0 px-4 pt-4 md:px-6">
                         <div className="flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                             <p>{errorMessage}</p>
 
@@ -553,7 +607,7 @@ export function ChatPage() {
                         </div>
                     </div>
                 )}
-                
+
                 <ChatMessageList
                     room={room}
                     messages={messages}
@@ -573,6 +627,6 @@ export function ChatPage() {
                     onStop={handleStopGeneration}
                 />
             </main>
-        </div>
+        </div >
     );
 }           

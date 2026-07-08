@@ -5,6 +5,7 @@ type ChatRoomSidebarProps = {
     rooms: ChatRoomResponse[];
     selectedRoomId?: number;
     isLoading: boolean;
+    className?: string;
     onCreateRoom: () => void;
     onEnterRoom: (room: ChatRoomResponse) => void;
     onDeleteRoom: (room: ChatRoomResponse) => void;
@@ -15,6 +16,7 @@ export function ChatRoomSidebar({
     rooms,
     selectedRoomId,
     isLoading,
+    className = '',
     onCreateRoom,
     onEnterRoom,
     onDeleteRoom,
@@ -59,7 +61,7 @@ export function ChatRoomSidebar({
 
     return (
         <aside
-            className="min-h-0 overflow-y-auto rounded-2xl border bg-white p-4 shadow-sm"
+            className={`min-h-0 overflow-y-auto rounded-2xl border bg-white p-4 shadow-sm ${className}`}
             ref={sidebarRef}
         >
             <div className="mb-4 flex items-center justify-between">
@@ -73,7 +75,7 @@ export function ChatRoomSidebar({
                         onCreateRoom();
                     }
                     }
-                    className="rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700"
+                    className="shrink-0 rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-300"
                 >
                     새 채팅
                 </button>
@@ -147,7 +149,7 @@ export function ChatRoomSidebar({
                                 </button>
 
                                 {isMenuOpen && (
-                                    <div className="absolute right-0 top-fulll z-20 mt-1 w-28 overflow-hidden rounded-xl border bg-white py-1 text-sm text-gray-700 shadow-lg">
+                                    <div className="absolute right-0 top-full z-20 mt-1 w-28 overflow-hidden rounded-xl border bg-white py-1 text-sm text-gray-700 shadow-lg">
                                         <button
                                             type="button"
                                             onClick={(e) => {

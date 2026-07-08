@@ -16,8 +16,8 @@ export function ChatInput({
     onStop,
 }: ChatInputProps) {
     return (
-        <footer className="shrink-0 border-t bg-white px-6 py-4">
-            <div className="flex gap-3">
+        <footer className="shrink-0 border-t bg-white px-4 py-4 md:px-6">
+            <div className="flex flex-col gap-3 sm:flex-row">
                 <textarea
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
@@ -40,7 +40,7 @@ export function ChatInput({
                     <button
                         type="button"
                         onClick={onStop}
-                        className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700"
+                        className="w-full rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 sm:w-auto"
                     >
                         중지
                     </button>
@@ -49,7 +49,7 @@ export function ChatInput({
                         type="button"
                         onClick={onSend}
                         disabled={disabled}
-                        className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-gray-300"
+                        className="w-full rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-gray-300 sm:w-auto"
                     >
                         전송
                     </button>

@@ -4,17 +4,24 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ChatMessageRole, ChatMessageStatus } from '../generated/prisma/client';
+import { ChatMessage, ChatMessageRole, ChatMessageStatus, ChatRoom } from '../generated/prisma/client';
 
 type ChatUser = {
     id: number;
     username: string;
 }
+
+type ChatGenerationResult = {
+    userMessage: ChatMessage;
+    assistantMessage: ChatMessage;
+}
+
+const RECENT_CONTEXT_MESSAGE_LIMIT = 20;
 @Injectable()
 export class ChatService {
     constructor(private readonly prisma: PrismaService) { }
 
-    async createRoom(user: ChatUser, title?: string) {
+    async createRoom(user: ChatUser, title?: string): Promise<ChatRoom> {
         return this.prisma.chatRoom.create({
             data: {
                 title: title?.trim() || '새 채팅',
@@ -23,7 +30,7 @@ export class ChatService {
         });
     }
 
-    async getRooms(user: ChatUser) {
+    async getRooms(user: ChatUser): Promise<ChatRoom[]> {
         return this.prisma.chatRoom.findMany({
             where: {
                 userId: user.id,
@@ -34,7 +41,7 @@ export class ChatService {
         });
     }
 
-    async getMessages(roomId: number, user: ChatUser) {
+    async getMessages(roomId: number, user: ChatUser): Promise<ChatMessage[]> {
         await this.assertRoomOwner(roomId, user.id);
 
         return this.prisma.chatMessage.findMany({
@@ -47,7 +54,7 @@ export class ChatService {
         });
     }
 
-    async saveUserMessage(roomId: number, user: ChatUser, content: string) {
+    async saveUserMessage(roomId: number, user: ChatUser, content: string): Promise<ChatMessage> {
         await this.assertRoomOwner(roomId, user.id);
 
         const userMessage = await this.createMessage({
@@ -59,7 +66,7 @@ export class ChatService {
         return userMessage;
     }
 
-    async assertRoomOwner(roomId: number, userId: number) {
+    async assertRoomOwner(roomId: number, userId: number): Promise<ChatRoom> {
         const room = await this.prisma.chatRoom.findUnique({
             where: {
                 id: roomId,
@@ -77,7 +84,7 @@ export class ChatService {
         return room;
     }
 
-    async saveAssistantMessage(roomId: number, userId: number, assistantContent: string) {
+    async saveAssistantMessage(roomId: number, userId: number, assistantContent: string): Promise<ChatMessage> {
         await this.assertRoomOwner(roomId, userId);
 
         const assistantMessage = await this.createMessage({
@@ -89,7 +96,7 @@ export class ChatService {
         return assistantMessage;
     }
 
-    async getRecentMessages(roomId: number, userId: number) {
+    async getRecentMessages(roomId: number, userId: number): Promise<ChatMessage[]> {
         await this.assertRoomOwner(roomId, userId);
 
         const messages = await this.prisma.chatMessage.findMany({
@@ -106,7 +113,7 @@ export class ChatService {
         return messages.reverse();
     }
 
-    async updateRoomTitleFromFirstMessage(roomId: number, userId: number, content: string) {
+    async updateRoomTitleFromFirstMessage(roomId: number, userId: number, content: string): Promise<ChatRoom> {
         const room = await this.assertRoomOwner(roomId, userId);
 
         if(room.title !== '새 채팅') {
@@ -133,10 +140,10 @@ export class ChatService {
             where: {
                 id: roomId,
             }
-        })
+        });
     }
 
-    async updateRoomTitle(roomId: number, userId: number, title: string) {
+    async updateRoomTitle(roomId: number, userId: number, title: string): Promise<ChatRoom> {
         await this.assertRoomOwner(roomId, userId);
 
         return  this.prisma.chatRoom.update({
@@ -147,14 +154,14 @@ export class ChatService {
                 title: title.trim(),
                 updatedAt: new Date(),
             }
-        })
+        });
     }
 
     async cancelGeneration(
         roomId: number,
         userId: number,
         userMessageId: number,
-    ) {
+    ): Promise<ChatGenerationResult> {
         await this.assertRoomOwner(roomId, userId);
 
         const userMessage = await this.updateMessageStatus(
@@ -190,7 +197,7 @@ export class ChatService {
         roomId: number,
         userId: number,
         userMessageId: number,
-    ) {
+    ): Promise<ChatGenerationResult> {
         await this.assertRoomOwner(roomId, userId);
 
         const userMessage = await this.updateMessageStatus(
@@ -221,7 +228,7 @@ export class ChatService {
     }
 
 
-    private createRoomTitle(content: string){
+    private createRoomTitle(content: string): string {
         const normalized = content.replace(/\s+/g, ' ').trim();
 
         if(!normalized) {
@@ -240,7 +247,7 @@ export class ChatService {
         role: ChatMessageRole;
         content: string;
         status?: ChatMessageStatus;
-    }) {
+    }): Promise<ChatMessage> {
         const message = await this.prisma.chatMessage.create({
             data: {
                 roomId: params.roomId,
@@ -258,7 +265,7 @@ export class ChatService {
     private async updateMessageStatus(
         messageId: number,
         status: ChatMessageStatus,
-    ) {
+    ): Promise<ChatMessage> {
         return this.prisma.chatMessage.update({
             where: {
                 id: messageId,
@@ -269,7 +276,7 @@ export class ChatService {
         });
     }
 
-    private async touchRoomUpdatedAt(roomId: number) {
+    private async touchRoomUpdatedAt(roomId: number): Promise<ChatRoom> {
         return this.prisma.chatRoom.update({
             where: {
                 id: roomId,

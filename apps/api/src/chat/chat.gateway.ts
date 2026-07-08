@@ -206,7 +206,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             )) {
                 if(this.cancelledRooms.has(processingKey)) {
                     isCancelled = true;
-                    console.log('바로 나가지는거 맞나?')
                     break;
                 }
                 

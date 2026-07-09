@@ -95,7 +95,7 @@ export function ChatMessageList({
     const [copiedCodeKey, setCopiedCodeKey] = useState<string | null>(null);
 
     useEffect(() => {
-        if(shouldSkipNextAutoScrollRef.current) {
+        if (shouldSkipNextAutoScrollRef.current) {
             shouldSkipNextAutoScrollRef.current = false;
             return;
         }
@@ -152,16 +152,10 @@ export function ChatMessageList({
                     return (
                         <div
                             key={codeKey}
-                            className={`overflow-hidden rounded-xl border text-sm ${isUser
-                                ? 'border-white/10 bg-black/30'
-                                : 'border-gray-800 bg-gray-950 text-gray-100'
-                                }`}
+                            className="overflow-hidden rounded-xl border border-gray-800 bg-gray-950 text-sm text-gray-100"
                         >
                             <div
-                                className={`flex items-center justify-between gap-3 border-b px-3 py-2 text-xs ${isUser
-                                    ? 'border-white/10 text-gray-300'
-                                    : 'border-gray-800 text-gray-400'
-                                    }`}
+                                className="flex items-center justify-between gap-3 border-b border-gray-800 px-3 py-2 text-xs text-gray-400"
                             >
                                 <span className="truncate">
                                     {part.language || 'code'}
@@ -170,8 +164,7 @@ export function ChatMessageList({
                                 <button
                                     type="button"
                                     onClick={() => handleCopyCode(part.content, codeKey)}
-                                    className={`shrink-0 font-semibold hover:underline ${isUser ? 'text-blue-200' : 'text-blue-300'
-                                        }`}
+                                    className="shrink-0 font-semibold text-gray-300 hover:text-white hover:underline"
                                 >
                                     {isCopied ? '복사됨' : '복사'}
                                 </button>
@@ -247,14 +240,14 @@ export function ChatMessageList({
                         className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
                     >
                         <div
-                            className={`max-w-[88%] rounded-2xl px-4 py-3 md:max-w-[75%] ${isUser
-                                ? 'bg-gray-900 text-white'
-                                : 'border bg-white text-gray-900'
-                                } ${isCancelled || isFailed ? 'opacity-60' : ''}`}
+                            className={`max-w-[88%] rounded-2xl px-4 py-3 shadow-sm md:max-w-[75%] ${
+                                isUser
+                                    ? 'border border-slate-200 bg-gray-300 text-slate-900'
+                                    : 'border border-slate-200 bg-white text-gray-900'
+                            } ${isCancelled || isFailed ? 'opacity-60' : ''}`}
                         >
                             <p
-                                className={`mb-1 text-xs font-semibold ${isUser ? 'text-gray-300' : 'text-gray-500'
-                                    }`}
+                                className={`mb-1 text-xs font-semibold ${isUser ? 'text-slate-700' : 'text-gray-500'}`}
                             >
                                 {message.role}
                             </p>
@@ -286,7 +279,7 @@ export function ChatMessageList({
 
             {isAssistantStreaming && (
                 <div className="flex justify-start">
-                    <div className="max-w-[88%] rounded-2xl border bg-white px-4 py-3 text-gray-900 md:max-w-[75%]">
+                    <div className="max-w-[88%] rounded-2xl rounded-bl-md border border-slate-200 bg-white px-4 py-3 text-slate-900 shadow-sm md:max-w-[75%]">
                         <p className="mb-1 text-xs font-semibold text-gray-500">
                             ASSISTANT
                         </p>

@@ -607,7 +607,7 @@ export function ChatPage() {
     };
 
     return (
-        <div className="mx-auto grid h-[calc(100dvh-96px)] max-w-6xl grid-cols-1 gap-4 px-4 py-4 md:grid-cols-[280px_1fr] md:gap-6 md:px-6 md:py-6">
+        <div className="mx-auto grid h-[calc(100dvh-96px)] max-w-6xl grid-cols-1 gap-4 bg-slate-50 px-4 py-4 md:grid-cols-[280px_minmax(0,1fr)] md:gap-6 md:px-6 md:py-6">
             {isMobileSidebarOpen && (
                 <button
                     type="button"
@@ -631,13 +631,13 @@ export function ChatPage() {
                 onEditRoom={handleEditRoom}
             />
 
-            <main className="flex min-h-0 flex-col overflow-hidden rounded-2xl border bg-white shadow-sm">
-                <header className="shrink-0 border-b px-4 py-4 md:px-6">
+            <main className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <header className="shrink-0 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur md:px-6">
                     <div className="flex items-start gap-3">
                         <button
                             type="button"
                             onClick={() => setIsMobileSidebarOpen(true)}
-                            className="shrink-0 rounded-lg border px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 md:hidden"
+                            className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 md:hidden"
                         >
                             채팅방
                         </button>
@@ -645,13 +645,21 @@ export function ChatPage() {
                         <div className="min-w-0 flex-1">
                             {room ? (
                                 <>
-                                    <h1 className="truncate text-lg font-bold md:text-xl">{room.title}</h1>
-                                    <p className="mt-1 text-sm text-gray-500">roomId: {room.id}</p>
+                                    <h1 className="truncate text-lg font-bold text-slate-900 md:text-xl">
+                                        {room.title}
+                                    </h1>
+
+                                    <p className="mt-1 text-xs text-slate-400">
+                                        roomId: {room.id}
+                                    </p>
                                 </>
                             ) : (
                                 <>
-                                    <h1 className="text-lg font-bold md:text-xl">AI 채팅</h1>
-                                    <p className="mt-1 text-sm text-gray-500">
+                                    <h1 className="text-lg font-bold text-slate-900 md:text-xl">
+                                        AI 채팅
+                                    </h1>
+
+                                    <p className="mt-1 text-sm text-slate-500">
                                         채팅방을 선택하거나 새 채팅을 만들어주세요.
                                     </p>
                                 </>

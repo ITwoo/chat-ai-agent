@@ -6,18 +6,24 @@ import { ChatRoomSidebar } from "../features/chat/components/ChatRoomSidebar";
 import { ChatMessageList } from "../features/chat/components/ChatMessageList";
 import { ChatInput } from "../features/chat/components/ChatInput";
 
+const MESSAGE_PAGE_SIZE = 1;
+
 export function ChatPage() {
     const [rooms, setRooms] = useState<ChatRoomResponse[]>([]);
     const [room, setRoom] = useState<ChatRoomResponse | null>(null);
+    const [content, setContent] = useState('');
     const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
     const [streamingText, setStreamingText] = useState('');
-    const [isAssistantStreaming, setIsAssistantStreaming] = useState(false);
-    const [content, setContent] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+
     const [isSending, setIsSending] = useState(false);
     const [isMessagesLoading, setIsMessagesLoading] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
+    const [isAssistantStreaming, setIsAssistantStreaming] = useState(false);
     const [isRoomsLoading, setIsRoomsLoading] = useState(false);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+    const [nextMessageCursor, setNextMessageCursor] = useState<number | null>(null);
+    const [isOlderMessagesLoading, setIsOlderMessagesLoading] = useState(false);
 
     const selectedRoomIdRef = useRef<number | null>(null);
     const loadMessagesRequestIdRef = useRef(0);
@@ -382,6 +388,8 @@ export function ChatPage() {
         setIsSending(false);
         setIsAssistantStreaming(false);
         setIsMessagesLoading(true);
+        setNextMessageCursor(null);
+        setIsOlderMessagesLoading(false);
 
         socket.emit('join_room', {
             roomId: targetRoom.id,
@@ -391,7 +399,9 @@ export function ChatPage() {
         loadMessagesRequestIdRef.current = requestId;
 
         try {
-            const messages = await getChatMessages(targetRoom.id);
+            const messagesPage = await getChatMessages(targetRoom.id, {
+                limit: MESSAGE_PAGE_SIZE,
+            });
 
             if (requestId !== loadMessagesRequestIdRef.current) {
                 return;
@@ -401,7 +411,9 @@ export function ChatPage() {
                 return;
             }
 
-            setMessages(messages);
+            setMessages(messagesPage.messages);
+            setNextMessageCursor(messagesPage.nextCursor);
+
         } finally {
             if (requestId === loadMessagesRequestIdRef.current && selectedRoomIdRef.current === targetRoom.id) {
                 setIsMessagesLoading(false);
@@ -450,6 +462,8 @@ export function ChatPage() {
             setIsSending(false);
             setIsAssistantStreaming(false);
             setIsMessagesLoading(false);
+            setNextMessageCursor(null);
+            setIsOlderMessagesLoading(false);
         }
     };
 
@@ -509,6 +523,60 @@ export function ChatPage() {
         setStreamingText('');
 
     }
+
+    const handleLoadOlderMessages = async () => {
+        if (!room) {
+            return;
+        }
+
+        if (!nextMessageCursor) {
+            return;
+        }
+
+        if (isOlderMessagesLoading || isMessagesLoading) {
+            return;
+        }
+
+        const requestRoomId = room.id;
+        const cursor = nextMessageCursor;
+
+        setIsOlderMessagesLoading(true);
+
+        try {
+            const messagesPage = await getChatMessages(requestRoomId, {
+                cursor,
+                limit: MESSAGE_PAGE_SIZE,
+            });
+
+            if (selectedRoomIdRef.current !== requestRoomId) {
+                return;
+            }
+
+            setMessages((prev) => {
+                const existingIds = new Set(prev.map((message) => message.id));
+
+                const olderMessages = messagesPage.messages.filter(
+                    (messages) => !existingIds.has(messages.id),
+                );
+
+                return [...olderMessages, ...prev];
+            });
+
+            setNextMessageCursor(messagesPage.nextCursor);
+        } catch (error) {
+            console.error('[loadOlderMessages error]', error);
+
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : '이전 메시지를 불러오지 못했습니다.',
+            );
+        } finally {
+            if (selectedRoomIdRef.current === requestRoomId) {
+                setIsOlderMessagesLoading(false);
+            }
+        }
+    };
 
     const appendMessage = (message: ChatMessageResponse) => {
         setMessages((prev) => {
@@ -614,6 +682,9 @@ export function ChatPage() {
                     isAssistantStreaming={isAssistantStreaming}
                     streamingText={streamingText}
                     isLoading={isMessagesLoading}
+                    hasOlderMessages={nextMessageCursor !== null}
+                    isOlderMessagesLoading={isOlderMessagesLoading}
+                    onLoadOlderMessages={handleLoadOlderMessages}
                     onRetryMessage={handleRetryMessage}
                     isRetryDisabled={isSending || isAssistantStreaming || isMessagesLoading}
                 />

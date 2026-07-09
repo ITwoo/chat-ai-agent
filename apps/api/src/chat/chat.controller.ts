@@ -7,6 +7,7 @@ import {
     ParseIntPipe,
     Patch,
     Post,
+    Query,
     UseGuards,
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
@@ -15,6 +16,7 @@ import { JwtGuard } from '../auth/guard/jwt.guard';
 import { GetUser } from '../auth/decorator/get-user.decorator';
 import type { User } from '../generated/prisma/client';
 import { UpdateChatRoomDto } from './dto/update-chat-room.dto';
+import { GetChatMessagesQueryDto } from './dto/get-chat-messages-query.dto';
 
 @Controller('chat')
 @UseGuards(JwtGuard)
@@ -38,8 +40,12 @@ export class ChatController {
     getMessages(
         @Param('roomId', ParseIntPipe) roomId: number,
         @GetUser() user: User,
+        @Query() query: GetChatMessagesQueryDto,
     ) {
-        return this.chatService.getMessages(roomId, user);
+        return this.chatService.getMessages(roomId, user, {
+            cursor: query.cursor,
+            limit: query.limit,
+        });
     }
 
     @Patch('rooms/:roomId')

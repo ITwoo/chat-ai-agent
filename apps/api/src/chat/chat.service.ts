@@ -18,6 +18,19 @@ type ChatGenerationResult = {
 }
 
 const RECENT_CONTEXT_MESSAGE_LIMIT = 20;
+
+const DEFAULT_MESSAGE_PAGE_SIZE = 30;
+
+export type GetMessagesOptions = {
+    cursor?: number;
+    limit?: number;
+}
+
+export type ChatMessagesPageResult = {
+    messages: ChatMessage[];
+    nextCursor: number | null;
+}
+
 @Injectable()
 export class ChatService {
     constructor(private readonly prisma: PrismaService) { }
@@ -42,17 +55,43 @@ export class ChatService {
         });
     }
 
-    async getMessages(roomId: number, user: ChatUser): Promise<ChatMessage[]> {
+    async getMessages(
+        roomId: number,
+        user: ChatUser,
+        options?: GetMessagesOptions,
+    ): Promise<ChatMessagesPageResult> {
         await this.assertRoomOwner(roomId, user.id);
 
-        return this.prisma.chatMessage.findMany({
+        const limit = options?.limit ?? DEFAULT_MESSAGE_PAGE_SIZE;
+        const take = limit + 1;
+
+        const messages = await this.prisma.chatMessage.findMany({
             where: {
                 roomId,
+                ...(options?.cursor
+                    ? {
+                        id: {
+                            lt: options.cursor,
+                        },
+                    }
+                    : {}
+                ),
             },
             orderBy: {
-                createdAt: 'asc',
+                id: 'desc',
             },
+            take,
         });
+
+        const hasMore = messages.length > limit;
+        const pageMessages = hasMore ? messages.slice(0, limit) : messages;
+
+        return {
+            messages: pageMessages.reverse(),
+            nextCursor: hasMore
+            ? pageMessages[pageMessages.length -1]?.id ?? null
+            : null,
+        };
     }
 
     async saveUserMessage(roomId: number, user: ChatUser, content: string): Promise<ChatMessage> {

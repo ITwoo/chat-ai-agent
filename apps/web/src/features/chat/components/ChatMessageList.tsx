@@ -1,5 +1,5 @@
 import type { ChatMessageResponse, ChatRoomResponse } from '@repo/shared';
-import { use, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type ChatMessageListProps = {
     room: ChatRoomResponse | null;
@@ -7,6 +7,9 @@ type ChatMessageListProps = {
     isAssistantStreaming: boolean;
     streamingText: string;
     isLoading: boolean;
+    hasOlderMessages: boolean;
+    isOlderMessagesLoading: boolean;
+    onLoadOlderMessages: () => Promise<void>;
     onRetryMessage: (message: ChatMessageResponse) => void;
     isRetryDisabled: boolean;
 };
@@ -79,19 +82,39 @@ export function ChatMessageList({
     isAssistantStreaming,
     streamingText,
     isLoading,
+    hasOlderMessages,
+    isOlderMessagesLoading,
+    onLoadOlderMessages,
     onRetryMessage,
     isRetryDisabled,
 }: ChatMessageListProps) {
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
+    const shouldSkipNextAutoScrollRef = useRef(false);
+
     const [copiedCodeKey, setCopiedCodeKey] = useState<string | null>(null);
 
     useEffect(() => {
+        if(shouldSkipNextAutoScrollRef.current) {
+            shouldSkipNextAutoScrollRef.current = false;
+            return;
+        }
+
         bottomRef.current?.scrollIntoView({
             behavior: 'smooth',
         });
+
     }, [messages, streamingText, isAssistantStreaming]);
 
+    const handleLoadOlderMessagesClick = async () => {
+        shouldSkipNextAutoScrollRef.current = true;
+
+        try {
+            await onLoadOlderMessages();
+        } catch {
+            shouldSkipNextAutoScrollRef.current = false;
+        }
+    }
     const handleCopyCode = async (code: string, codeKey: string) => {
         try {
             await navigator.clipboard.writeText(code);
@@ -130,14 +153,14 @@ export function ChatMessageList({
                         <div
                             key={codeKey}
                             className={`overflow-hidden rounded-xl border text-sm ${isUser
-                                    ? 'border-white/10 bg-black/30'
-                                    : 'border-gray-800 bg-gray-950 text-gray-100'
+                                ? 'border-white/10 bg-black/30'
+                                : 'border-gray-800 bg-gray-950 text-gray-100'
                                 }`}
                         >
                             <div
                                 className={`flex items-center justify-between gap-3 border-b px-3 py-2 text-xs ${isUser
-                                        ? 'border-white/10 text-gray-300'
-                                        : 'border-gray-800 text-gray-400'
+                                    ? 'border-white/10 text-gray-300'
+                                    : 'border-gray-800 text-gray-400'
                                     }`}
                             >
                                 <span className="truncate">
@@ -198,6 +221,20 @@ export function ChatMessageList({
 
     return (
         <section className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-gray-50 px-4 py-4 md:px-6 md:py-6">
+            {hasOlderMessages && (
+                <div className="flex justify-center">
+                    <button
+                        type="button"
+                        disabled={isOlderMessagesLoading}
+                        onClick={handleLoadOlderMessagesClick}
+                        className="rounded-full border bg-white px-4 py-2 text-xs font-semibold text-gray-600 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {isOlderMessagesLoading
+                            ? '이전 메시지 불러오는 중...'
+                            : '이전 메시지 더 보기'}
+                    </button>
+                </div>
+            )}
             {messages.map((message) => {
                 const isUser = message.role === 'USER';
                 const isCancelled = message.status === 'CANCELLED';
@@ -230,7 +267,7 @@ export function ChatMessageList({
                                 <p className="mb-1 text-xs text-red-500">
                                     실패한 메시지
                                 </p>
-                            )}                            
+                            )}
                             {renderMessageContent(message, isUser)}
                             {canRetry && (
                                 <button

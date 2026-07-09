@@ -51,3 +51,8 @@ export interface UpdateChatRoomRequest {
 export interface CreateChatMessageRequest {
   content: string;
 }
+
+export type ChatMessagesPageResponse = {
+    messages: ChatMessageResponse[];
+    nextCursor: number | null;
+}

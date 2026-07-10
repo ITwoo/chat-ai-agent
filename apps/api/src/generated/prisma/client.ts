@@ -59,3 +59,8 @@ export type ChatRoom = Prisma.ChatRoomModel
  * 
  */
 export type ChatMessage = Prisma.ChatMessageModel
+/**
+ * Model Expense
+ * 
+ */
+export type Expense = Prisma.ExpenseModel

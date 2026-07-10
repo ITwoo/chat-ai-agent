@@ -201,6 +201,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             this.abortControllers.set(processingKey, abortController)
 
             for await (const delta of this.agentService.streamReply(
+                user.id,
                 contextMessages, 
                 abortController.signal,
             )) {

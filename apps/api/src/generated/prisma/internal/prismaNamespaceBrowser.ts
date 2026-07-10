@@ -54,7 +54,8 @@ export const ModelName = {
   User: 'User',
   Board: 'Board',
   ChatRoom: 'ChatRoom',
-  ChatMessage: 'ChatMessage'
+  ChatMessage: 'ChatMessage',
+  Expense: 'Expense'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -120,6 +121,21 @@ export const ChatMessageScalarFieldEnum = {
 export type ChatMessageScalarFieldEnum = (typeof ChatMessageScalarFieldEnum)[keyof typeof ChatMessageScalarFieldEnum]
 
 
+export const ExpenseScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  amount: 'amount',
+  category: 'category',
+  title: 'title',
+  memo: 'memo',
+  spentAt: 'spentAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ExpenseScalarFieldEnum = (typeof ExpenseScalarFieldEnum)[keyof typeof ExpenseScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -134,4 +150,12 @@ export const QueryMode = {
 } as const
 
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 

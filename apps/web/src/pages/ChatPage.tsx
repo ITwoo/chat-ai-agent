@@ -6,7 +6,7 @@ import { ChatRoomSidebar } from "../features/chat/components/ChatRoomSidebar";
 import { ChatMessageList } from "../features/chat/components/ChatMessageList";
 import { ChatInput } from "../features/chat/components/ChatInput";
 
-const MESSAGE_PAGE_SIZE = 1;
+const MESSAGE_PAGE_SIZE = 10;
 
 export function ChatPage() {
     const [rooms, setRooms] = useState<ChatRoomResponse[]>([]);

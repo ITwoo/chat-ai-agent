@@ -21,6 +21,6 @@ import { AgentModule } from './agent/agent.module';
     AgentModule,
   ],
   controllers: [AgentController],
-  providers: [AgentService],
+  providers: [],
 }) 
 export class AppModule {}

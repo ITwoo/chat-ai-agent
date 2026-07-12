@@ -5,16 +5,6 @@ export const BoardStatus = {
 
 export type BoardStatus = (typeof BoardStatus)[keyof typeof BoardStatus];
 
-export interface Board {
-  id: number;
-  title: string;
-  description: string;
-  status: BoardStatus;
-  userId: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface BoardResponse {
   id: number;
   title: string;

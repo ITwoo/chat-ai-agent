@@ -55,7 +55,8 @@ export const ModelName = {
   Board: 'Board',
   ChatRoom: 'ChatRoom',
   ChatMessage: 'ChatMessage',
-  Expense: 'Expense'
+  Expense: 'Expense',
+  RefreshTokenSession: 'RefreshTokenSession'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -134,6 +135,19 @@ export const ExpenseScalarFieldEnum = {
 } as const
 
 export type ExpenseScalarFieldEnum = (typeof ExpenseScalarFieldEnum)[keyof typeof ExpenseScalarFieldEnum]
+
+
+export const RefreshTokenSessionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  tokenHash: 'tokenHash',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RefreshTokenSessionScalarFieldEnum = (typeof RefreshTokenSessionScalarFieldEnum)[keyof typeof RefreshTokenSessionScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -2,28 +2,39 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { PrismaExceptionFilter } from './prisma/prisma-exception.filter';
+import { ConfigService } from '@nestjs/config';
+import cookieParser from 'cookie-parser';
+
 
 async function bootstrap() {
+    const logger = new Logger('Bootstrap');
 
-  const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule);
+    const configService = app.get(ConfigService);
 
-  app.enableCors({
-    origin: process.env.CORS_ORIGIN ?? '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
-  });
-  
-  app.setGlobalPrefix('api');
-  app.useGlobalFilters(new PrismaExceptionFilter());
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }));
+    const configFileName = configService.getOrThrow<string>('ENV_NAME');
 
-  await app.listen(process.env.PORT ?? 3000);
+    app.use(cookieParser());
+    app.enableCors({
+        origin: configService.getOrThrow<string>('CORS_ORIGIN') ?? '*',
+        methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+        credentials: true,
+    });
 
-  Logger.log(`Application is running on: ${await app.getUrl()}`);
+    app.setGlobalPrefix('api');
+    app.useGlobalFilters(new PrismaExceptionFilter());
+    app.useGlobalPipes(new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+    }));
+
+    const PORT = configService.get<number>('PORT') ?? 3000;
+
+    await app.listen(PORT);
+
+    logger.log(`Config File Name ${configFileName}`);
+    logger.log(`Application is running on: ${await app.getUrl()}`);
 
 }
 bootstrap();

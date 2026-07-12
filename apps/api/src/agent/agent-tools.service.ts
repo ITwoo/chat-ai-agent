@@ -7,6 +7,24 @@ type AgentToolContext = {
     userId: number;
 }
 
+const EXPENSE_CATEGORIES = [
+    '식비',
+    '교통',
+    '주거',
+    '공과금',
+    '통신',
+    '생활용품',
+    '쇼핑',
+    '의료',
+    '문화여가',
+    '운동',
+    '교육',
+    '경조사',
+    '기타',
+] as const;
+
+const expenseCategorySchema = z.enum(EXPENSE_CATEGORIES);
+
 @Injectable()
 export class AgentToolsService {
     private readonly logger = new Logger(AgentToolsService.name);
@@ -91,7 +109,7 @@ export class AgentToolsService {
                     category: z
                         .string()
                         .min(1)
-                        .describe('지출 카테고리. 예: 식비, 교통, 주거, 통신, 쇼핑, 의료, 기타'),
+                        .describe('지출 카테고리. 반드시 정해진 카테고리 중 하나를 선택한다.'),
                     title: z
                         .string()
                         .min(1)
@@ -182,7 +200,7 @@ export class AgentToolsService {
                     category: z
                         .string()
                         .optional()
-                        .describe('선택 카테고리. 예: 식비, 교통, 주거, 통신, 쇼핑, 의료, 기타'),
+                        .describe('선택 카테고리. 특정 카테고리만 조회할 때 사용한다.'),
                 }),
             },
         );

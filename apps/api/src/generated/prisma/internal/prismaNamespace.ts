@@ -388,7 +388,8 @@ export const ModelName = {
   Board: 'Board',
   ChatRoom: 'ChatRoom',
   ChatMessage: 'ChatMessage',
-  Expense: 'Expense'
+  Expense: 'Expense',
+  RefreshTokenSession: 'RefreshTokenSession'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -404,7 +405,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "board" | "chatRoom" | "chatMessage" | "expense"
+    modelProps: "user" | "board" | "chatRoom" | "chatMessage" | "expense" | "refreshTokenSession"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -778,6 +779,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    RefreshTokenSession: {
+      payload: Prisma.$RefreshTokenSessionPayload<ExtArgs>
+      fields: Prisma.RefreshTokenSessionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RefreshTokenSessionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenSessionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RefreshTokenSessionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenSessionPayload>
+        }
+        findFirst: {
+          args: Prisma.RefreshTokenSessionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenSessionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RefreshTokenSessionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenSessionPayload>
+        }
+        findMany: {
+          args: Prisma.RefreshTokenSessionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenSessionPayload>[]
+        }
+        create: {
+          args: Prisma.RefreshTokenSessionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenSessionPayload>
+        }
+        createMany: {
+          args: Prisma.RefreshTokenSessionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RefreshTokenSessionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenSessionPayload>[]
+        }
+        delete: {
+          args: Prisma.RefreshTokenSessionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenSessionPayload>
+        }
+        update: {
+          args: Prisma.RefreshTokenSessionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenSessionPayload>
+        }
+        deleteMany: {
+          args: Prisma.RefreshTokenSessionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RefreshTokenSessionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RefreshTokenSessionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenSessionPayload>[]
+        }
+        upsert: {
+          args: Prisma.RefreshTokenSessionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RefreshTokenSessionPayload>
+        }
+        aggregate: {
+          args: Prisma.RefreshTokenSessionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRefreshTokenSession>
+        }
+        groupBy: {
+          args: Prisma.RefreshTokenSessionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RefreshTokenSessionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RefreshTokenSessionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RefreshTokenSessionCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -877,6 +952,19 @@ export const ExpenseScalarFieldEnum = {
 } as const
 
 export type ExpenseScalarFieldEnum = (typeof ExpenseScalarFieldEnum)[keyof typeof ExpenseScalarFieldEnum]
+
+
+export const RefreshTokenSessionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  tokenHash: 'tokenHash',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RefreshTokenSessionScalarFieldEnum = (typeof RefreshTokenSessionScalarFieldEnum)[keyof typeof RefreshTokenSessionScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1121,6 +1209,7 @@ export type GlobalOmitConfig = {
   chatRoom?: Prisma.ChatRoomOmit
   chatMessage?: Prisma.ChatMessageOmit
   expense?: Prisma.ExpenseOmit
+  refreshTokenSession?: Prisma.RefreshTokenSessionOmit
 }
 
 /* Types for Logging */

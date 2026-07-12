@@ -64,3 +64,8 @@ export type ChatMessage = Prisma.ChatMessageModel
  * 
  */
 export type Expense = Prisma.ExpenseModel
+/**
+ * Model RefreshTokenSession
+ * 
+ */
+export type RefreshTokenSession = Prisma.RefreshTokenSessionModel

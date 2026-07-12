@@ -2,8 +2,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { BoardStatus } from '@repo/shared';
 import { CreateBoardDto } from './dto/create-board.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { User, Board } from '../generated/prisma/client';
+import { Board } from '../generated/prisma/client';
 import { UpdateBoardDto } from './dto/update-board.dto';
+import type{ AuthUser } from '../auth/types/auth-user.type';
 
 @Injectable()
 export class BoardsService {
@@ -11,7 +12,7 @@ export class BoardsService {
          private readonly prisma: PrismaService,
     ) {}
 
-    async createBoard(createBoardDto: CreateBoardDto, user: User): Promise<Board> {
+    async createBoard(createBoardDto: CreateBoardDto, user: AuthUser): Promise<Board> {
         const { title, description } = createBoardDto;
         const board = this.prisma.board.create({
             data : {
@@ -35,7 +36,7 @@ export class BoardsService {
         return found;
     }
 
-    async deleteBoard(id: number, user: User): Promise<void> {
+    async deleteBoard(id: number, user: AuthUser): Promise<void> {
         const result = await this.prisma.board.delete({ where: { id, userId: user.id } });
         console.log('result:', result);
         // if(result.affected === 0) {
@@ -57,7 +58,7 @@ export class BoardsService {
         return board;
     }
 
-    async getAllBoards(user: User): Promise<Board[]> {
+    async getAllBoards(user: AuthUser): Promise<Board[]> {
         return this.prisma.board.findMany({ where: { userId: user.id } });
     }
     

@@ -28,4 +28,18 @@ export const authApi = {
             method: 'GET',
         });
     },
+
+    refresh(): Promise<LoginResponse> {
+        return http<LoginResponse>('/auth/refresh', {
+            method: 'POST',
+            token: null,
+        });
+    },
+
+    logout(): Promise<void> {
+        return http<void>('/auth/logout', {
+            method: 'POST',
+            token: null,
+        });
+    },
 };

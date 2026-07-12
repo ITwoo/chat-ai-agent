@@ -11,7 +11,8 @@ type AuthState = {
 
     initAuth: () => Promise<void>;
     login: (data: LoginRequest) => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;
+    clearAuth: () => void;
     isAuthenticated: () => boolean;
 };
 
@@ -22,21 +23,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     initAuth: async () => {
         const token = getAccessToken();
 
-        if (!token) {
-            set({
-                user: null,
-                authStatus: 'unauthenticated',
-            });
-            return;
+        if (token) {
+            try {
+                const user = await authApi.getMe();
+
+                set({
+                    user,
+                    authStatus: 'authenticated',
+                });
+
+                return;
+            } catch {
+                removeAccessToken();
+            }
         }
 
         try {
+            const response = await authApi.refresh();
+
+            saveAccessToken(response.accessToken);
+
             const user = await authApi.getMe();
+
             set({
                 user,
                 authStatus: 'authenticated',
             });
-        } catch (error) {
+        } catch {
             removeAccessToken();
 
             set({
@@ -59,13 +72,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
     },
 
-    logout: () => {
+    clearAuth: () => {
         removeAccessToken();
 
         set({
             user: null,
             authStatus: 'unauthenticated',
         });
+    },
+
+    logout: async () => {
+        try {
+            await authApi.logout();
+        } finally {
+            get().clearAuth();
+        }
     },
 
     isAuthenticated: () => {

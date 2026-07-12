@@ -8,6 +8,7 @@ export function Layout() {
     const authStatus = useAuthStore((state) => state.authStatus);
     const initAuth = useAuthStore((state) => state.initAuth);
     const logout = useAuthStore((state) => state.logout);
+    const clearAuth = useAuthStore((state) => state.clearAuth);
     const user = useAuthStore((state) => state.user);
 
     const location = useLocation();
@@ -16,16 +17,17 @@ export function Layout() {
     useEffect(() => {
         initAuth();
 
-        function handleUnauthorized() {
-            logout();
-        }
+        const handleUnauthorized = () => {
+            clearAuth();
+            navigate('/login', { replace: true });
+        };
 
         window.addEventListener('auth:unauthorized', handleUnauthorized);
 
         return () => {
             window.removeEventListener('auth:unauthorized', handleUnauthorized);
         };
-    }, [initAuth, logout]);
+    }, [initAuth, clearAuth]);
 
     const handleLogout = () => {
         logout();

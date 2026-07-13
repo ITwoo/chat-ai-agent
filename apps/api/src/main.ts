@@ -12,7 +12,7 @@ async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     const configService = app.get(ConfigService);
 
-    const configFileName = configService.getOrThrow<string>('ENV_NAME');
+    const configFileName = configService.get<string>('ENV_NAME') ?? '';
 
     app.use(cookieParser());
     app.enableCors({

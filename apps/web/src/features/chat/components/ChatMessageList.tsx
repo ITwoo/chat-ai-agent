@@ -129,7 +129,7 @@ export function ChatMessageList({
         }
     }
 
-    const renderMessageContent = (message: ChatMessageResponse, isUser: boolean) => {
+    const renderMessageContent = (message: ChatMessageResponse) => {
         const parts = parseMessageContent(message.content);
 
         return (
@@ -261,7 +261,7 @@ export function ChatMessageList({
                                     실패한 메시지
                                 </p>
                             )}
-                            {renderMessageContent(message, isUser)}
+                            {renderMessageContent(message)}
                             {canRetry && (
                                 <button
                                     type="button"

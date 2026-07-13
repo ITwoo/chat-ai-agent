@@ -68,7 +68,7 @@ export function ChatPage() {
         const socket = connectChatSocket();
 
         const handleAnyEvent = (eventName: string, ...args: unknown[]) => {
-            // console.log('[socket event]', eventName, args);
+            console.log('[socket event]', eventName, args);
         };
 
         const handleConnect = () => {

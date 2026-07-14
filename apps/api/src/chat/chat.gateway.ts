@@ -4,6 +4,7 @@ import {
     MessageBody,
     OnGatewayConnection,
     OnGatewayDisconnect,
+    OnGatewayInit,
     SubscribeMessage,
     WebSocketGateway,
     WebSocketServer,
@@ -41,12 +42,12 @@ type JwtPayload = {
     },
 })
 
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
     server!: Server;
 
     private readonly logger = new Logger(ChatGateway.name);
-    
+
     private readonly processingRooms = new Set<string>();
     private readonly cancelledRooms = new Set<string>();
     private readonly abortControllers = new Map<string, AbortController>();
@@ -59,40 +60,49 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         private readonly prisma: PrismaService
     ) { }
 
+    afterInit(server: Server) {
+        server.use(async (socket, next) => {
+            try {
+                const token = socket.handshake.auth?.token;
+
+                if (!token) {
+                    return next(new Error('Unauthorized'));
+                }
+
+                const payload = await this.jwtService.verifyAsync<{
+                    sub: number;
+                    username: string;
+                }>(token, {
+                    secret: this.configService.getOrThrow<string>('JWT_SECRET'),
+                });
+
+                const user = await this.prisma.user.findUnique({
+                    where: {
+                        id: payload.sub,
+                    },
+                    select: {
+                        id: true,
+                        username: true,
+                    },
+                });
+
+                if (!user) {
+                    return next(new Error('Unauthorized'));
+                }
+
+                socket.data.user = user;
+
+                return next();
+            } catch {
+                return next(new Error('Unauthorized'));
+            }
+        });
+    }
+
     async handleConnection(client: AuthenticatedSocket) {
+        const user = client.data.user;
 
-        try {
-            const token = this.extractToken(client);
-
-            if(!token) {
-                this.logger.warn(`Socket rejected. Missing token: ${client.id}`);
-                client.disconnect();
-                return;
-            }
-
-            const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
-                secret: this.configService.getOrThrow<string>('JWT_SECRET'),
-            });
-
-            const user = await this.prisma.user.findUnique({
-                where: { id: payload.sub },
-                select: { id: true, username: true },
-            });
-
-            if(!user) {
-                this.logger.warn(`Socket rejected. User not found: ${client.id}`);
-                client.disconnect();
-                return;
-            }
-
-            client.data.user = user;
-
-            this.logger.log(`Socket connected: ${client.id}, User: ${user.username}`);
-
-        } catch (error) {
-            this.logger.warn('Socket rejected. Invalid token: ' + client.id);
-            client.disconnect();
-        }
+        this.logger.log(`Socket connected: ${client.id}, User: ${user.username}`);
     }
 
     handleDisconnect(client: AuthenticatedSocket) {
@@ -118,7 +128,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         try {
             const roomName = this.getRoomName(payload.roomId);
-            
+
             await this.chatService.assertRoomOwner(payload.roomId, user.id);
 
             await client.join(roomName);
@@ -152,7 +162,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         const processingKey = `${user.id}:${payload.roomId}`;
 
-        if(this.processingRooms.has(processingKey)) {
+        if (this.processingRooms.has(processingKey)) {
             client.emit('chat_error', {
                 message: '이미 이 채팅방에서 AI가 응답 중입니다.',
             });
@@ -174,7 +184,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             );
 
             userMessageId = userMessage.id;
-            
+
             this.server.to(roomName).emit('message_created', userMessage);
 
             const updatedRoom = await this.chatService.updateRoomTitleFromFirstMessage(
@@ -202,14 +212,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
             for await (const delta of this.agentService.streamReply(
                 user.id,
-                contextMessages, 
+                contextMessages,
                 abortController.signal,
             )) {
-                if(this.cancelledRooms.has(processingKey)) {
+                if (this.cancelledRooms.has(processingKey)) {
                     isCancelled = true;
                     break;
                 }
-                
+
                 assistantContent += delta
 
                 this.server.to(roomName).emit('assistant_message_delta', {
@@ -218,8 +228,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 });
             }
 
-            if(isCancelled) {
-                if(userMessageId) {
+            if (isCancelled) {
+                if (userMessageId) {
                     const { userMessage, assistantMessage } = await this.chatService.cancelGeneration(
                         payload.roomId,
                         user.id,
@@ -241,7 +251,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 return;
             }
 
-            if(!assistantContent.trim()) {
+            if (!assistantContent.trim()) {
                 throw new Error('AI 응답이 비어 있습니다.');
             }
 
@@ -254,14 +264,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             this.server.to(roomName).emit('assistant_message_completed', {
                 roomId: payload.roomId,
                 message: assistantMessage,
-            });            
-            
+            });
+
         } catch (error) {
-            if(
+            if (
                 this.cancelledRooms.has(processingKey) ||
                 this.isAbortError(error)
             ) {
-                if(userMessageId) {
+                if (userMessageId) {
                     const { userMessage, assistantMessage } = await this.chatService.cancelGeneration(
                         payload.roomId,
                         user.id,
@@ -282,8 +292,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
                 return;
             }
-            
-            if(userMessageId) {
+
+            if (userMessageId) {
                 const { userMessage, assistantMessage } = await this.chatService.failGeneration(
                     payload.roomId,
                     user.id,
@@ -294,7 +304,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
                 this.server.to(roomName).emit('assistant_message_failed', {
                     roomId: payload.roomId,
-                    message:  assistantMessage,
+                    message: assistantMessage,
                 });
 
                 return;
@@ -304,7 +314,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 message:
                     error instanceof Error ? error.message : '메시지 전송에 실패했습니다.',
             });
-            
+
         } finally {
             this.processingRooms.delete(processingKey);
             this.cancelledRooms.delete(processingKey);
@@ -333,9 +343,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @ConnectedSocket() client: AuthenticatedSocket,
         @MessageBody() payload: JoinRoomDto,
     ) {
-        const user =  client.data.user;
+        const user = client.data.user;
 
-        if(!user){
+        if (!user) {
             client.emit('chat_error', {
                 message: '인증 정보가 없습니다.',
             });
@@ -362,13 +372,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private extractToken(client: AuthenticatedSocket): string | null {
         const authToken = client.handshake.auth.token;
 
-        if(typeof authToken === 'string' && authToken.trim()) {
+        if (typeof authToken === 'string' && authToken.trim()) {
             return authToken;
         }
-        
+
         const authorization = client.handshake.headers['authorization'];
 
-        if(typeof authorization === 'string' && authorization.startsWith('Bearer ')) {
+        if (typeof authorization === 'string' && authorization.startsWith('Bearer ')) {
             return authorization.replace('Bearer ', '');
         }
 
@@ -379,13 +389,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return `chat_room:${roomId}`;
     }
 
-    private isAbortError(error:  unknown) {
-        if(!(error instanceof Error)) {
+    private isAbortError(error: unknown) {
+        if (!(error instanceof Error)) {
             return false;
         }
 
         return (
-            error.name === 'AbortError'  ||
+            error.name === 'AbortError' ||
             error.name === 'ModelAbortError' ||
             error.message.toLowerCase().includes('abort')
         );

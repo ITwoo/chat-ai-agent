@@ -88,7 +88,7 @@ async function request(
     };
 }
 
-async function refreshAccessToken(): Promise<string> {
+export async function refreshAccessToken(): Promise<string> {
     if(!refreshAccessTokenPromise) {
         refreshAccessTokenPromise = (async () => {
             const { response, data } = await request(

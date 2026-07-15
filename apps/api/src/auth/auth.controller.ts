@@ -78,7 +78,7 @@ export class AuthController {
         @Req() request: RequestWithCookies,
     ): Promise<LoginResponse> {
         const refreshToken = request.cookies?.refreshToken;
-        this.logger.log('refreshToken', refreshToken)
+        // this.logger.log('refreshToken', refreshToken)
         if (!refreshToken) {
             throw new UnauthorizedException('Refresh token not found');
         }

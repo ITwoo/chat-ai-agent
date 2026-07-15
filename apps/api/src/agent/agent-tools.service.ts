@@ -29,13 +29,14 @@ const expenseCategorySchema = z.enum(EXPENSE_CATEGORIES);
 export class AgentToolsService {
     private readonly logger = new Logger(AgentToolsService.name);
 
-    constructor(private readonly prisma: PrismaService){}
+    constructor(private readonly prisma: PrismaService) { }
 
     getTools(context: AgentToolContext): StructuredToolInterface[] {
         return [
             this.createGetCurrentDateTimeTool(),
             this.createExpenseTool(context),
             this.createExpenseSummaryTool(context),
+            this.createExpenseListTool(context),
         ];
     }
 
@@ -68,11 +69,11 @@ export class AgentToolsService {
     private createExpenseTool(context: AgentToolContext) {
         return tool(
             async ({ amount, category, title, memo, spentAt }) => {
-                this.logger.log('[total create_expense');
+                this.logger.log('[tool] create_expense');
 
                 const parsedSpentAt = new Date(spentAt);
 
-                if(Number.isNaN(parsedSpentAt.getTime())) {
+                if (Number.isNaN(parsedSpentAt.getTime())) {
                     return '지출 날짜 형식이 올바르지 않습니다. spentAt은 ISO 날짜 문자열이어야 합니다.';
                 }
 
@@ -126,23 +127,23 @@ export class AgentToolsService {
         );
     }
 
-    private createExpenseSummaryTool (context: AgentToolContext) {
+    private createExpenseSummaryTool(context: AgentToolContext) {
         return tool(
-            async({ startDate, endDate, category }) => {
+            async ({ startDate, endDate, category }) => {
                 this.logger.log('[tool] get_expense_summary');
 
                 const parsedStartDate = new Date(startDate);
                 const parsedEndDate = new Date(endDate);
 
-                if(Number.isNaN(parsedStartDate.getTime())) {
+                if (Number.isNaN(parsedStartDate.getTime())) {
                     return '조회 시작 날짜 형식이 올바르지 않습니다. startDate는 ISO 날짜 문자열이어야 합니다.';
                 }
 
-                if(Number.isNaN(parsedEndDate.getTime())) {
+                if (Number.isNaN(parsedEndDate.getTime())) {
                     return '조회 종료 날짜 형식이 올바르지 않습니다. endDate는 ISO 날짜 문자열이어야 합니다.';
                 }
 
-                if(parsedStartDate >= parsedEndDate) {
+                if (parsedStartDate >= parsedEndDate) {
                     return '조회 시작 날짜는 종료 날짜보다 이전이어야 합니다.';
                 }
 
@@ -171,7 +172,7 @@ export class AgentToolsService {
 
                 const categorySummary = expenses.reduce<Record<string, number>>(
                     (summary, expense) => {
-                        summary[expense.category] = (summary[expense.category] ?? 0 ) + expense.amount;
+                        summary[expense.category] = (summary[expense.category] ?? 0) + expense.amount;
 
                         return summary;
                     },
@@ -205,5 +206,112 @@ export class AgentToolsService {
             },
         );
     }
-    
+
+    private createExpenseListTool(context: AgentToolContext) {
+        return tool(
+            async ({
+                startDate,
+                endDate,
+                category,
+                limit = 10,
+            }) => {
+                this.logger.log('[tool] get_expense_list');
+
+                const parsedStartDate = startDate ? new Date(startDate) : undefined;
+                const parsedEndDate = endDate ? new Date(endDate) : undefined;
+
+                if (parsedStartDate && Number.isNaN(parsedStartDate.getTime())) {
+                    return '조회 시작 날짜 형식이 올바르지 않습니다. startDate는 ISO 날짜 문자열이어야 합니다.';
+                }
+
+                if (parsedEndDate && Number.isNaN(parsedEndDate.getTime())) {
+                    return '조회 종료 날짜 형식이 올바르지 않습니다. endDate는 ISO 날짜 문자열이어야 합니다.';
+                }
+
+                const where: {
+                    userId: number;
+                    spentAt?: {
+                        gte?: Date;
+                        lt?: Date;
+                    };
+                    category?: string;
+                } = {
+                    userId: context.userId,
+                };
+
+                if (parsedStartDate || parsedEndDate) {
+                    where.spentAt = {};
+
+                    if (parsedStartDate) {
+                        where.spentAt.gte = parsedStartDate;
+                    }
+
+                    if (parsedEndDate) {
+                        where.spentAt.lt = parsedEndDate;
+                    }
+                }
+
+                if (category) {
+                    where.category = category;
+                }
+
+                const expenses = await this.prisma.expense.findMany({
+                    where,
+                    orderBy: {
+                        spentAt: 'desc',
+                    },
+                    take: limit,
+                    select: {
+                        id: true,
+                        amount: true,
+                        category: true,
+                        title: true,
+                        memo: true,
+                        spentAt: true,
+                    },
+                });
+
+                return JSON.stringify({
+                    count: expenses.length,
+                    startDate: parsedStartDate?.toISOString() ?? null,
+                    endDate: parsedEndDate?.toISOString() ?? null,
+                    category: category ?? null,
+                    limit,
+                    expenses: expenses.map((expense) => ({
+                        id: expense.id,
+                        amount: expense.amount,
+                        category: expense.category,
+                        title: expense.title,
+                        memo: expense.memo,
+                        spentAt: expense.spentAt.toISOString(),
+                    })),
+                });
+            },
+            {
+                name: 'get_expense_list',
+                description: '사용자의 지출 기록 목록을 최신순으로 조회한다. 오늘 뭐 썻는지, 최근 지출 내역, 특정 기간이나 카테고리의 지출 목록을 확인할 때 사용한다',
+                schema: z.object({
+                    startDate: z
+                        .string()
+                        .optional()
+                        .describe('선택 조회 시작 날짜. ISO 8601 문자열로 입력하며 이 날자를 포함한다. 예: 2026-07-15T00:00:00+09:00'),
+                    endDate: z
+                        .string()
+                        .optional()
+                        .describe('선택 조회 종료 날짜. ISO 8601 문자열로 입력하며 이 날자를 포함하지 않는다. 예: 2026-07-16T00:00:00+09:00'),
+                    category: expenseCategorySchema
+                        .optional()
+                        .describe('선택 지출 카테고리. 특정 카테고리의 지출만 조회할 때 사용한다.'),
+                    limit: z
+                        .number()
+                        .int()
+                        .min(1)
+                        .max(50)
+                        .default(10)
+                        .describe('조회할 최대 지출 개수. 기본값은 10이고 최대 50이다.'),
+                }),
+            },
+        );
+    }
+
 }

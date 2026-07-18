@@ -17,13 +17,8 @@ import type { User } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { AgentService } from '../agent/agent.service';
-import { agentApprovalResponseSchema } from '../agent/agent-interrupt.schema';
-
-type SocketUser = {
-    id: number;
-    username: string;
-}
+import { AgentService, AgentStreamEvent } from '../agent/agent.service';
+import { agentApprovalResponseSchema, ExpenseUpdateApprovalRequest, UpdateExpenseDecision } from '../agent/agent-interrupt.schema';
 
 type AuthenticatedSocket = Socket & {
     data: {
@@ -31,11 +26,21 @@ type AuthenticatedSocket = Socket & {
     };
 };
 
-type JwtPayload = {
-    sub: number;
-    username: string;
+type PendingAgentApproval = {
+    threadId: string;
+    originUserMessageId: number;
+    request: ExpenseUpdateApprovalRequest;
 };
 
+type AgentApprovalSource =
+    |{
+        type: 'chat';
+        content: string;
+    }
+    | {
+        type: 'button';
+        originUserMessageId: number;
+    }
 @WebSocketGateway({
     cors: {
         origin: true,
@@ -52,6 +57,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     private readonly processingRooms = new Set<string>();
     private readonly cancelledRooms = new Set<string>();
     private readonly abortControllers = new Map<string, AbortController>();
+    private readonly pendingApprovals = new Map<string, PendingAgentApproval>();
 
     constructor(
         private readonly chatService: ChatService,
@@ -161,7 +167,36 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             return;
         }
 
-        const processingKey = `${user.id}:${payload.roomId}`;
+        const processingKey = this.getUserRoomKey(
+            user.id,
+            payload.roomId
+        );
+
+        const pendingApproval = this.pendingApprovals.get(processingKey);
+
+        if(pendingApproval) {
+            const decision = this.parseApprovalDecision(payload.content);
+
+            if(!decision) {
+                client.emit('chat_error', {
+                    message: '현재 승인 대기 중입니다. 승인 또는 취소로 답변해주세요.',
+                });
+                return;
+            }
+
+            await this.processAgentApproval(
+                client,
+                user,
+                payload.roomId,
+                decision,
+                {
+                    type: 'chat',
+                    content: payload.content,
+                },
+            );
+
+            return;
+        }
 
         if (this.processingRooms.has(processingKey)) {
             client.emit('chat_error', {
@@ -241,13 +276,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
                 isWaitingForApproval = true;
 
-                this.server.to(roomName).emit(
-                    'assistant_approval_required',
-                    {
-                        roomId: payload.roomId,
-                        userMessageId: userMessage.id,
-                        request: event.request,
-                    },
+                this.setPendingApproval(
+                    user.id,
+                    payload.roomId,
+                    userMessage.id,
+                    event,
                 );
 
                 break;
@@ -380,162 +413,18 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             action,
         } = payloadResult.data;
 
-        const processingKey = `${user.id}:${roomId}`;
-
-        if(this.processingRooms.has(processingKey)) {
-            client.emit('chat_error', {
-                message: '이미 이 채팅방에서 AI가 응답 중입니다.',
-            });
-            return;
-        }
-
-        this.processingRooms.add(processingKey);
-
-        const roomName = this.getRoomName(roomId);
-        const threadId = this.getAgentThreadId(user.id, roomId, userMessageId);
-
-        const abortController = new AbortController();
-
-        this.abortControllers.set(
-            processingKey,
-            abortController,
+        await this.processAgentApproval(
+            client,
+            user,
+            roomId,
+            {
+                action,
+            },
+            {
+                type: 'button',
+                originUserMessageId: userMessageId,
+            },
         );
-
-        try {
-            await this.chatService.assertRoomOwner(
-                roomId,
-                user.id,
-            );
-
-            this.server.to(roomName).emit(
-                'assistant_approval_resolved',
-                {
-                    roomId,
-                    userMessageId,
-                    action,
-                },
-            );
-
-            let assistantContent = '';
-            let isWaitingForAproval = false;
-            let isCancelled = false;
-
-            for await ( const event of this.agentService.resumeReply(
-                user.id,
-                threadId,
-                {
-                    action,
-                },
-                abortController.signal,
-            )) {
-                if( this.cancelledRooms.has(processingKey)) {
-                    isCancelled = true;
-                    break;
-                }
-
-                if(event.type === 'text_delta') {
-                    assistantContent += event.delta;
-
-                    this.server.to(roomName).emit(
-                        'assistant_message_delta',
-                        {
-                            roomId,
-                            delta: event.delta,
-                        },
-                    );
-
-                    continue;
-                }
-
-                isWaitingForAproval = true;
-
-                this.server.to(roomName).emit(
-                    'assistant_approval_required',
-                    {
-                        roomId,
-                        userMessageId,
-                        request: event.request,
-                    },
-                );
-
-                break;
-            }
-
-            if(isCancelled) {
-                const { userMessage, assistantMessage } = await this.chatService.cancelGeneration(roomId, user.id, userMessageId);
-
-                this.server.to(roomName).emit(
-                    'message_updated',
-                    userMessage,
-                );
-
-                this.server.to(roomName).emit(
-                    'assistant_message_cancelled',
-                    {
-                        roomId,
-                        message: assistantMessage,
-                    },
-                );
-
-                return;
-            }
-
-            if(isWaitingForAproval) {
-                return;
-            }
-
-            if(!assistantContent.trim()) {
-                throw new Error('AI 응답이 비어 있습니다.');
-            }
-
-            const assistantMessage = await this.chatService.saveAssistantMessage(roomId, user.id, assistantContent);
-
-            this.server.to(roomName).emit(
-                'assistant_message_completed',
-                {
-                    roomId,
-                    message: assistantMessage,
-                },
-            );
-        } catch (error) {
-            if(this.cancelledRooms.has(processingKey) || this.isAbortError(error)) {
-                const { userMessage, assistantMessage } = await this.chatService.cancelGeneration(roomId, user.id, userMessageId);
-
-                this.server.to(roomName).emit(
-                    'message_updated',
-                    userMessage,
-                );
-
-                this.server.to(roomName).emit(
-                    'assistant_message_cancelled',
-                    {
-                        roomId,
-                        message: assistantMessage,
-                    },
-                );
-
-                return;
-            }
-
-            const { userMessage, assistantMessage } = await this.chatService.failGeneration(roomId, user.id, userMessageId);
-
-            this.server.to(roomName).emit(
-                'message_updated',
-                userMessage,
-            );
-
-            this.server.to(roomName).emit(
-                'assistant_message_failed',
-                {
-                    roomId,
-                    message: assistantMessage,
-                },
-            );
-        } finally {
-            this.processingRooms.delete(processingKey);
-            this.cancelledRooms.delete(processingKey);
-            this.abortControllers.delete(processingKey);
-        }
     }
 
     @SubscribeMessage('leave_room')
@@ -567,8 +456,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             });
             return;
         }
-
-        const processingKey = `${user.id}:${payload.roomId}`;
+        
+        const processingKey = this.getUserRoomKey(
+            user.id,
+            payload.roomId,
+        );
 
         this.cancelledRooms.add(processingKey);
 
@@ -623,5 +515,309 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         userMessageId: number,
     ): string {
         return `chat:${userId}:${roomId}:${userMessageId}`;
+    }
+
+    private getUserRoomKey(
+        userId: number,
+        roomId: number,
+    ): string {
+        return `${userId}:${roomId}`;
+    }
+
+    private parseApprovalDecision(
+        content: string,
+    ): UpdateExpenseDecision | null {
+        const normalized = content
+            .trim()
+            .replace(/\s+/g, '')
+            .replace(/[.!?]+$/g, '')
+            .toLocaleLowerCase();
+
+        const approveMessages = new Set([
+            '승인',
+            '승인할게',
+            '진행',
+            '진행해',
+            '수정해',
+            'approve',
+        ]);
+
+        const cancelMessages = new Set([
+            '취소',
+            '취소할게',
+            '하지마',
+            '수정하지마',
+            'cancel',
+        ]);
+
+        if(approveMessages.has(normalized)) {
+            return {
+                action: 'approve',
+            };
+        }
+
+        if(cancelMessages.has(normalized)) {
+            return {
+                action: 'cancel'
+            };
+        }
+
+        return null;
+    }
+
+    private setPendingApproval(
+        userId: number,
+        roomId: number,
+        originUserMessageId: number,
+        event: Extract<
+            AgentStreamEvent,
+            { type: 'approval_required' }
+        >,
+    ): void{
+        const approvalKey = this.getUserRoomKey(
+            userId,
+            roomId,
+        );
+
+        this.pendingApprovals.set(approvalKey, {
+            threadId: event.threadId,
+            originUserMessageId,
+            request: event.request,
+        });
+
+        const roomName = this.getRoomName(roomId);
+
+        this.server.to(roomName).emit(
+            'assistant_approval_required',
+            {
+                roomId,
+                userMessageId: originUserMessageId,
+                request: event.request,
+            },
+        );
+    }
+
+    private async processAgentApproval(
+        client: AuthenticatedSocket,
+        user: NonNullable<AuthenticatedSocket['data']['user']>,
+        roomId: number,
+        decision: UpdateExpenseDecision,
+        source: AgentApprovalSource,
+    ): Promise<void> {
+        const processingKey = this.getUserRoomKey(
+            user.id,
+            roomId,
+        );
+
+        const pendingApproval = this.pendingApprovals.get(processingKey);
+
+        if(!pendingApproval) {
+            client.emit('chat_error', {
+                message: '대기 중인 승인 요청이 없습니다.',
+            });
+            return;
+        }
+
+        if(
+            source.type === 'button' &&
+            source.originUserMessageId !== pendingApproval.originUserMessageId
+        ) {
+            client.emit('chat_error', {
+                message: '이미 처리되었거나 오래된 승인 요청입니다.',
+            });
+            return;
+        }
+
+        if(this.processingRooms.has(processingKey)) {
+            client.emit('chat_error', {
+                message: '이미 이 채팅방에서 AI가 응답 중입니다.',
+            });
+            return;
+        }
+
+        this.processingRooms.add(processingKey);
+
+        const roomName = this.getRoomName(roomId);
+
+        const abortController = new AbortController();
+
+        this.abortControllers.set(
+            processingKey,
+            abortController,
+        );
+
+        let statusUserMessageId = pendingApproval.originUserMessageId;
+
+        try {
+            await this.chatService.assertRoomOwner(
+                roomId,
+                user.id,
+            );
+
+            if(source.type === 'chat') {
+                const approvalMessage = await this.chatService.saveAssistantMessage(
+                    roomId,
+                    user,
+                    source.content,
+                );
+
+                statusUserMessageId = approvalMessage.id;
+
+                this.server.to(roomName).emit(
+                    'message_created',
+                    approvalMessage,
+                );
+            }
+
+            this.pendingApprovals.delete(processingKey);
+
+            this.server.to(roomName).emit(
+                'assistant_approval_resolved',
+                {
+                    roomId,
+                    userMessageId: pendingApproval.originUserMessageId,
+                    action: decision.action,
+                },
+            );
+
+            this.server.to(roomName).emit(
+                'assistant_message_started',
+                {
+                    roomId,
+                },
+            );
+
+            let assistantContent = '';
+            let isCancelled = false;
+            let isWaitingForApproval = false;
+
+            for await ( const event of this.agentService.resumeReply(
+                user.id,
+                pendingApproval.threadId,
+                decision,
+                abortController.signal,
+            )) {
+                if(this.cancelledRooms.has(processingKey)) {
+                    isCancelled = true;
+                    break;
+                }
+
+                if(event.type === 'text_delta') {
+                    assistantContent += event.delta;
+
+                    this.server.to(roomName).emit(
+                        'assistant_message_delta',
+                        {
+                            roomId,
+                            delta: event.delta,
+                        },
+                    );
+
+                    continue;
+                }
+
+                isWaitingForApproval = true;
+
+                this.setPendingApproval(
+                    user.id,
+                    roomId,
+                    pendingApproval.originUserMessageId,
+                    event,
+                );
+
+                break;
+            }
+
+            if(isCancelled) {
+                const { userMessage, assistantMessage } = await this.chatService.cancelGeneration(
+                    roomId,
+                    user.id,
+                    statusUserMessageId,
+                );
+
+                this.server.to(roomName).emit(
+                    'message_updated',
+                    userMessage,
+                );
+
+                this.server.to(roomName).emit(
+                    'assistant_message_cancelled',
+                    {
+                        roomId,
+                        message: assistantMessage,
+                    },
+                );
+
+                return;
+            }
+
+            if(isWaitingForApproval) {
+                return;
+            }
+
+            if(!assistantContent.trim()) {
+                throw new Error('AI 응답이 비어 있습니다.');
+            }
+
+            const assistantMessage = await this.chatService.saveAssistantMessage(
+                roomId,
+                user.id,
+                assistantContent,
+            );
+
+            this.server.to(roomName).emit(
+                'assistant_message_completed',
+                {
+                    roomId,
+                    message: assistantMessage,
+                },
+            );
+        } catch (error) {
+            if(this.cancelledRooms.has(processingKey) || this.isAbortError(error)) {
+                const { userMessage, assistantMessage } = await this.chatService.cancelGeneration(
+                    roomId,
+                    user.id,
+                    statusUserMessageId,
+                );
+
+                this.server.to(roomName).emit(
+                    'message_update',
+                    userMessage,
+                );
+
+                this.server.to(roomName).emit(
+                    'assistant_message_cancelled',
+                    {
+                        roomId,
+                        message: assistantMessage,
+                    },
+                );
+
+                return;
+            }
+
+            const { userMessage, assistantMessage } = await this.chatService.failGeneration(
+                roomId,
+                user.id,
+                statusUserMessageId,
+            );
+
+            this.server.to(roomName).emit(
+                'message_updated',
+                userMessage,
+            );
+
+            this.server.to(roomName).emit(
+                'assistant_message_failed',
+                {
+                    roomId,
+                    message: assistantMessage,
+                },
+            );
+        } finally {
+            this.processingRooms.delete(processingKey);
+            this.cancelledRooms.delete(processingKey);
+            this.abortControllers.delete(processingKey);
+        }
     }
 }

@@ -6,7 +6,21 @@ import { ConfigService } from '@nestjs/config';
 import { ChatMessageRole } from '@repo/shared';
 import { AgentGraph, AgentGraphFactory } from './agent-graph.factory';
 import { AgentToolsService } from './agent-tools.service';
+import { ExpenseUpdateApprovalRequest, expenseUpdateApprovalRequestSchema, UpdateExpenseDecision } from './agent-interrupt.schema';
+import { Command } from '@langchain/langgraph';
 
+export type AgentStreamEvent =
+    | {
+          type: 'text_delta';
+          delta: string;
+      }
+    | {
+          type: 'approval_required';
+          threadId: string;
+          request: ExpenseUpdateApprovalRequest;
+      };
+
+type AgentGraphStreamInput = Parameters<AgentGraph['streamEvents']>[0];
 
 @Injectable()
 export class AgentService {
@@ -31,13 +45,24 @@ export class AgentService {
         return this.agentGraphFactory.createGraph(model, tools);
     }
 
-    async generateReply(userId: number, messages: ChatMessage[]): Promise<string> {
+    async generateReply(
+        userId: number,
+        messages: ChatMessage[],
+        threadId: string,
+    ): Promise<string> {
         const graph = this.createGraphForUser(userId)
         const langchainMessages = this.toLangChainMessages(messages);
 
-        const result = await graph.invoke({
-            messages: langchainMessages,
-        });
+        const result = await graph.invoke(
+            {
+                messages: langchainMessages,
+            },
+            {
+                configurable: {
+                    thread_id: threadId,
+                },
+            },
+        );
 
         const lastMessage = result.messages.at(-1);
 
@@ -48,31 +73,93 @@ export class AgentService {
         return this.messageContentToString(lastMessage.content)
     }
 
-    async *streamReply(userId: number, messages: ChatMessage[], signal?: AbortSignal): AsyncGenerator<string> {
-        const graph = this.createGraphForUser(userId);
+    async *streamReply(
+        userId: number,
+        messages: ChatMessage[],
+        threadId: string,
+        signal?: AbortSignal,
+    ): AsyncGenerator<AgentStreamEvent> {        
         const langchainMessages = this.toLangChainMessages(messages);
 
-        const stream = await graph.stream(
+        yield* this.streamGraph(
+            userId,
             {
                 messages: langchainMessages,
             },
+            threadId,
+            signal,
+        );
+    }
+
+    async *resumeReply(
+        userId: number,
+        threadId: string,
+        decision: UpdateExpenseDecision,
+        signal?: AbortSignal,
+    ): AsyncGenerator<AgentStreamEvent> {
+        yield* this.streamGraph(
+            userId,
+            new Command({
+                resume: decision,
+            }),
+            threadId,
+            signal,
+        );
+    }
+
+    private async *streamGraph(
+        userId: number,
+        input: AgentGraphStreamInput,
+        threadId: string,
+        signal?: AbortSignal,
+    ) : AsyncGenerator<AgentStreamEvent> {
+        const graph = this.createGraphForUser(userId);
+
+        const stream = await graph.streamEvents(
+            input,
             {
-                streamMode: 'messages',
+                version: 'v3',
+                configurable: {
+                    thread_id: threadId,
+                },
                 signal,
-            }
+            },
         );
 
-        for await (const [messageChunk, metadata] of stream) {
-            if(metadata.langgraph_node !== 'callModel') {
-                continue;
-            }
+        for await (const message of stream.messages) {
+            for await (const delta of message.text) {
+                if(!delta) {
+                    continue;
+                }
 
-            const text = this.messageContentToString(messageChunk.content);
-
-            if(text) {
-                yield text;
+                yield {
+                    type: 'text_delta',
+                    delta,
+                };
             }
         }
+
+        if(!stream.interrupted) {
+            return;
+        }
+
+        if(stream.interrupts.length !== 1) {
+            throw new Error('현재 여러 승인 요청의 동시 처리는 지원하지 않습니다.');
+        }
+
+        const interruptValue = stream.interrupts[0]?.payload;
+
+        const approvalRequestResult = expenseUpdateApprovalRequestSchema.safeParse(interruptValue);
+
+        if(!approvalRequestResult.success) {
+            throw new Error('지원하지 않는 승인 요청 형식입니다.');
+        }
+
+        yield {
+            type: 'approval_required',
+            threadId,
+            request: approvalRequestResult.data,
+        };
     }
 
     private toLangChainMessages(messages: ChatMessage[]): BaseMessage[] {

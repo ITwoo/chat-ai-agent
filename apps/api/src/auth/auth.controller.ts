@@ -67,7 +67,7 @@ export class AuthController {
         this.logger.log(sameSite)
         response.clearCookie('refreshToken', {
             httpOnly: true,
-            secure: true, //this.configService.get<string>('NODE_ENV') === 'production',
+            secure: true,
             sameSite: sameSite,
             path: '/api/auth',
         });
@@ -78,7 +78,7 @@ export class AuthController {
         @Req() request: RequestWithCookies,
     ): Promise<LoginResponse> {
         const refreshToken = request.cookies?.refreshToken;
-        // this.logger.log('refreshToken', refreshToken)
+
         if (!refreshToken) {
             throw new UnauthorizedException('Refresh token not found');
         }

@@ -5,6 +5,8 @@ import { createChatRoom, deleteChatRoom, getChatMessages, getChatRooms, updateCh
 import { ChatRoomSidebar } from "../features/chat/components/ChatRoomSidebar";
 import { ChatMessageList } from "../features/chat/components/ChatMessageList";
 import { ChatInput } from "../features/chat/components/ChatInput";
+import type { PendingAgentApproval, AgentApprovalResolveEvent, AgentApprovalAction } from "../features/chat/types/agentApproval";
+import { AgentApprovalCard } from "../features/chat/components/AgentApprovalCard";
 
 const MESSAGE_PAGE_SIZE = 10;
 
@@ -24,6 +26,8 @@ export function ChatPage() {
 
     const [nextMessageCursor, setNextMessageCursor] = useState<number | null>(null);
     const [isOlderMessagesLoading, setIsOlderMessagesLoading] = useState(false);
+
+    const [pendingApproval, setPendingApproval] = useState<PendingAgentApproval | null>(null);
 
     const selectedRoomIdRef = useRef<number | null>(null);
     const loadMessagesRequestIdRef = useRef(0);
@@ -140,6 +144,7 @@ export function ChatPage() {
             setIsSending(false);
             setIsAssistantStreaming(false);
             setStreamingText('');
+            setPendingApproval(null);
 
             appendMessage(data.message);
 
@@ -180,6 +185,7 @@ export function ChatPage() {
             setIsSending(false);
             setIsAssistantStreaming(false);
             setStreamingText('');
+            setPendingApproval(null);
 
             const cancelledMessage = data.message;
 
@@ -209,9 +215,47 @@ export function ChatPage() {
             setIsSending(false);
             setIsAssistantStreaming(false);
             setStreamingText('');
+            setPendingApproval(null);
 
             appendMessage(data.message);
         };
+
+        const handleAssistantApprovalRequired = (
+            data: PendingAgentApproval,
+        ) => {
+            if(data.roomId !== selectedRoomIdRef.current) {
+                return;
+            }
+
+            console.log('[assistant_approval_required]', data);
+
+            setIsSending(false);
+            setIsAssistantStreaming(false);
+            setStreamingText('');
+            setErrorMessage('');
+
+            setPendingApproval(data);
+        };
+
+        const handleAssistantApprovalResolved = (
+            data: AgentApprovalResolveEvent,
+        ) => {
+            if(data.roomId !== selectedRoomIdRef.current) {
+                return;
+            }
+
+            console.log('[assistant_approval_resolved]', data);
+
+            setPendingApproval((current) => {
+                if(!current || current.userMessageId !== data.userMessageId) {
+                    return current;
+                }
+                return null;
+            });
+
+            setIsSending(false);
+        }
+        
 
         socket.onAny(handleAnyEvent);
 
@@ -222,6 +266,8 @@ export function ChatPage() {
         socket.on('chat_room_updated', handleChatRoomUpdated)
         socket.on('assistant_message_started', handleAssistantStarted);
         socket.on('assistant_message_delta', handleAssistantDelta);
+        socket.on('assistant_approval_required', handleAssistantApprovalRequired);
+        socket.on('assistant_approval_resolved', handleAssistantApprovalResolved);
         socket.on('assistant_message_completed', handleAssistantCompleted);
         socket.on('assistant_message_cancelled', handleAssistantCancelled);
         socket.on('assistant_message_failed', handleAssistantFailed);
@@ -237,6 +283,8 @@ export function ChatPage() {
             socket.off('chat_room_updated', handleChatRoomUpdated)
             socket.off('assistant_message_started', handleAssistantStarted);
             socket.off('assistant_message_delta', handleAssistantDelta);
+            socket.off('assistant_approval_required', handleAssistantApprovalRequired);
+            socket.off('assistant_approval_resolved', handleAssistantApprovalResolved);
             socket.off('assistant_message_completed', handleAssistantCompleted);
             socket.off('assistant_message_cancelled', handleAssistantCancelled);
             socket.off('assistant_message_failed', handleAssistantFailed);
@@ -272,6 +320,34 @@ export function ChatPage() {
                     : '채팅방을 생성하지 못했습니다.',
             );
         }
+    };
+
+    const handleApprovalResponse = (
+        action: AgentApprovalAction,
+    ) => {
+        if(!pendingApproval) {
+            setErrorMessage('대기 중인 승인 요청이 없습니다.');
+            return;
+        }
+
+        if(isSending || isAssistantStreaming) {
+            return;
+        }
+
+        const socket = connectChatSocket();
+
+        const payload = {
+            roomId: pendingApproval.roomId,
+            userMessageId: pendingApproval.userMessageId,
+            action,
+        };
+
+        setErrorMessage('');
+        setIsSending(true);
+
+        console.log('[socket emit] respond_agent_approval', payload);
+
+        socket.emit('respond_agent_approval', payload);
     };
 
     const handleSendMessage = async () => {
@@ -390,6 +466,7 @@ export function ChatPage() {
         setIsMessagesLoading(true);
         setNextMessageCursor(null);
         setIsOlderMessagesLoading(false);
+        setPendingApproval(null);
 
         socket.emit('join_room', {
             roomId: targetRoom.id,
@@ -464,6 +541,7 @@ export function ChatPage() {
             setIsMessagesLoading(false);
             setNextMessageCursor(null);
             setIsOlderMessagesLoading(false);
+            setPendingApproval(null);
         }
     };
 
@@ -696,6 +774,19 @@ export function ChatPage() {
                     onRetryMessage={handleRetryMessage}
                     isRetryDisabled={isSending || isAssistantStreaming || isMessagesLoading}
                 />
+
+                {
+                    pendingApproval && (
+                        <AgentApprovalCard
+                            approval={pendingApproval}
+                            disabled={
+                                isSending ||
+                                isAssistantStreaming
+                            }
+                            onRespond={handleApprovalResponse}
+                        />
+                    )
+                }
 
                 <ChatInput
                     value={content}

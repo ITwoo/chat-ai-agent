@@ -33,14 +33,36 @@ type PendingAgentApproval = {
 };
 
 type AgentApprovalSource =
-    |{
+    | {
         type: 'chat';
         content: string;
     }
     | {
         type: 'button';
         originUserMessageId: number;
+        action: 'approve' | 'cancel';
     }
+
+const APPROVE_MESSAGES = new Set([
+    '승인',
+    '승인해',
+    '승인할게',
+    '진행',
+    '진행해',
+    '그대로해',
+    '수정해',
+    '수정해줘',
+    'approve',
+]);
+
+const CANCEL_MESSAGES = new Set([
+    '취소',
+    '취소해',
+    '취소할게',
+    '하지마',
+    '수정하지마',
+    'cancel',
+]);
 @WebSocketGateway({
     cors: {
         origin: true,
@@ -174,21 +196,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
         const pendingApproval = this.pendingApprovals.get(processingKey);
 
-        if(pendingApproval) {
-            const decision = this.parseApprovalDecision(payload.content);
-
-            if(!decision) {
-                client.emit('chat_error', {
-                    message: '현재 승인 대기 중입니다. 승인 또는 취소로 답변해주세요.',
-                });
-                return;
-            }
-
+        if (pendingApproval) {
             await this.processAgentApproval(
                 client,
                 user,
                 payload.roomId,
-                decision,
                 {
                     type: 'chat',
                     content: payload.content,
@@ -391,7 +403,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     ) {
         const user = client.data.user;
 
-        if(!user) {
+        if (!user) {
             client.emit('chat_error', {
                 message: '인증 정보가 없습니다.',
             });
@@ -400,7 +412,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
         const payloadResult = agentApprovalResponseSchema.safeParse(rawPayload);
 
-        if(!payloadResult.success) {
+        if (!payloadResult.success) {
             client.emit('chat_error', {
                 message: '승인 응답 형식이 올바르지 않습니다.',
             });
@@ -418,11 +430,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             user,
             roomId,
             {
-                action,
-            },
-            {
                 type: 'button',
                 originUserMessageId: userMessageId,
+                action,
             },
         );
     }
@@ -456,7 +466,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             });
             return;
         }
-        
+
         const processingKey = this.getUserRoomKey(
             user.id,
             payload.roomId,
@@ -533,30 +543,13 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             .replace(/[.!?]+$/g, '')
             .toLocaleLowerCase();
 
-        const approveMessages = new Set([
-            '승인',
-            '승인할게',
-            '진행',
-            '진행해',
-            '수정해',
-            'approve',
-        ]);
-
-        const cancelMessages = new Set([
-            '취소',
-            '취소할게',
-            '하지마',
-            '수정하지마',
-            'cancel',
-        ]);
-
-        if(approveMessages.has(normalized)) {
+        if (APPROVE_MESSAGES.has(normalized)) {
             return {
                 action: 'approve',
             };
         }
 
-        if(cancelMessages.has(normalized)) {
+        if (CANCEL_MESSAGES.has(normalized)) {
             return {
                 action: 'cancel'
             };
@@ -573,7 +566,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             AgentStreamEvent,
             { type: 'approval_required' }
         >,
-    ): void{
+    ): void {
         const approvalKey = this.getUserRoomKey(
             userId,
             roomId,
@@ -601,7 +594,6 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         client: AuthenticatedSocket,
         user: NonNullable<AuthenticatedSocket['data']['user']>,
         roomId: number,
-        decision: UpdateExpenseDecision,
         source: AgentApprovalSource,
     ): Promise<void> {
         const processingKey = this.getUserRoomKey(
@@ -611,14 +603,14 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
         const pendingApproval = this.pendingApprovals.get(processingKey);
 
-        if(!pendingApproval) {
+        if (!pendingApproval) {
             client.emit('chat_error', {
                 message: '대기 중인 승인 요청이 없습니다.',
             });
             return;
         }
 
-        if(
+        if (
             source.type === 'button' &&
             source.originUserMessageId !== pendingApproval.originUserMessageId
         ) {
@@ -628,7 +620,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             return;
         }
 
-        if(this.processingRooms.has(processingKey)) {
+        if (this.processingRooms.has(processingKey)) {
             client.emit('chat_error', {
                 message: '이미 이 채팅방에서 AI가 응답 중입니다.',
             });
@@ -654,7 +646,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 user.id,
             );
 
-            if(source.type === 'chat') {
+            if (source.type === 'chat') {
                 const approvalMessage = await this.chatService.saveAssistantMessage(
                     roomId,
                     user,
@@ -667,6 +659,21 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                     'message_created',
                     approvalMessage,
                 );
+            }
+
+            const decision =
+                await this.resolveApprovalDecision(
+                    pendingApproval.request,
+                    source,
+                );
+
+            if (!decision) {
+                client.emit('chat_error', {
+                    message:
+                        '현재 변경 내용을 승인할지, 취소할지, 또는 어떤 내용을 변경할지 조금 더 명확하게 말씀해주세요.',
+                });
+
+                return;
             }
 
             this.pendingApprovals.delete(processingKey);
@@ -691,18 +698,18 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             let isCancelled = false;
             let isWaitingForApproval = false;
 
-            for await ( const event of this.agentService.resumeReply(
+            for await (const event of this.agentService.resumeReply(
                 user.id,
                 pendingApproval.threadId,
                 decision,
                 abortController.signal,
             )) {
-                if(this.cancelledRooms.has(processingKey)) {
+                if (this.cancelledRooms.has(processingKey)) {
                     isCancelled = true;
                     break;
                 }
 
-                if(event.type === 'text_delta') {
+                if (event.type === 'text_delta') {
                     assistantContent += event.delta;
 
                     this.server.to(roomName).emit(
@@ -728,7 +735,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 break;
             }
 
-            if(isCancelled) {
+            if (isCancelled) {
                 const { userMessage, assistantMessage } = await this.chatService.cancelGeneration(
                     roomId,
                     user.id,
@@ -751,11 +758,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 return;
             }
 
-            if(isWaitingForApproval) {
+            if (isWaitingForApproval) {
                 return;
             }
 
-            if(!assistantContent.trim()) {
+            if (!assistantContent.trim()) {
                 throw new Error('AI 응답이 비어 있습니다.');
             }
 
@@ -773,7 +780,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 },
             );
         } catch (error) {
-            if(this.cancelledRooms.has(processingKey) || this.isAbortError(error)) {
+            if (this.cancelledRooms.has(processingKey) || this.isAbortError(error)) {
                 const { userMessage, assistantMessage } = await this.chatService.cancelGeneration(
                     roomId,
                     user.id,
@@ -820,4 +827,51 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             this.abortControllers.delete(processingKey);
         }
     }
+
+    private async resolveApprovalDecision(
+        request: ExpenseUpdateApprovalRequest,
+        source: AgentApprovalSource,
+    ): Promise<UpdateExpenseDecision | null> {
+        if (source.type === 'button') {
+            return {
+                action: source.action,
+            };
+        }
+
+        const content = source.content.trim();
+
+        const parsedDecision = this.parseApprovalDecision(content);
+
+        if (parsedDecision) {
+            return parsedDecision;
+        }
+
+        const result =
+            await this.agentService.classifyApprovalIntent(
+                request,
+                content,
+            );
+
+        switch (result.intent) {
+            case 'approve':
+                return {
+                    action: 'approve',
+                };
+
+            case 'cancel':
+                return {
+                    action: 'cancel',
+                };
+
+            case 'revise':
+                return {
+                    action: 'revise',
+                    content,
+                };
+
+            case 'unclear':
+                return null;
+        }
+    }
+
 }

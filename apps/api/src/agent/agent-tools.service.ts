@@ -606,8 +606,33 @@ export class AgentToolsService {
                 if (decision.action === 'cancel') {
                     return JSON.stringify({
                         updated: false,
+                        status: 'cancelled',
                         expenseId,
                         message: '지출 수정을 취소했습니다.',
+                    });
+                }
+
+                if (decision.action === 'revise') {
+                    return JSON.stringify({
+                        updated: false,
+                        status: 'revision_requested',
+
+                        expense: {
+                            id: expense.id,
+                            amount: expense.amount,
+                            category: expense.category,
+                            title: expense.title,
+                            memo: expense.memo,
+                            spentAt:
+                                expense.spentAt.toISOString(),
+                        },
+
+                        previousChanges: changes,
+
+                        revisionRequest: decision.content,
+
+                        nextAction:
+                            '사용자의 revisionRequest를 반영해 수정 값을 다시 결정하고 update_expense를 다시 호출한다.',
                     });
                 }
 

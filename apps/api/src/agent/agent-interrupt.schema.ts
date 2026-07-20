@@ -21,13 +21,28 @@ export const expenseUpdateApprovalRequestSchema = z.object({
     }),
 });
 
-export const updateExpenseDecisionSchema = z.object({
-    action: z.enum(['approve', 'cancel']),
-});
-
 export type ExpenseUpdateApprovalRequest = z.infer<
     typeof expenseUpdateApprovalRequestSchema
 >;
+
+export const updateExpenseDecisionSchema =
+    z.discriminatedUnion('action', [
+        z.object({
+            action: z.literal('approve'),
+        }),
+
+        z.object({
+            action: z.literal('cancel'),
+        }),
+
+        z.object({
+            action: z.literal('revise'),
+            content: z
+                .string()
+                .trim()
+                .min(1),
+        }),
+    ]);
 
 export type UpdateExpenseDecision = z.infer<
     typeof updateExpenseDecisionSchema
@@ -36,9 +51,26 @@ export type UpdateExpenseDecision = z.infer<
 export const agentApprovalResponseSchema = z.object({
     roomId: z.number().int().positive(),
     userMessageId: z.number().int().positive(),
-    action: updateExpenseDecisionSchema.shape.action,
+    action: z.enum(['approve', 'cancel']),
 });
 
 export type AgentApprovalResponse = z.infer<
     typeof agentApprovalResponseSchema
+>;
+
+export const approvalIntentSchema = z.object({
+    intent: z
+        .enum([
+            'approve',
+            'cancel',
+            'revise',
+            'unclear',
+        ])
+        .describe(
+            '현재 승인 제안을 그대로 실행하면 approve, 취소하면 cancel, 내용을 변경하면 revise, 의미가 불명확하면 unclear',
+        ),
+});
+
+export type ApprovalIntent = z.infer<
+    typeof approvalIntentSchema
 >;

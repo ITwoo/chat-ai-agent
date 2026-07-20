@@ -5,7 +5,7 @@ import { createChatRoom, deleteChatRoom, getChatMessages, getChatRooms, updateCh
 import { ChatRoomSidebar } from "../features/chat/components/ChatRoomSidebar";
 import { ChatMessageList } from "../features/chat/components/ChatMessageList";
 import { ChatInput } from "../features/chat/components/ChatInput";
-import type { PendingAgentApproval, AgentApprovalResolveEvent, AgentApprovalAction } from "../features/chat/types/agentApproval";
+import type { PendingAgentApproval, AgentApprovalResolvedEvent, AgentApprovalAction } from "../features/chat/types/agentApproval";
 import { AgentApprovalCard } from "../features/chat/components/AgentApprovalCard";
 
 const MESSAGE_PAGE_SIZE = 10;
@@ -238,7 +238,7 @@ export function ChatPage() {
         };
 
         const handleAssistantApprovalResolved = (
-            data: AgentApprovalResolveEvent,
+            data: AgentApprovalResolvedEvent,
         ) => {
             if(data.roomId !== selectedRoomIdRef.current) {
                 return;
@@ -772,7 +772,7 @@ export function ChatPage() {
                     isOlderMessagesLoading={isOlderMessagesLoading}
                     onLoadOlderMessages={handleLoadOlderMessages}
                     onRetryMessage={handleRetryMessage}
-                    isRetryDisabled={isSending || isAssistantStreaming || isMessagesLoading}
+                    isRetryDisabled={isSending || isAssistantStreaming || isMessagesLoading || pendingApproval !== null}
                 />
 
                 {
@@ -799,4 +799,4 @@ export function ChatPage() {
             </main>
         </div >
     );
-}           
+}

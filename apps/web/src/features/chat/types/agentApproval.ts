@@ -1,6 +1,7 @@
 export type AgentApprovalAction =
     | 'approve'
-    | 'cancel';
+    | 'cancel'
+    | 'revise';
 
 export type ExpenseUpdateApprovalRequest = {
     type: 'expense_update_approval';
@@ -31,7 +32,7 @@ export type PendingAgentApproval = {
     request: ExpenseUpdateApprovalRequest;
 };
 
-export type AgentApprovalResolveEvent = {
+export type AgentApprovalResolvedEvent = {
     roomId: number;
     userMessageId: number;
     action: AgentApprovalAction;

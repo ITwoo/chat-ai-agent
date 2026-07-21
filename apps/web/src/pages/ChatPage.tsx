@@ -247,10 +247,16 @@ export function ChatPage() {
             console.log('[assistant_approval_resolved]', data);
 
             setPendingApproval((current) => {
-                if(!current || current.userMessageId !== data.userMessageId) {
+                if (!current) {
                     return current;
                 }
-                return null;
+
+                const isSameApproval =
+                    current.roomId === data.roomId &&
+                    current.userMessageId === data.userMessageId &&
+                    current.approvalId === data.approvalId;
+
+                return isSameApproval ? null : current;
             });
 
             setIsSending(false);
@@ -338,6 +344,7 @@ export function ChatPage() {
 
         const payload = {
             roomId: pendingApproval.roomId,
+            approvalId: pendingApproval.approvalId,
             userMessageId: pendingApproval.userMessageId,
             action,
         };

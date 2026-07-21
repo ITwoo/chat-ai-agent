@@ -19,6 +19,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AgentService, AgentStreamEvent } from '../agent/agent.service';
 import { agentApprovalResponseSchema, ExpenseUpdateApprovalRequest, UpdateExpenseDecision } from '../agent/agent-interrupt.schema';
+import { randomUUID } from 'node:crypto';
 
 type AuthenticatedSocket = Socket & {
     data: {
@@ -27,6 +28,7 @@ type AuthenticatedSocket = Socket & {
 };
 
 type PendingAgentApproval = {
+    approvalId: string;
     threadId: string;
     originUserMessageId: number;
     request: ExpenseUpdateApprovalRequest;
@@ -39,6 +41,7 @@ type AgentApprovalSource =
     }
     | {
         type: 'button';
+        approvalId: string;
         originUserMessageId: number;
         action: 'approve' | 'cancel';
     }
@@ -422,6 +425,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         const {
             roomId,
             userMessageId,
+            approvalId,
             action,
         } = payloadResult.data;
 
@@ -431,6 +435,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             roomId,
             {
                 type: 'button',
+                approvalId,
                 originUserMessageId: userMessageId,
                 action,
             },
@@ -534,6 +539,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         return `${userId}:${roomId}`;
     }
 
+    private createApprovalId(): string {
+        return randomUUID();
+    }
+
     private parseApprovalDecision(
         content: string,
     ): UpdateExpenseDecision | null {
@@ -572,7 +581,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             roomId,
         );
 
+        const approvalId = this.createApprovalId();
+
+
         this.pendingApprovals.set(approvalKey, {
+            approvalId,
             threadId: event.threadId,
             originUserMessageId,
             request: event.request,
@@ -584,6 +597,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             'assistant_approval_required',
             {
                 roomId,
+                approvalId,
                 userMessageId: originUserMessageId,
                 request: event.request,
             },
@@ -612,7 +626,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
         if (
             source.type === 'button' &&
-            source.originUserMessageId !== pendingApproval.originUserMessageId
+            (
+                source.approvalId !== pendingApproval.approvalId ||
+                source.originUserMessageId !== pendingApproval.originUserMessageId                
+            )
         ) {
             client.emit('chat_error', {
                 message: '이미 처리되었거나 오래된 승인 요청입니다.',
@@ -682,6 +699,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 'assistant_approval_resolved',
                 {
                     roomId,
+                    approvalId: pendingApproval.approvalId,
                     userMessageId: pendingApproval.originUserMessageId,
                     action: decision.action,
                 },
@@ -803,24 +821,28 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 return;
             }
 
-            const { userMessage, assistantMessage } = await this.chatService.failGeneration(
-                roomId,
+            this.logger.error(
+                `승인 처리 실패: ${processingKey}`,
+                error instanceof Error
+                    ? error.stack
+                    : String(error),
+            );
+
+            this.setPendingApproval(
                 user.id,
-                statusUserMessageId,
-            );
-
-            this.server.to(roomName).emit(
-                'message_updated',
-                userMessage,
-            );
-
-            this.server.to(roomName).emit(
-                'assistant_message_failed',
+                roomId,
+                pendingApproval.originUserMessageId,
                 {
-                    roomId,
-                    message: assistantMessage,
+                    type: 'approval_required',
+                    threadId: pendingApproval.threadId,
+                    request: pendingApproval.request,
                 },
             );
+
+            client.emit('chat_error', {
+                message:
+                    '승인 처리에 실패했습니다. 기존 승인 요청은 유지되며 다시 시도할 수 있습니다.',
+            });
         } finally {
             this.processingRooms.delete(processingKey);
             this.cancelledRooms.delete(processingKey);

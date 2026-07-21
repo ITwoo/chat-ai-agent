@@ -28,12 +28,14 @@ export type ExpenseUpdateApprovalRequest = {
 
 export type PendingAgentApproval = {
     roomId: number;
+    approvalId: string;
     userMessageId: number;
     request: ExpenseUpdateApprovalRequest;
 };
 
 export type AgentApprovalResolvedEvent = {
     roomId: number;
+    approvalId: string;
     userMessageId: number;
     action: AgentApprovalAction;
 }

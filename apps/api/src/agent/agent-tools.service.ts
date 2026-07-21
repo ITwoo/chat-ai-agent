@@ -591,12 +591,12 @@ export class AgentToolsService {
                     },
                     changes,
                 } satisfies ExpenseUpdateApprovalRequest;
-                this.logger.log('start interrupt')
+
                 const resumeValue: unknown = interrupt(approvalRequest);
-                this.logger.log('end interrupt')
+
                 const decisionResult =
                     updateExpenseDecisionSchema.safeParse(resumeValue);
-                this.logger.log('decisionResult', decisionResult)
+
                 if (!decisionResult.success) {
                     return '지출 수정 승인 응답 형식이 올바르지 않습니다.';
                 }
@@ -686,7 +686,7 @@ export class AgentToolsService {
             {
                 name: 'update_expense',
                 description:
-                    '기존 지출 기록을 수정한다. 수정할 지출의 id가 명확하게 식별된 뒤 사용하며, 실행 전에 사용자 승인을 요청한다. 새 지출 저장이나 일반적인 지출 조회에는 사용하지 않는다.',
+                    '기존 지출 기록을 수정한다. 수정할 지출의 id와 변경 내용이 명확해지면 즉시 호출한다. 최종 사용자 승인은 이 tool 내부의 interrupt에서 처리하므로, tool 호출 전에 별도의 승인 질문을 하지 않는다. 새 지출 저장이나 일반적인 지출 조회에는 사용하지 않는다.',
                 schema: z.object({
                     expenseId: z
                         .number()

@@ -51,6 +51,7 @@ export type UpdateExpenseDecision = z.infer<
 export const agentApprovalResponseSchema = z.object({
     roomId: z.number().int().positive(),
     userMessageId: z.number().int().positive(),
+    approvalId: z.uuidv4(),
     action: z.enum(['approve', 'cancel']),
 });
 

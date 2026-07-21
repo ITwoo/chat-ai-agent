@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import {
     END,
     GraphNode,
@@ -12,6 +12,8 @@ import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { ChatOpenAI } from '@langchain/openai';
 import { AIMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredToolInterface } from '@langchain/core/tools';
+import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
+import { ConfigService } from '@nestjs/config';
 
 const SYSTEM_PROMPT = `
 너는 1인 가구용 개인 생활 관리 AI Agent다.
@@ -54,9 +56,27 @@ type AgentTools = StructuredToolInterface[];
 export type AgentGraph = ReturnType<AgentGraphFactory['createGraph']>;
 
 @Injectable()
-export class AgentGraphFactory {
+export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(AgentGraphFactory.name);
-    private readonly checkpointer = new MemorySaver();
+    private checkpointer!: PostgresSaver;
+
+    constructor(
+        private readonly configService: ConfigService,
+    ){}
+
+    async onModuleInit(): Promise<void> {
+        const databaseUrl = this.configService.getOrThrow<string>('DATABASE_URL');
+
+        this.checkpointer = PostgresSaver.fromConnString(databaseUrl);
+
+        await this.checkpointer.setup();
+
+        this.logger.log('LangGraph PostgreSql checkpointer initialized');
+    }
+
+    async onModuleDestroy(): Promise<void> {
+        await this.checkpointer.end();
+    }
 
     createGraph(model: AgentModel, tools: AgentTools) {
         const callModel: GraphNode<typeof AgentState> = async (state) => {

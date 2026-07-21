@@ -22,6 +22,7 @@ import { agentApprovalResponseSchema, ExpenseUpdateApprovalRequest, UpdateExpens
 import { randomUUID } from 'node:crypto';
 import { PendingAgentApproval } from './types/pending-agent-approval.type';
 import { PendingAgentApprovalStoreService } from './pending-agent-approval-store.service';
+import { RedisLock, RedisLockService } from '../redis/redis-lock.service';
 
 type AuthenticatedSocket = Socket & {
     data: {
@@ -86,6 +87,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         private readonly configService: ConfigService,
         private readonly prisma: PrismaService,
         private readonly pendingApprovalStore: PendingAgentApprovalStoreService,
+        private readonly redisLockService: RedisLockService,
     ) { }
 
     afterInit(server: Server) {
@@ -719,6 +721,32 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             return;
         }
 
+        let approvalLock: RedisLock | null;
+
+        try {
+            approvalLock = await this.redisLockService.acquire(
+                `lock:agent-approval:${processingKey}`,
+                300000,
+            );
+        } catch (error) {
+            this.logger.error(
+                `승인 처리 Redis 락 획득 실패: ${processingKey}`,
+                error instanceof Error ? error.stack : String(error),
+            );
+
+            client.emit('chat_error', {
+                message: '승인 처리 상태를 확인하지 못했습니다. 다시 시도해주세요.',
+            });
+            return;
+        }
+
+        if(!approvalLock) {
+            client.emit('chat_error', {
+                message: '다른 요청에서 이 승인을 처리하고 있습니다.',
+            });
+            return;
+        }
+
         this.processingRooms.add(processingKey);
 
         const roomName = this.getRoomName(roomId);
@@ -931,6 +959,19 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             this.processingRooms.delete(processingKey);
             this.cancelledRooms.delete(processingKey);
             this.abortControllers.delete(processingKey);
+
+            try {
+                const released = await this.redisLockService.release(approvalLock);
+
+                if (!released) {
+                    this.logger.warn(`승인 처리 Redis 락이 이미 만료됐습니다: ${processingKey}`);
+                }
+            } catch (error) {
+                this.logger.error(
+                    `승인 처리 Redis 락 해제 실패: ${processingKey}`,
+                    error instanceof Error ? error.stack : String(error),
+                );
+            }            
         }
     }
 
@@ -1000,7 +1041,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             }
 
             pendingApproval = storedApproval;
-            
+
             this.pendingApprovals.set(
                 approvalKey,
                 pendingApproval,

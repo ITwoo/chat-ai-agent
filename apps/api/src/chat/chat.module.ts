@@ -5,9 +5,10 @@ import { ChatGateway } from './chat.gateway';
 import { JwtModule } from '@nestjs/jwt';
 import { AgentModule } from '../agent/agent.module';
 import { PendingAgentApprovalStoreService } from './pending-agent-approval-store.service';
+import { RedisModule } from '../redis/redis.module';
 
 @Module({
-    imports: [JwtModule, AgentModule],
+    imports: [JwtModule, AgentModule, RedisModule],
     controllers: [ChatController],
     providers: [
         ChatService,

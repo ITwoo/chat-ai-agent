@@ -165,6 +165,12 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 roomId: payload.roomId,
             });
 
+            await this.restorePendingApproval(
+                client,
+                user.id,
+                payload.roomId,
+            );
+
             this.logger.log(`Client ${client.id} joined ${roomName}`);
         } catch (error) {
             client.emit('chat_error', {
@@ -762,6 +768,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 return;
             }
 
+            await this.pendingApprovalStore.deleteByRoomId(roomId);
+            
             this.pendingApprovals.delete(processingKey);
 
             this.server.to(roomName).emit(
@@ -897,6 +905,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                     : String(error),
             );
 
+            await this.pendingApprovalStore.save(roomId, pendingApproval);
+
             this.pendingApprovals.set(
                 processingKey,
                 pendingApproval,
@@ -968,6 +978,46 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             case 'unclear':
                 return null;
         }
+    }
+
+    private async restorePendingApproval(
+        client: AuthenticatedSocket,
+        userId: number,
+        roomId: number,
+    ): Promise<void> {
+        const approvalKey = this.getUserRoomKey(
+            userId,
+            roomId,
+        );
+
+        let pendingApproval = this.pendingApprovals.get(approvalKey);
+
+        if (!pendingApproval) {
+            let storedApproval = await this.pendingApprovalStore.findByRoomId(roomId);
+
+            if (!storedApproval) {
+                return;
+            }
+
+            pendingApproval = storedApproval;
+            
+            this.pendingApprovals.set(
+                approvalKey,
+                pendingApproval,
+            );
+        }
+
+        client.emit(
+            'assistant_approval_required',
+            {
+                roomId,
+                approvalId:
+                    pendingApproval.approvalId,
+                userMessageId:
+                    pendingApproval.originUserMessageId,
+                request: pendingApproval.request,
+            },
+        );
     }
 
 }

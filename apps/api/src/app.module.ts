@@ -8,6 +8,7 @@ import { ChatModule } from './chat/chat.module';
 import { AgentController } from './agent/agent.controller';
 import { AgentService } from './agent/agent.service';
 import { AgentModule } from './agent/agent.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AgentModule } from './agent/agent.module';
     BoardsModule,
     ChatModule,
     AgentModule,
+    RedisModule,
   ],
   controllers: [AgentController],
   providers: [],

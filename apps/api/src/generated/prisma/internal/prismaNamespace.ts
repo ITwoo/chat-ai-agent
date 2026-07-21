@@ -389,7 +389,8 @@ export const ModelName = {
   ChatRoom: 'ChatRoom',
   ChatMessage: 'ChatMessage',
   Expense: 'Expense',
-  RefreshTokenSession: 'RefreshTokenSession'
+  RefreshTokenSession: 'RefreshTokenSession',
+  AgentPendingApproval: 'AgentPendingApproval'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -405,7 +406,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "board" | "chatRoom" | "chatMessage" | "expense" | "refreshTokenSession"
+    modelProps: "user" | "board" | "chatRoom" | "chatMessage" | "expense" | "refreshTokenSession" | "agentPendingApproval"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -853,6 +854,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AgentPendingApproval: {
+      payload: Prisma.$AgentPendingApprovalPayload<ExtArgs>
+      fields: Prisma.AgentPendingApprovalFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AgentPendingApprovalFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentPendingApprovalPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AgentPendingApprovalFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentPendingApprovalPayload>
+        }
+        findFirst: {
+          args: Prisma.AgentPendingApprovalFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentPendingApprovalPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AgentPendingApprovalFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentPendingApprovalPayload>
+        }
+        findMany: {
+          args: Prisma.AgentPendingApprovalFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentPendingApprovalPayload>[]
+        }
+        create: {
+          args: Prisma.AgentPendingApprovalCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentPendingApprovalPayload>
+        }
+        createMany: {
+          args: Prisma.AgentPendingApprovalCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AgentPendingApprovalCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentPendingApprovalPayload>[]
+        }
+        delete: {
+          args: Prisma.AgentPendingApprovalDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentPendingApprovalPayload>
+        }
+        update: {
+          args: Prisma.AgentPendingApprovalUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentPendingApprovalPayload>
+        }
+        deleteMany: {
+          args: Prisma.AgentPendingApprovalDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AgentPendingApprovalUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AgentPendingApprovalUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentPendingApprovalPayload>[]
+        }
+        upsert: {
+          args: Prisma.AgentPendingApprovalUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentPendingApprovalPayload>
+        }
+        aggregate: {
+          args: Prisma.AgentPendingApprovalAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAgentPendingApproval>
+        }
+        groupBy: {
+          args: Prisma.AgentPendingApprovalGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AgentPendingApprovalGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AgentPendingApprovalCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AgentPendingApprovalCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -967,12 +1042,33 @@ export const RefreshTokenSessionScalarFieldEnum = {
 export type RefreshTokenSessionScalarFieldEnum = (typeof RefreshTokenSessionScalarFieldEnum)[keyof typeof RefreshTokenSessionScalarFieldEnum]
 
 
+export const AgentPendingApprovalScalarFieldEnum = {
+  id: 'id',
+  approvalId: 'approvalId',
+  threadId: 'threadId',
+  roomId: 'roomId',
+  originUserMessageId: 'originUserMessageId',
+  request: 'request',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AgentPendingApprovalScalarFieldEnum = (typeof AgentPendingApprovalScalarFieldEnum)[keyof typeof AgentPendingApprovalScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -989,6 +1085,15 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
 
@@ -1078,6 +1183,20 @@ export type EnumChatMessageStatusFieldRefInput<$PrismaModel> = FieldRefInputType
  * Reference to a field of type 'ChatMessageStatus[]'
  */
 export type ListEnumChatMessageStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ChatMessageStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -1210,6 +1329,7 @@ export type GlobalOmitConfig = {
   chatMessage?: Prisma.ChatMessageOmit
   expense?: Prisma.ExpenseOmit
   refreshTokenSession?: Prisma.RefreshTokenSessionOmit
+  agentPendingApproval?: Prisma.AgentPendingApprovalOmit
 }
 
 /* Types for Logging */

@@ -222,6 +222,7 @@ export type ChatRoomWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"ChatRoom"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   messages?: Prisma.ChatMessageListRelationFilter
+  pendingApproval?: Prisma.XOR<Prisma.AgentPendingApprovalNullableScalarRelationFilter, Prisma.AgentPendingApprovalWhereInput> | null
 }
 
 export type ChatRoomOrderByWithRelationInput = {
@@ -232,6 +233,7 @@ export type ChatRoomOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   messages?: Prisma.ChatMessageOrderByRelationAggregateInput
+  pendingApproval?: Prisma.AgentPendingApprovalOrderByWithRelationInput
 }
 
 export type ChatRoomWhereUniqueInput = Prisma.AtLeast<{
@@ -245,6 +247,7 @@ export type ChatRoomWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"ChatRoom"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   messages?: Prisma.ChatMessageListRelationFilter
+  pendingApproval?: Prisma.XOR<Prisma.AgentPendingApprovalNullableScalarRelationFilter, Prisma.AgentPendingApprovalWhereInput> | null
 }, "id">
 
 export type ChatRoomOrderByWithAggregationInput = {
@@ -277,6 +280,7 @@ export type ChatRoomCreateInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutChatRoomsInput
   messages?: Prisma.ChatMessageCreateNestedManyWithoutRoomInput
+  pendingApproval?: Prisma.AgentPendingApprovalCreateNestedOneWithoutRoomInput
 }
 
 export type ChatRoomUncheckedCreateInput = {
@@ -286,6 +290,7 @@ export type ChatRoomUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   messages?: Prisma.ChatMessageUncheckedCreateNestedManyWithoutRoomInput
+  pendingApproval?: Prisma.AgentPendingApprovalUncheckedCreateNestedOneWithoutRoomInput
 }
 
 export type ChatRoomUpdateInput = {
@@ -294,6 +299,7 @@ export type ChatRoomUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutChatRoomsNestedInput
   messages?: Prisma.ChatMessageUpdateManyWithoutRoomNestedInput
+  pendingApproval?: Prisma.AgentPendingApprovalUpdateOneWithoutRoomNestedInput
 }
 
 export type ChatRoomUncheckedUpdateInput = {
@@ -303,6 +309,7 @@ export type ChatRoomUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   messages?: Prisma.ChatMessageUncheckedUpdateManyWithoutRoomNestedInput
+  pendingApproval?: Prisma.AgentPendingApprovalUncheckedUpdateOneWithoutRoomNestedInput
 }
 
 export type ChatRoomCreateManyInput = {
@@ -432,11 +439,26 @@ export type ChatRoomUpdateOneRequiredWithoutMessagesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ChatRoomUpdateToOneWithWhereWithoutMessagesInput, Prisma.ChatRoomUpdateWithoutMessagesInput>, Prisma.ChatRoomUncheckedUpdateWithoutMessagesInput>
 }
 
+export type ChatRoomCreateNestedOneWithoutPendingApprovalInput = {
+  create?: Prisma.XOR<Prisma.ChatRoomCreateWithoutPendingApprovalInput, Prisma.ChatRoomUncheckedCreateWithoutPendingApprovalInput>
+  connectOrCreate?: Prisma.ChatRoomCreateOrConnectWithoutPendingApprovalInput
+  connect?: Prisma.ChatRoomWhereUniqueInput
+}
+
+export type ChatRoomUpdateOneRequiredWithoutPendingApprovalNestedInput = {
+  create?: Prisma.XOR<Prisma.ChatRoomCreateWithoutPendingApprovalInput, Prisma.ChatRoomUncheckedCreateWithoutPendingApprovalInput>
+  connectOrCreate?: Prisma.ChatRoomCreateOrConnectWithoutPendingApprovalInput
+  upsert?: Prisma.ChatRoomUpsertWithoutPendingApprovalInput
+  connect?: Prisma.ChatRoomWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ChatRoomUpdateToOneWithWhereWithoutPendingApprovalInput, Prisma.ChatRoomUpdateWithoutPendingApprovalInput>, Prisma.ChatRoomUncheckedUpdateWithoutPendingApprovalInput>
+}
+
 export type ChatRoomCreateWithoutUserInput = {
   title?: string
   createdAt?: Date | string
   updatedAt?: Date | string
   messages?: Prisma.ChatMessageCreateNestedManyWithoutRoomInput
+  pendingApproval?: Prisma.AgentPendingApprovalCreateNestedOneWithoutRoomInput
 }
 
 export type ChatRoomUncheckedCreateWithoutUserInput = {
@@ -445,6 +467,7 @@ export type ChatRoomUncheckedCreateWithoutUserInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   messages?: Prisma.ChatMessageUncheckedCreateNestedManyWithoutRoomInput
+  pendingApproval?: Prisma.AgentPendingApprovalUncheckedCreateNestedOneWithoutRoomInput
 }
 
 export type ChatRoomCreateOrConnectWithoutUserInput = {
@@ -489,6 +512,7 @@ export type ChatRoomCreateWithoutMessagesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutChatRoomsInput
+  pendingApproval?: Prisma.AgentPendingApprovalCreateNestedOneWithoutRoomInput
 }
 
 export type ChatRoomUncheckedCreateWithoutMessagesInput = {
@@ -497,6 +521,7 @@ export type ChatRoomUncheckedCreateWithoutMessagesInput = {
   userId: number
   createdAt?: Date | string
   updatedAt?: Date | string
+  pendingApproval?: Prisma.AgentPendingApprovalUncheckedCreateNestedOneWithoutRoomInput
 }
 
 export type ChatRoomCreateOrConnectWithoutMessagesInput = {
@@ -520,6 +545,7 @@ export type ChatRoomUpdateWithoutMessagesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutChatRoomsNestedInput
+  pendingApproval?: Prisma.AgentPendingApprovalUpdateOneWithoutRoomNestedInput
 }
 
 export type ChatRoomUncheckedUpdateWithoutMessagesInput = {
@@ -528,6 +554,57 @@ export type ChatRoomUncheckedUpdateWithoutMessagesInput = {
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  pendingApproval?: Prisma.AgentPendingApprovalUncheckedUpdateOneWithoutRoomNestedInput
+}
+
+export type ChatRoomCreateWithoutPendingApprovalInput = {
+  title?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutChatRoomsInput
+  messages?: Prisma.ChatMessageCreateNestedManyWithoutRoomInput
+}
+
+export type ChatRoomUncheckedCreateWithoutPendingApprovalInput = {
+  id?: number
+  title?: string
+  userId: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  messages?: Prisma.ChatMessageUncheckedCreateNestedManyWithoutRoomInput
+}
+
+export type ChatRoomCreateOrConnectWithoutPendingApprovalInput = {
+  where: Prisma.ChatRoomWhereUniqueInput
+  create: Prisma.XOR<Prisma.ChatRoomCreateWithoutPendingApprovalInput, Prisma.ChatRoomUncheckedCreateWithoutPendingApprovalInput>
+}
+
+export type ChatRoomUpsertWithoutPendingApprovalInput = {
+  update: Prisma.XOR<Prisma.ChatRoomUpdateWithoutPendingApprovalInput, Prisma.ChatRoomUncheckedUpdateWithoutPendingApprovalInput>
+  create: Prisma.XOR<Prisma.ChatRoomCreateWithoutPendingApprovalInput, Prisma.ChatRoomUncheckedCreateWithoutPendingApprovalInput>
+  where?: Prisma.ChatRoomWhereInput
+}
+
+export type ChatRoomUpdateToOneWithWhereWithoutPendingApprovalInput = {
+  where?: Prisma.ChatRoomWhereInput
+  data: Prisma.XOR<Prisma.ChatRoomUpdateWithoutPendingApprovalInput, Prisma.ChatRoomUncheckedUpdateWithoutPendingApprovalInput>
+}
+
+export type ChatRoomUpdateWithoutPendingApprovalInput = {
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutChatRoomsNestedInput
+  messages?: Prisma.ChatMessageUpdateManyWithoutRoomNestedInput
+}
+
+export type ChatRoomUncheckedUpdateWithoutPendingApprovalInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  messages?: Prisma.ChatMessageUncheckedUpdateManyWithoutRoomNestedInput
 }
 
 export type ChatRoomCreateManyUserInput = {
@@ -542,6 +619,7 @@ export type ChatRoomUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   messages?: Prisma.ChatMessageUpdateManyWithoutRoomNestedInput
+  pendingApproval?: Prisma.AgentPendingApprovalUpdateOneWithoutRoomNestedInput
 }
 
 export type ChatRoomUncheckedUpdateWithoutUserInput = {
@@ -550,6 +628,7 @@ export type ChatRoomUncheckedUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   messages?: Prisma.ChatMessageUncheckedUpdateManyWithoutRoomNestedInput
+  pendingApproval?: Prisma.AgentPendingApprovalUncheckedUpdateOneWithoutRoomNestedInput
 }
 
 export type ChatRoomUncheckedUpdateManyWithoutUserInput = {
@@ -598,6 +677,7 @@ export type ChatRoomSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   messages?: boolean | Prisma.ChatRoom$messagesArgs<ExtArgs>
+  pendingApproval?: boolean | Prisma.ChatRoom$pendingApprovalArgs<ExtArgs>
   _count?: boolean | Prisma.ChatRoomCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["chatRoom"]>
 
@@ -631,6 +711,7 @@ export type ChatRoomOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs =
 export type ChatRoomInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   messages?: boolean | Prisma.ChatRoom$messagesArgs<ExtArgs>
+  pendingApproval?: boolean | Prisma.ChatRoom$pendingApprovalArgs<ExtArgs>
   _count?: boolean | Prisma.ChatRoomCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ChatRoomIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -645,6 +726,7 @@ export type $ChatRoomPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
     messages: Prisma.$ChatMessagePayload<ExtArgs>[]
+    pendingApproval: Prisma.$AgentPendingApprovalPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -1048,6 +1130,7 @@ export interface Prisma__ChatRoomClient<T, Null = never, ExtArgs extends runtime
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   messages<T extends Prisma.ChatRoom$messagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ChatRoom$messagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ChatMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  pendingApproval<T extends Prisma.ChatRoom$pendingApprovalArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ChatRoom$pendingApprovalArgs<ExtArgs>>): Prisma.Prisma__AgentPendingApprovalClient<runtime.Types.Result.GetResult<Prisma.$AgentPendingApprovalPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1504,6 +1587,25 @@ export type ChatRoom$messagesArgs<ExtArgs extends runtime.Types.Extensions.Inter
   take?: number
   skip?: number
   distinct?: Prisma.ChatMessageScalarFieldEnum | Prisma.ChatMessageScalarFieldEnum[]
+}
+
+/**
+ * ChatRoom.pendingApproval
+ */
+export type ChatRoom$pendingApprovalArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AgentPendingApproval
+   */
+  select?: Prisma.AgentPendingApprovalSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AgentPendingApproval
+   */
+  omit?: Prisma.AgentPendingApprovalOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AgentPendingApprovalInclude<ExtArgs> | null
+  where?: Prisma.AgentPendingApprovalWhereInput
 }
 
 /**

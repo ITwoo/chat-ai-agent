@@ -65,7 +65,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
     ){}
 
     async onModuleInit(): Promise<void> {
-        const databaseUrl = this.configService.getOrThrow<string>('DATABASE_URL');
+        const databaseUrl = this.configService.getOrThrow<string>('LANGGRAPH_DATABASE_URL');
 
         this.checkpointer = PostgresSaver.fromConnString(databaseUrl);
 

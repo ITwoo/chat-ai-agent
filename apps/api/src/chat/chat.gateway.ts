@@ -20,18 +20,13 @@ import { JwtService } from '@nestjs/jwt';
 import { AgentService, AgentStreamEvent } from '../agent/agent.service';
 import { agentApprovalResponseSchema, ExpenseUpdateApprovalRequest, UpdateExpenseDecision } from '../agent/agent-interrupt.schema';
 import { randomUUID } from 'node:crypto';
+import { PendingAgentApproval } from './types/pending-agent-approval.type';
+import { PendingAgentApprovalStoreService } from './pending-agent-approval-store.service';
 
 type AuthenticatedSocket = Socket & {
     data: {
         user?: User;
     };
-};
-
-type PendingAgentApproval = {
-    approvalId: string;
-    threadId: string;
-    originUserMessageId: number;
-    request: ExpenseUpdateApprovalRequest;
 };
 
 type AgentApprovalSource =
@@ -89,7 +84,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         private readonly agentService: AgentService,
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService,
-        private readonly prisma: PrismaService
+        private readonly prisma: PrismaService,
+        private readonly pendingApprovalStore: PendingAgentApprovalStoreService,
     ) { }
 
     afterInit(server: Server) {
@@ -641,6 +637,15 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
         const approvalId = this.createApprovalId();
 
+        const pendingApproval: PendingAgentApproval = {
+            approvalId,
+            threadId: event.threadId,
+            originUserMessageId,
+            request: event.request,
+        };
+
+        await this.pendingApprovalStore.save(roomId, pendingApproval);
+
         const roomName = this.getRoomName(roomId);
 
         const approvalRequestMessage =
@@ -655,12 +660,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             approvalRequestMessage,
         );
 
-        this.pendingApprovals.set(approvalKey, {
-            approvalId,
-            threadId: event.threadId,
-            originUserMessageId,
-            request: event.request,
-        });
+        this.pendingApprovals.set(approvalKey, pendingApproval);
 
         this.server.to(roomName).emit(
             'assistant_approval_required',

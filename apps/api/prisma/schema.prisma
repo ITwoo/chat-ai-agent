@@ -1,22 +1,22 @@
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
-  moduleFormat = "cjs"
+    provider     = "prisma-client"
+    output       = "../src/generated/prisma"
+    moduleFormat = "cjs"
 }
 
 datasource db {
-  provider = "postgresql"
+    provider = "postgresql"
 }
 
 enum BoardStatus {
-  PUBLIC
-  PRIVATE
+    PUBLIC
+    PRIVATE
 }
 
 enum ChatMessageRole {
-  USER
-  ASSISTANT
-  SYSTEM
+    USER
+    ASSISTANT
+    SYSTEM
 }
 
 enum  ChatMessageStatus {
@@ -26,69 +26,70 @@ enum  ChatMessageStatus {
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
-  username String @unique @db.VarChar(50)
-  password String @db.VarChar(255)
+    id       Int    @id @default(autoincrement())
+    username String @unique @db.VarChar(50)
+    password String @db.VarChar(255)
 
-  boards    Board[]
-  chatRooms ChatRoom[]
-  expense   Expense[]
-  refreshTokenSessions RefreshTokenSession[]
+    boards    Board[]
+    chatRooms ChatRoom[]
+    expense   Expense[]
+    refreshTokenSessions RefreshTokenSession[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 model Board {
-  id          Int         @id @default(autoincrement())
-  title       String      @db.VarChar(100)
-  description String      @db.Text
-  status      BoardStatus @default(PUBLIC)
+    id          Int         @id @default(autoincrement())
+    title       String      @db.VarChar(100)
+    description String      @db.Text
+    status      BoardStatus @default(PUBLIC)
 
-  userId Int
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId Int
+    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  @@index([userId])
-  @@index([status])
-  @@index([createdAt])
+    @@index([userId])
+    @@index([status])
+    @@index([createdAt])
 }
 
 model ChatRoom {
-  id    Int    @id @default(autoincrement())
-  title String @default("새 채팅") @db.VarChar(100)
+    id    Int    @id @default(autoincrement())
+    title String @default("새 채팅") @db.VarChar(100)
 
-  userId Int
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId Int
+    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  messages ChatMessage[]
+    messages ChatMessage[]
+    pendingApproval AgentPendingApproval?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  @@index([userId])
-  @@index([createdAt])
-  @@index([updatedAt])
+    @@index([userId])
+    @@index([createdAt])
+    @@index([updatedAt])
 }
 
 model ChatMessage {
-  id Int @id @default(autoincrement())
+    id Int @id @default(autoincrement())
 
-  roomId Int
-  room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+    roomId Int
+    room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
-  role    ChatMessageRole
-  content String          @db.Text
-  status  ChatMessageStatus @default(COMPLETED)
+    role    ChatMessageRole
+    content String          @db.Text
+    status  ChatMessageStatus @default(COMPLETED)
 
-  createdAt DateTime @default(now())
+    createdAt DateTime @default(now())
 
-  @@index([roomId])
-  @@index([roomId, createdAt])
-  @@index([createdAt])
-  @@index([status])
+    @@index([roomId])
+    @@index([roomId, createdAt])
+    @@index([createdAt])
+    @@index([status])
 }
 
 model Expense {
@@ -109,18 +110,37 @@ model Expense {
 }
 
 model RefreshTokenSession {
-  id        Int       @id @default(autoincrement())
-  userId    Int
-  tokenHash String    @db.VarChar(255)
-  expiresAt DateTime
-  revokedAt DateTime?
+    id        Int       @id @default(autoincrement())
+    userId    Int
+    tokenHash String    @db.VarChar(255)
+    expiresAt DateTime
+    revokedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
-  @@index([expiresAt])
-  @@index([revokedAt])
+    @@index([userId])
+    @@index([expiresAt])
+    @@index([revokedAt])
+}
+
+model AgentPendingApproval {
+    id Int @id @default(autoincrement())
+
+    approvalId String @unique @db.Uuid
+    threadId   String @db.VarChar(255)
+
+    roomId Int      @unique
+    room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+    originUserMessageId Int
+    request             Json
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([threadId])
+    @@index([originUserMessageId])
 }

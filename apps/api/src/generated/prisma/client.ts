@@ -69,3 +69,8 @@ export type Expense = Prisma.ExpenseModel
  * 
  */
 export type RefreshTokenSession = Prisma.RefreshTokenSessionModel
+/**
+ * Model AgentPendingApproval
+ * 
+ */
+export type AgentPendingApproval = Prisma.AgentPendingApprovalModel

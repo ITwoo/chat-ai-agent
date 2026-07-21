@@ -56,7 +56,8 @@ export const ModelName = {
   ChatRoom: 'ChatRoom',
   ChatMessage: 'ChatMessage',
   Expense: 'Expense',
-  RefreshTokenSession: 'RefreshTokenSession'
+  RefreshTokenSession: 'RefreshTokenSession',
+  AgentPendingApproval: 'AgentPendingApproval'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -150,12 +151,33 @@ export const RefreshTokenSessionScalarFieldEnum = {
 export type RefreshTokenSessionScalarFieldEnum = (typeof RefreshTokenSessionScalarFieldEnum)[keyof typeof RefreshTokenSessionScalarFieldEnum]
 
 
+export const AgentPendingApprovalScalarFieldEnum = {
+  id: 'id',
+  approvalId: 'approvalId',
+  threadId: 'threadId',
+  roomId: 'roomId',
+  originUserMessageId: 'originUserMessageId',
+  request: 'request',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AgentPendingApprovalScalarFieldEnum = (typeof AgentPendingApprovalScalarFieldEnum)[keyof typeof AgentPendingApprovalScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -172,4 +194,13 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

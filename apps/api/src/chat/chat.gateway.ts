@@ -647,7 +647,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             );
 
             if (source.type === 'chat') {
-                const approvalMessage = await this.chatService.saveAssistantMessage(
+                const approvalMessage = await this.chatService.saveUserMessage(
                     roomId,
                     user,
                     source.content,

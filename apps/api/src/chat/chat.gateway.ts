@@ -291,7 +291,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
                 isWaitingForApproval = true;
 
-                this.setPendingApproval(
+                await this.setPendingApproval(
                     user.id,
                     payload.roomId,
                     userMessage.id,
@@ -567,7 +567,65 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         return null;
     }
 
-    private setPendingApproval(
+    private createApprovalRequestMessage(
+        request: ExpenseUpdateApprovalRequest,
+    ): string {
+        const changes: string[] = [];
+
+        if (
+            request.changes.amount !== undefined &&
+            request.changes.amount !== request.expense.amount
+        ) {
+            changes.push(
+                `금액: ${request.expense.amount.toLocaleString()}원 → ` +
+                `${request.changes.amount.toLocaleString()}원`,
+            );
+        }
+
+        if (
+            request.changes.title !== undefined &&
+            request.changes.title !== request.expense.title
+        ) {
+            changes.push(
+                `제목: ${request.expense.title} → ${request.changes.title}`,
+            );
+        }
+
+        if (
+            request.changes.category !== undefined &&
+            request.changes.category !== request.expense.category
+        ) {
+            changes.push(
+                `카테고리: ${request.expense.category} → ${request.changes.category}`,
+            );
+        }
+
+        if (
+            request.changes.spentAt !== undefined &&
+            request.changes.spentAt !== request.expense.spentAt
+        ) {
+            changes.push(
+                `날짜: ${request.expense.spentAt} → ${request.changes.spentAt}`,
+            );
+        }
+
+        if (
+            request.changes.memo !== undefined &&
+            request.changes.memo !== request.expense.memo
+        ) {
+            changes.push(
+                `메모: ${request.expense.memo ?? '없음'} → ` +
+                `${request.changes.memo ?? '없음'}`,
+            );
+        }
+
+        return [
+            `${request.expense.title} 지출을 다음과 같이 수정할까요?`,
+            ...changes.map((change) => `- ${change}`),
+        ].join('\n');
+    }
+
+    private async setPendingApproval(
         userId: number,
         roomId: number,
         originUserMessageId: number,
@@ -575,7 +633,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             AgentStreamEvent,
             { type: 'approval_required' }
         >,
-    ): void {
+    ): Promise<void> {
         const approvalKey = this.getUserRoomKey(
             userId,
             roomId,
@@ -583,6 +641,19 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
         const approvalId = this.createApprovalId();
 
+        const roomName = this.getRoomName(roomId);
+
+        const approvalRequestMessage =
+            await this.chatService.saveAssistantMessage(
+                roomId,
+                userId,
+                this.createApprovalRequestMessage(event.request),
+            );
+
+        this.server.to(roomName).emit(
+            'message_created',
+            approvalRequestMessage,
+        );
 
         this.pendingApprovals.set(approvalKey, {
             approvalId,
@@ -590,8 +661,6 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             originUserMessageId,
             request: event.request,
         });
-
-        const roomName = this.getRoomName(roomId);
 
         this.server.to(roomName).emit(
             'assistant_approval_required',
@@ -628,7 +697,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             source.type === 'button' &&
             (
                 source.approvalId !== pendingApproval.approvalId ||
-                source.originUserMessageId !== pendingApproval.originUserMessageId                
+                source.originUserMessageId !== pendingApproval.originUserMessageId
             )
         ) {
             client.emit('chat_error', {
@@ -743,7 +812,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
                 isWaitingForApproval = true;
 
-                this.setPendingApproval(
+                await this.setPendingApproval(
                     user.id,
                     roomId,
                     pendingApproval.originUserMessageId,
@@ -828,7 +897,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                     : String(error),
             );
 
-            this.setPendingApproval(
+            await this.setPendingApproval(
                 user.id,
                 roomId,
                 pendingApproval.originUserMessageId,

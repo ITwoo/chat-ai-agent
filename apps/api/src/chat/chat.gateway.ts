@@ -897,13 +897,18 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                     : String(error),
             );
 
-            await this.setPendingApproval(
-                user.id,
-                roomId,
-                pendingApproval.originUserMessageId,
+            this.pendingApprovals.set(
+                processingKey,
+                pendingApproval,
+            );
+
+            this.server.to(roomName).emit(
+                'assistant_approval_required',
                 {
-                    type: 'approval_required',
-                    threadId: pendingApproval.threadId,
+                    roomId,
+                    approvalId: pendingApproval.approvalId,
+                    userMessageId:
+                        pendingApproval.originUserMessageId,
                     request: pendingApproval.request,
                 },
             );

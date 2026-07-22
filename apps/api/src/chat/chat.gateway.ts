@@ -23,6 +23,7 @@ import { randomUUID } from 'node:crypto';
 import { PendingAgentApproval } from './types/pending-agent-approval.type';
 import { PendingAgentApprovalStoreService } from './pending-agent-approval-store.service';
 import { RedisLock, RedisLockService } from '../redis/redis-lock.service';
+import { RedisRateLimitService } from '../redis/redis-rate-limit.service';
 
 type AuthenticatedSocket = Socket & {
     data: {
@@ -62,6 +63,10 @@ const CANCEL_MESSAGES = new Set([
     '수정하지마',
     'cancel',
 ]);
+
+const CHAT_RATE_LIMIT = 10;
+const CHAT_RATE_LIMIT_WINDOW_MS = 60000;
+
 @WebSocketGateway({
     cors: {
         origin: true,
@@ -88,6 +93,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         private readonly prisma: PrismaService,
         private readonly pendingApprovalStore: PendingAgentApprovalStoreService,
         private readonly redisLockService: RedisLockService,
+        private readonly redisRateLimitService: RedisRateLimitService,
     ) { }
 
     afterInit(server: Server) {
@@ -214,6 +220,33 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 },
             );
 
+            return;
+        }
+
+        try {
+            const rateLimit = await this.redisRateLimitService.consume(
+                `rate-limit:agent-chat:${user.id}`,
+                CHAT_RATE_LIMIT,
+                CHAT_RATE_LIMIT_WINDOW_MS,
+            );
+
+            if (!rateLimit.allowed) {
+                const retryAfterSeconds = Math.ceil(rateLimit.retryAfterMs / 1000);
+
+                client.emit('chat_error', {
+                    message: `요청이 너무 많습니다. ${retryAfterSeconds}초 후 다시 시도해주세요.`,
+                });
+                return;
+            }
+        } catch (error) {
+            this.logger.error(
+                `채팅 요청 제한 확인 실패: userId=${user.id}`,
+                error instanceof Error ? error.stack : String(error),
+            );
+
+            client.emit('chat_error', {
+                message: '요청 제한 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.',
+            });
             return;
         }
 

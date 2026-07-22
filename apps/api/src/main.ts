@@ -4,6 +4,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { PrismaExceptionFilter } from './prisma/prisma-exception.filter';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
+import { RedisIoAdapter } from './redis/redis-io.adapter';
 
 
 async function bootstrap() {
@@ -13,6 +14,14 @@ async function bootstrap() {
     const configService = app.get(ConfigService);
 
     const configFileName = configService.get<string>('ENV_NAME') ?? '';
+
+    const redisIoAdapter = new RedisIoAdapter(
+        app,
+        configService.getOrThrow<string>('REDIS_URL'),
+    );
+
+    await redisIoAdapter.connectToRedis();
+    app.useWebSocketAdapter(redisIoAdapter);
 
     app.use(cookieParser());
     app.enableCors({

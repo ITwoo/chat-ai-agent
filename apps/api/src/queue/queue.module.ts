@@ -1,6 +1,8 @@
+import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { BullModule } from '@nestjs/bullmq';
+import { AGENT_JOB_QUEUE } from './queue.constants';
+import { QueueProducerService } from './queue-producer.service';
 
 function parseRedisUrl(redisUrl: string) {
     const url = new URL(redisUrl);
@@ -20,12 +22,20 @@ function parseRedisUrl(redisUrl: string) {
         BullModule.forRootAsync({
             inject: [ConfigService],
             useFactory: (configService: ConfigService) => ({
-                connection: parseRedisUrl(
-                    configService.getOrThrow<string>('REDIS_URL'),
-                ),
+                connection: parseRedisUrl(configService.getOrThrow('REDIS_URL')),
             }),
         }),
+        BullModule.registerQueue({
+            name: AGENT_JOB_QUEUE,
+            defaultJobOptions: {
+                attempts: 3,
+                backoff: { type: 'exponential', delay: 1000 },
+                removeOnComplete: 100,
+                removeOnFail: 500,
+            },
+        }),
     ],
-    exports: [BullModule],
+    providers: [QueueProducerService],
+    exports: [QueueProducerService],
 })
 export class QueueModule {}

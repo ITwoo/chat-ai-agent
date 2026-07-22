@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AGENT_JOB_QUEUE } from './queue.constants';
 import { QueueProducerService } from './queue-producer.service';
+import { AgentJobProcessor } from './agent-job.processor';
 
 function parseRedisUrl(redisUrl: string) {
     const url = new URL(redisUrl);
@@ -35,7 +36,7 @@ function parseRedisUrl(redisUrl: string) {
             },
         }),
     ],
-    providers: [QueueProducerService],
+    providers: [QueueProducerService, AgentJobProcessor],
     exports: [QueueProducerService],
 })
 export class QueueModule {}

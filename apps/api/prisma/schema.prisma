@@ -25,6 +25,13 @@ enum  ChatMessageStatus {
     FAILED
 }
 
+enum RagDocumentStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
 model User {
     id       Int    @id @default(autoincrement())
     username String @unique @db.VarChar(50)
@@ -34,6 +41,7 @@ model User {
     chatRooms ChatRoom[]
     expense   Expense[]
     refreshTokenSessions RefreshTokenSession[]
+    ragDocuments RagDocument[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -143,4 +151,39 @@ model AgentPendingApproval {
 
     @@index([threadId])
     @@index([originUserMessageId])
+}
+
+model RagDocument {
+  id        Int               @id @default(autoincrement())
+  userId    Int
+  fileName  String            @db.VarChar(255)
+  mimeType  String            @db.VarChar(100)
+  sizeBytes Int
+  status    RagDocumentStatus @default(PENDING)
+  error     String?           @db.Text
+
+  user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chunks RagDocumentChunk[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([createdAt])
+}
+
+model RagDocumentChunk {
+  id         Int    @id @default(autoincrement())
+  documentId Int
+  chunkIndex Int
+  content    String @db.Text
+  tokenCount Int?
+
+  document RagDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
 }

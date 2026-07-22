@@ -390,7 +390,9 @@ export const ModelName = {
   ChatMessage: 'ChatMessage',
   Expense: 'Expense',
   RefreshTokenSession: 'RefreshTokenSession',
-  AgentPendingApproval: 'AgentPendingApproval'
+  AgentPendingApproval: 'AgentPendingApproval',
+  RagDocument: 'RagDocument',
+  RagDocumentChunk: 'RagDocumentChunk'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -406,7 +408,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "board" | "chatRoom" | "chatMessage" | "expense" | "refreshTokenSession" | "agentPendingApproval"
+    modelProps: "user" | "board" | "chatRoom" | "chatMessage" | "expense" | "refreshTokenSession" | "agentPendingApproval" | "ragDocument" | "ragDocumentChunk"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -928,6 +930,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    RagDocument: {
+      payload: Prisma.$RagDocumentPayload<ExtArgs>
+      fields: Prisma.RagDocumentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RagDocumentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RagDocumentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentPayload>
+        }
+        findFirst: {
+          args: Prisma.RagDocumentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RagDocumentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentPayload>
+        }
+        findMany: {
+          args: Prisma.RagDocumentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentPayload>[]
+        }
+        create: {
+          args: Prisma.RagDocumentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentPayload>
+        }
+        createMany: {
+          args: Prisma.RagDocumentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RagDocumentCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentPayload>[]
+        }
+        delete: {
+          args: Prisma.RagDocumentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentPayload>
+        }
+        update: {
+          args: Prisma.RagDocumentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentPayload>
+        }
+        deleteMany: {
+          args: Prisma.RagDocumentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RagDocumentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RagDocumentUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentPayload>[]
+        }
+        upsert: {
+          args: Prisma.RagDocumentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentPayload>
+        }
+        aggregate: {
+          args: Prisma.RagDocumentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRagDocument>
+        }
+        groupBy: {
+          args: Prisma.RagDocumentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RagDocumentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RagDocumentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RagDocumentCountAggregateOutputType> | number
+        }
+      }
+    }
+    RagDocumentChunk: {
+      payload: Prisma.$RagDocumentChunkPayload<ExtArgs>
+      fields: Prisma.RagDocumentChunkFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RagDocumentChunkFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentChunkPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RagDocumentChunkFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentChunkPayload>
+        }
+        findFirst: {
+          args: Prisma.RagDocumentChunkFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentChunkPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RagDocumentChunkFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentChunkPayload>
+        }
+        findMany: {
+          args: Prisma.RagDocumentChunkFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentChunkPayload>[]
+        }
+        create: {
+          args: Prisma.RagDocumentChunkCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentChunkPayload>
+        }
+        createMany: {
+          args: Prisma.RagDocumentChunkCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RagDocumentChunkCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentChunkPayload>[]
+        }
+        delete: {
+          args: Prisma.RagDocumentChunkDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentChunkPayload>
+        }
+        update: {
+          args: Prisma.RagDocumentChunkUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentChunkPayload>
+        }
+        deleteMany: {
+          args: Prisma.RagDocumentChunkDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RagDocumentChunkUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RagDocumentChunkUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentChunkPayload>[]
+        }
+        upsert: {
+          args: Prisma.RagDocumentChunkUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RagDocumentChunkPayload>
+        }
+        aggregate: {
+          args: Prisma.RagDocumentChunkAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRagDocumentChunk>
+        }
+        groupBy: {
+          args: Prisma.RagDocumentChunkGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RagDocumentChunkGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RagDocumentChunkCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RagDocumentChunkCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1054,6 +1204,33 @@ export const AgentPendingApprovalScalarFieldEnum = {
 } as const
 
 export type AgentPendingApprovalScalarFieldEnum = (typeof AgentPendingApprovalScalarFieldEnum)[keyof typeof AgentPendingApprovalScalarFieldEnum]
+
+
+export const RagDocumentScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  fileName: 'fileName',
+  mimeType: 'mimeType',
+  sizeBytes: 'sizeBytes',
+  status: 'status',
+  error: 'error',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RagDocumentScalarFieldEnum = (typeof RagDocumentScalarFieldEnum)[keyof typeof RagDocumentScalarFieldEnum]
+
+
+export const RagDocumentChunkScalarFieldEnum = {
+  id: 'id',
+  documentId: 'documentId',
+  chunkIndex: 'chunkIndex',
+  content: 'content',
+  tokenCount: 'tokenCount',
+  createdAt: 'createdAt'
+} as const
+
+export type RagDocumentChunkScalarFieldEnum = (typeof RagDocumentChunkScalarFieldEnum)[keyof typeof RagDocumentChunkScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1201,6 +1378,20 @@ export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$Prisma
 
 
 /**
+ * Reference to a field of type 'RagDocumentStatus'
+ */
+export type EnumRagDocumentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RagDocumentStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'RagDocumentStatus[]'
+ */
+export type ListEnumRagDocumentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RagDocumentStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -1330,6 +1521,8 @@ export type GlobalOmitConfig = {
   expense?: Prisma.ExpenseOmit
   refreshTokenSession?: Prisma.RefreshTokenSessionOmit
   agentPendingApproval?: Prisma.AgentPendingApprovalOmit
+  ragDocument?: Prisma.RagDocumentOmit
+  ragDocumentChunk?: Prisma.RagDocumentChunkOmit
 }
 
 /* Types for Logging */

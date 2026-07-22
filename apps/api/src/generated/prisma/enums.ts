@@ -33,3 +33,13 @@ export const ChatMessageStatus = {
 } as const
 
 export type ChatMessageStatus = (typeof ChatMessageStatus)[keyof typeof ChatMessageStatus]
+
+
+export const RagDocumentStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  READY: 'READY',
+  FAILED: 'FAILED'
+} as const
+
+export type RagDocumentStatus = (typeof RagDocumentStatus)[keyof typeof RagDocumentStatus]

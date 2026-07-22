@@ -52,3 +52,13 @@ export type RefreshTokenSession = Prisma.RefreshTokenSessionModel
  * 
  */
 export type AgentPendingApproval = Prisma.AgentPendingApprovalModel
+/**
+ * Model RagDocument
+ * 
+ */
+export type RagDocument = Prisma.RagDocumentModel
+/**
+ * Model RagDocumentChunk
+ * 
+ */
+export type RagDocumentChunk = Prisma.RagDocumentChunkModel

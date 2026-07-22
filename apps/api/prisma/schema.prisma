@@ -179,6 +179,7 @@ model RagDocumentChunk {
   chunkIndex Int
   content    String @db.Text
   tokenCount Int?
+  embedding  Unsupported("vector")?
 
   document RagDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
 

@@ -5,6 +5,7 @@ import { AGENT_JOB_QUEUE, RAG_DOCUMENT_QUEUE } from './queue.constants';
 import { QueueProducerService } from './queue-producer.service';
 import { AgentJobProcessor } from './agent-job.processor';
 import { QueueTestController } from './queue-test.controller';
+import { createBullRootOptions, queueOptions } from './queue.config';
 
 function parseRedisUrl(redisUrl: string) {
     const url = new URL(redisUrl);
@@ -23,34 +24,12 @@ function parseRedisUrl(redisUrl: string) {
     imports: [
         BullModule.forRootAsync({
             inject: [ConfigService],
-            useFactory: (configService: ConfigService) => ({
-                connection: parseRedisUrl(configService.getOrThrow('REDIS_URL')),
-            }),
+            useFactory: createBullRootOptions,
         }),
-        BullModule.registerQueue({
-            name: AGENT_JOB_QUEUE,
-            defaultJobOptions: {
-                attempts: 3,
-                backoff: { type: 'exponential', delay: 1000 },
-                removeOnComplete: 100,
-                removeOnFail: 500,
-            },
-        }),
-        BullModule.registerQueue({
-            name: RAG_DOCUMENT_QUEUE,
-            defaultJobOptions: {
-                attempts: 3,
-                backoff: {
-                    type: 'exponential',
-                    delay: 1000,
-                },
-                removeOnComplete: 100,
-                removeOnFail: 500,
-            },
-        }),
+        BullModule.registerQueue(...queueOptions),
     ],
     controllers: [QueueTestController],
     providers: [QueueProducerService, AgentJobProcessor],
-    exports: [QueueProducerService],
+    exports: [BullModule, QueueProducerService],
 })
 export class QueueModule {}

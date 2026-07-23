@@ -42,6 +42,7 @@ export type RagDocumentMinAggregateOutputType = {
   id: number | null
   userId: number | null
   fileName: string | null
+  storageKey: string | null
   mimeType: string | null
   sizeBytes: number | null
   status: $Enums.RagDocumentStatus | null
@@ -54,6 +55,7 @@ export type RagDocumentMaxAggregateOutputType = {
   id: number | null
   userId: number | null
   fileName: string | null
+  storageKey: string | null
   mimeType: string | null
   sizeBytes: number | null
   status: $Enums.RagDocumentStatus | null
@@ -66,6 +68,7 @@ export type RagDocumentCountAggregateOutputType = {
   id: number
   userId: number
   fileName: number
+  storageKey: number
   mimeType: number
   sizeBytes: number
   status: number
@@ -92,6 +95,7 @@ export type RagDocumentMinAggregateInputType = {
   id?: true
   userId?: true
   fileName?: true
+  storageKey?: true
   mimeType?: true
   sizeBytes?: true
   status?: true
@@ -104,6 +108,7 @@ export type RagDocumentMaxAggregateInputType = {
   id?: true
   userId?: true
   fileName?: true
+  storageKey?: true
   mimeType?: true
   sizeBytes?: true
   status?: true
@@ -116,6 +121,7 @@ export type RagDocumentCountAggregateInputType = {
   id?: true
   userId?: true
   fileName?: true
+  storageKey?: true
   mimeType?: true
   sizeBytes?: true
   status?: true
@@ -215,6 +221,7 @@ export type RagDocumentGroupByOutputType = {
   id: number
   userId: number
   fileName: string
+  storageKey: string
   mimeType: string
   sizeBytes: number
   status: $Enums.RagDocumentStatus
@@ -250,6 +257,7 @@ export type RagDocumentWhereInput = {
   id?: Prisma.IntFilter<"RagDocument"> | number
   userId?: Prisma.IntFilter<"RagDocument"> | number
   fileName?: Prisma.StringFilter<"RagDocument"> | string
+  storageKey?: Prisma.StringFilter<"RagDocument"> | string
   mimeType?: Prisma.StringFilter<"RagDocument"> | string
   sizeBytes?: Prisma.IntFilter<"RagDocument"> | number
   status?: Prisma.EnumRagDocumentStatusFilter<"RagDocument"> | $Enums.RagDocumentStatus
@@ -264,6 +272,7 @@ export type RagDocumentOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   fileName?: Prisma.SortOrder
+  storageKey?: Prisma.SortOrder
   mimeType?: Prisma.SortOrder
   sizeBytes?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -276,6 +285,7 @@ export type RagDocumentOrderByWithRelationInput = {
 
 export type RagDocumentWhereUniqueInput = Prisma.AtLeast<{
   id?: number
+  storageKey?: string
   AND?: Prisma.RagDocumentWhereInput | Prisma.RagDocumentWhereInput[]
   OR?: Prisma.RagDocumentWhereInput[]
   NOT?: Prisma.RagDocumentWhereInput | Prisma.RagDocumentWhereInput[]
@@ -289,12 +299,13 @@ export type RagDocumentWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"RagDocument"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   chunks?: Prisma.RagDocumentChunkListRelationFilter
-}, "id">
+}, "id" | "storageKey">
 
 export type RagDocumentOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   fileName?: Prisma.SortOrder
+  storageKey?: Prisma.SortOrder
   mimeType?: Prisma.SortOrder
   sizeBytes?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -315,6 +326,7 @@ export type RagDocumentScalarWhereWithAggregatesInput = {
   id?: Prisma.IntWithAggregatesFilter<"RagDocument"> | number
   userId?: Prisma.IntWithAggregatesFilter<"RagDocument"> | number
   fileName?: Prisma.StringWithAggregatesFilter<"RagDocument"> | string
+  storageKey?: Prisma.StringWithAggregatesFilter<"RagDocument"> | string
   mimeType?: Prisma.StringWithAggregatesFilter<"RagDocument"> | string
   sizeBytes?: Prisma.IntWithAggregatesFilter<"RagDocument"> | number
   status?: Prisma.EnumRagDocumentStatusWithAggregatesFilter<"RagDocument"> | $Enums.RagDocumentStatus
@@ -325,6 +337,7 @@ export type RagDocumentScalarWhereWithAggregatesInput = {
 
 export type RagDocumentCreateInput = {
   fileName: string
+  storageKey: string
   mimeType: string
   sizeBytes: number
   status?: $Enums.RagDocumentStatus
@@ -339,6 +352,7 @@ export type RagDocumentUncheckedCreateInput = {
   id?: number
   userId: number
   fileName: string
+  storageKey: string
   mimeType: string
   sizeBytes: number
   status?: $Enums.RagDocumentStatus
@@ -350,6 +364,7 @@ export type RagDocumentUncheckedCreateInput = {
 
 export type RagDocumentUpdateInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
+  storageKey?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRagDocumentStatusFieldUpdateOperationsInput | $Enums.RagDocumentStatus
@@ -364,6 +379,7 @@ export type RagDocumentUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
+  storageKey?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRagDocumentStatusFieldUpdateOperationsInput | $Enums.RagDocumentStatus
@@ -377,6 +393,7 @@ export type RagDocumentCreateManyInput = {
   id?: number
   userId: number
   fileName: string
+  storageKey: string
   mimeType: string
   sizeBytes: number
   status?: $Enums.RagDocumentStatus
@@ -387,6 +404,7 @@ export type RagDocumentCreateManyInput = {
 
 export type RagDocumentUpdateManyMutationInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
+  storageKey?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRagDocumentStatusFieldUpdateOperationsInput | $Enums.RagDocumentStatus
@@ -399,6 +417,7 @@ export type RagDocumentUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
+  storageKey?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRagDocumentStatusFieldUpdateOperationsInput | $Enums.RagDocumentStatus
@@ -421,6 +440,7 @@ export type RagDocumentCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   fileName?: Prisma.SortOrder
+  storageKey?: Prisma.SortOrder
   mimeType?: Prisma.SortOrder
   sizeBytes?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -439,6 +459,7 @@ export type RagDocumentMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   fileName?: Prisma.SortOrder
+  storageKey?: Prisma.SortOrder
   mimeType?: Prisma.SortOrder
   sizeBytes?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -451,6 +472,7 @@ export type RagDocumentMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   fileName?: Prisma.SortOrder
+  storageKey?: Prisma.SortOrder
   mimeType?: Prisma.SortOrder
   sizeBytes?: Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -532,6 +554,7 @@ export type RagDocumentUpdateOneRequiredWithoutChunksNestedInput = {
 
 export type RagDocumentCreateWithoutUserInput = {
   fileName: string
+  storageKey: string
   mimeType: string
   sizeBytes: number
   status?: $Enums.RagDocumentStatus
@@ -544,6 +567,7 @@ export type RagDocumentCreateWithoutUserInput = {
 export type RagDocumentUncheckedCreateWithoutUserInput = {
   id?: number
   fileName: string
+  storageKey: string
   mimeType: string
   sizeBytes: number
   status?: $Enums.RagDocumentStatus
@@ -586,6 +610,7 @@ export type RagDocumentScalarWhereInput = {
   id?: Prisma.IntFilter<"RagDocument"> | number
   userId?: Prisma.IntFilter<"RagDocument"> | number
   fileName?: Prisma.StringFilter<"RagDocument"> | string
+  storageKey?: Prisma.StringFilter<"RagDocument"> | string
   mimeType?: Prisma.StringFilter<"RagDocument"> | string
   sizeBytes?: Prisma.IntFilter<"RagDocument"> | number
   status?: Prisma.EnumRagDocumentStatusFilter<"RagDocument"> | $Enums.RagDocumentStatus
@@ -596,6 +621,7 @@ export type RagDocumentScalarWhereInput = {
 
 export type RagDocumentCreateWithoutChunksInput = {
   fileName: string
+  storageKey: string
   mimeType: string
   sizeBytes: number
   status?: $Enums.RagDocumentStatus
@@ -609,6 +635,7 @@ export type RagDocumentUncheckedCreateWithoutChunksInput = {
   id?: number
   userId: number
   fileName: string
+  storageKey: string
   mimeType: string
   sizeBytes: number
   status?: $Enums.RagDocumentStatus
@@ -635,6 +662,7 @@ export type RagDocumentUpdateToOneWithWhereWithoutChunksInput = {
 
 export type RagDocumentUpdateWithoutChunksInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
+  storageKey?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRagDocumentStatusFieldUpdateOperationsInput | $Enums.RagDocumentStatus
@@ -648,6 +676,7 @@ export type RagDocumentUncheckedUpdateWithoutChunksInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
+  storageKey?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRagDocumentStatusFieldUpdateOperationsInput | $Enums.RagDocumentStatus
@@ -659,6 +688,7 @@ export type RagDocumentUncheckedUpdateWithoutChunksInput = {
 export type RagDocumentCreateManyUserInput = {
   id?: number
   fileName: string
+  storageKey: string
   mimeType: string
   sizeBytes: number
   status?: $Enums.RagDocumentStatus
@@ -669,6 +699,7 @@ export type RagDocumentCreateManyUserInput = {
 
 export type RagDocumentUpdateWithoutUserInput = {
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
+  storageKey?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRagDocumentStatusFieldUpdateOperationsInput | $Enums.RagDocumentStatus
@@ -681,6 +712,7 @@ export type RagDocumentUpdateWithoutUserInput = {
 export type RagDocumentUncheckedUpdateWithoutUserInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
+  storageKey?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRagDocumentStatusFieldUpdateOperationsInput | $Enums.RagDocumentStatus
@@ -693,6 +725,7 @@ export type RagDocumentUncheckedUpdateWithoutUserInput = {
 export type RagDocumentUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
+  storageKey?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
   sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumRagDocumentStatusFieldUpdateOperationsInput | $Enums.RagDocumentStatus
@@ -736,6 +769,7 @@ export type RagDocumentSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   id?: boolean
   userId?: boolean
   fileName?: boolean
+  storageKey?: boolean
   mimeType?: boolean
   sizeBytes?: boolean
   status?: boolean
@@ -751,6 +785,7 @@ export type RagDocumentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   id?: boolean
   userId?: boolean
   fileName?: boolean
+  storageKey?: boolean
   mimeType?: boolean
   sizeBytes?: boolean
   status?: boolean
@@ -764,6 +799,7 @@ export type RagDocumentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   id?: boolean
   userId?: boolean
   fileName?: boolean
+  storageKey?: boolean
   mimeType?: boolean
   sizeBytes?: boolean
   status?: boolean
@@ -777,6 +813,7 @@ export type RagDocumentSelectScalar = {
   id?: boolean
   userId?: boolean
   fileName?: boolean
+  storageKey?: boolean
   mimeType?: boolean
   sizeBytes?: boolean
   status?: boolean
@@ -785,7 +822,7 @@ export type RagDocumentSelectScalar = {
   updatedAt?: boolean
 }
 
-export type RagDocumentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "fileName" | "mimeType" | "sizeBytes" | "status" | "error" | "createdAt" | "updatedAt", ExtArgs["result"]["ragDocument"]>
+export type RagDocumentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "fileName" | "storageKey" | "mimeType" | "sizeBytes" | "status" | "error" | "createdAt" | "updatedAt", ExtArgs["result"]["ragDocument"]>
 export type RagDocumentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   chunks?: boolean | Prisma.RagDocument$chunksArgs<ExtArgs>
@@ -808,6 +845,7 @@ export type $RagDocumentPayload<ExtArgs extends runtime.Types.Extensions.Interna
     id: number
     userId: number
     fileName: string
+    storageKey: string
     mimeType: string
     sizeBytes: number
     status: $Enums.RagDocumentStatus
@@ -1242,6 +1280,7 @@ export interface RagDocumentFieldRefs {
   readonly id: Prisma.FieldRef<"RagDocument", 'Int'>
   readonly userId: Prisma.FieldRef<"RagDocument", 'Int'>
   readonly fileName: Prisma.FieldRef<"RagDocument", 'String'>
+  readonly storageKey: Prisma.FieldRef<"RagDocument", 'String'>
   readonly mimeType: Prisma.FieldRef<"RagDocument", 'String'>
   readonly sizeBytes: Prisma.FieldRef<"RagDocument", 'Int'>
   readonly status: Prisma.FieldRef<"RagDocument", 'RagDocumentStatus'>

@@ -1210,6 +1210,7 @@ export const RagDocumentScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   fileName: 'fileName',
+  storageKey: 'storageKey',
   mimeType: 'mimeType',
   sizeBytes: 'sizeBytes',
   status: 'status',

@@ -10,6 +10,7 @@ import { AgentService } from './agent/agent.service';
 import { AgentModule } from './agent/agent.module';
 import { RedisModule } from './redis/redis.module';
 import { QueueModule } from './queue/queue.module';
+import { RagModule } from './rag/rag.module';
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { QueueModule } from './queue/queue.module';
     ChatModule,
     AgentModule,
     RedisModule,
-    QueueModule, 
+    QueueModule,
+    RagModule,
   ],
   controllers: [AgentController],
   providers: [],

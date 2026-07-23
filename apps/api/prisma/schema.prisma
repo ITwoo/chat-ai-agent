@@ -154,13 +154,14 @@ model AgentPendingApproval {
 }
 
 model RagDocument {
-  id        Int               @id @default(autoincrement())
-  userId    Int
-  fileName  String            @db.VarChar(255)
-  mimeType  String            @db.VarChar(100)
-  sizeBytes Int
-  status    RagDocumentStatus @default(PENDING)
-  error     String?           @db.Text
+  id            Int               @id @default(autoincrement())
+  userId        Int
+  fileName      String            @db.VarChar(255)
+  storageKey    String            @unique @db.VarChar(255)
+  mimeType      String            @db.VarChar(100)
+  sizeBytes     Int
+  status        RagDocumentStatus @default(PENDING)
+  error         String?           @db.Text
 
   user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   chunks RagDocumentChunk[]

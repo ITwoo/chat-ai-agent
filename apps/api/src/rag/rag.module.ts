@@ -32,6 +32,7 @@ import { RagSearchService } from './rag-search.service';
     exports: [
         RagDocumentService,
         RagEmbeddingService,
+        RagSearchService,
     ],
 })
 export class RagModule {}

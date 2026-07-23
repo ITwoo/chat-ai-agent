@@ -1,14 +1,13 @@
-import { BadRequestException, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
-import { randomUUID } from 'node:crypto';
-import { extname, resolve } from 'node:path';
-import { diskStorage } from 'multer';
+
 import { RagDocumentController } from './rag-document.controller';
 import { RagDocumentService } from './rag-document.service';
 import { QueueModule } from '../queue/queue.module';
 import { createRagMulterOptions } from './rag-multer.config';
 import { RagDocumentProcessor } from './rag-document.processor';
+import { RagEmbeddingService } from './rag.embedding.service';
 
 @Module({
     imports: [
@@ -22,7 +21,11 @@ import { RagDocumentProcessor } from './rag-document.processor';
     providers: [
         RagDocumentService,
         RagDocumentProcessor,
+        RagEmbeddingService,
     ],
-    exports: [RagDocumentService],
+    exports: [
+        RagDocumentService,
+        RagEmbeddingService,
+    ],
 })
 export class RagModule {}

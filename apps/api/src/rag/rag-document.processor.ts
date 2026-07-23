@@ -14,6 +14,9 @@ import type {
     DocumentIngestionJobData,
     DocumentIngestionJobResult,
 } from '../queue/queue.types';
+import { RagEmbeddingService } from './rag-embedding.service';
+import { EmbeddedChunk } from './rag.types';
+import { serializeVector } from './utils/rag-vector.util';
 
 const CHUNK_SIZE = 1000;
 const CHUNK_OVERLAP = 200;
@@ -30,6 +33,7 @@ export class RagDocumentProcessor extends WorkerHost {
     constructor(
         private readonly prisma: PrismaService,
         private readonly configService: ConfigService,
+        private readonly ragEmbeddingService: RagEmbeddingService,
     ) {
         super();
     }
@@ -53,14 +57,6 @@ export class RagDocumentProcessor extends WorkerHost {
                 throw new Error(`RAG 문서를 찾을 수 없습니다: documentId=${documentId}`);
             }
 
-            if (document.status === 'READY') {
-                const chunkCount = await this.prisma.ragDocumentChunk.count({
-                    where: { documentId },
-                });
-
-                return { documentId, chunkCount };
-            }
-
             await this.prisma.ragDocument.update({
                 where: { id: documentId },
                 data: { status: 'PROCESSING', error: null },
@@ -73,22 +69,60 @@ export class RagDocumentProcessor extends WorkerHost {
                 throw new Error('문서에서 저장할 텍스트를 찾을 수 없습니다.');
             }
 
-            await this.prisma.$transaction([
-                this.prisma.ragDocumentChunk.deleteMany({
-                    where: { documentId },
-                }),
-                this.prisma.ragDocumentChunk.createMany({
-                    data: chunks.map((chunk, chunkIndex) => ({
-                        documentId,
-                        chunkIndex,
-                        content: chunk,
-                    })),
-                }),
-                this.prisma.ragDocument.update({
-                    where: { id: documentId },
-                    data: { status: 'READY', error: null },
-                }),
-            ]);
+            const embeddedChunks: EmbeddedChunk[] = [];
+
+            for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+                const chunk = chunks[chunkIndex];
+                const result = await this.ragEmbeddingService.embedText(chunk);
+
+                embeddedChunks.push({
+                    chunkIndex,
+                    content: chunk,
+                    tokenCount: result.tokenCount,
+                    embedding: result.embedding,
+                });
+
+                await job.updateProgress(
+                    Math.round(((chunkIndex + 1) / chunks.length) * 90),
+                );
+            }
+
+            await this.prisma.$transaction(async (tx) => {
+            await tx.ragDocumentChunk.deleteMany({
+                where: { documentId },
+            });
+
+            for (const chunk of embeddedChunks) {
+                const vector = serializeVector(chunk.embedding);
+
+                await tx.$executeRaw`
+                    INSERT INTO "RagDocumentChunk" (
+                        "documentId",
+                        "chunkIndex",
+                        "content",
+                        "tokenCount",
+                        "embedding"
+                    )
+                    VALUES (
+                        ${documentId},
+                        ${chunk.chunkIndex},
+                        ${chunk.content},
+                        ${chunk.tokenCount},
+                        ${vector}::vector
+                    )
+                `;
+            }
+
+            await tx.ragDocument.update({
+                where: { id: documentId },
+                data: {
+                    status: 'READY',
+                    error: null,
+                },
+            });
+        });
+
+        await job.updateProgress(100);
 
             this.logger.log(
                 `RAG 문서 처리 완료: documentId=${documentId}, chunks=${chunks.length}`,

@@ -7,7 +7,9 @@ import { RagDocumentService } from './rag-document.service';
 import { QueueModule } from '../queue/queue.module';
 import { createRagMulterOptions } from './rag-multer.config';
 import { RagDocumentProcessor } from './rag-document.processor';
-import { RagEmbeddingService } from './rag.embedding.service';
+import { RagEmbeddingService } from './rag-embedding.service';
+import { RagSearchController } from './rag-search.controller';
+import { RagSearchService } from './rag-search.service';
 
 @Module({
     imports: [
@@ -17,11 +19,15 @@ import { RagEmbeddingService } from './rag.embedding.service';
             useFactory: createRagMulterOptions,
         }),
     ],
-    controllers: [RagDocumentController],
+    controllers: [
+        RagDocumentController,
+        RagSearchController,
+    ],
     providers: [
         RagDocumentService,
         RagDocumentProcessor,
         RagEmbeddingService,
+        RagSearchService,
     ],
     exports: [
         RagDocumentService,

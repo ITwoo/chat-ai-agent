@@ -6,9 +6,11 @@ import { extname, resolve } from 'node:path';
 import { diskStorage } from 'multer';
 import { RagDocumentController } from './rag-document.controller';
 import { RagDocumentService } from './rag-document.service';
+import { QueueModule } from '../queue/queue.module';
 
 @Module({
     imports: [
+        QueueModule,
         MulterModule.registerAsync({
             inject: [ConfigService],
             useFactory: (configService: ConfigService) => {

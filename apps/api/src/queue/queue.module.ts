@@ -1,7 +1,7 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AGENT_JOB_QUEUE } from './queue.constants';
+import { AGENT_JOB_QUEUE, RAG_DOCUMENT_QUEUE } from './queue.constants';
 import { QueueProducerService } from './queue-producer.service';
 import { AgentJobProcessor } from './agent-job.processor';
 import { QueueTestController } from './queue-test.controller';
@@ -32,6 +32,18 @@ function parseRedisUrl(redisUrl: string) {
             defaultJobOptions: {
                 attempts: 3,
                 backoff: { type: 'exponential', delay: 1000 },
+                removeOnComplete: 100,
+                removeOnFail: 500,
+            },
+        }),
+        BullModule.registerQueue({
+            name: RAG_DOCUMENT_QUEUE,
+            defaultJobOptions: {
+                attempts: 3,
+                backoff: {
+                    type: 'exponential',
+                    delay: 1000,
+                },
                 removeOnComplete: 100,
                 removeOnFail: 500,
             },

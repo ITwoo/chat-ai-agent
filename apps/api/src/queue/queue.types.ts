@@ -7,3 +7,14 @@ export type HealthCheckJobResult = {
     processedAt: string;
     elapsedMs: number;
 };
+
+export type DocumentIngestionJobData = {
+    documentId: number;
+    userId: number;
+    storageKey: string;
+};
+
+export type DocumentIngestionJobResult = {
+    documentId: number;
+    chunkCount: number;
+};

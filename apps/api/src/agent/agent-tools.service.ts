@@ -753,6 +753,16 @@ export class AgentToolsService {
                     limit,
                 );
 
+                if (results.length === 0) {
+                    return JSON.stringify({
+                        query,
+                        count: 0,
+                        message:
+                            '업로드된 문서에서 질문과 관련된 근거를 찾지 못했습니다.',
+                        results: [],
+                    });
+                }
+
                 return JSON.stringify({
                     query,
                     count: results.length,

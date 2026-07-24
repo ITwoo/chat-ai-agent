@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RagEmbeddingService } from './rag-embedding.service';
 import type { RagSearchResult } from './rag.types';
 import { serializeVector } from './utils/rag-vector.util';
+import { RAG_MIN_SIMILARITY } from './rag.constants';
 
 const DEFAULT_SEARCH_LIMIT = 5;
 const MAX_SEARCH_LIMIT = 10;
@@ -35,7 +36,7 @@ export class RagSearchService {
             await this.ragEmbeddingService.embedText(normalizedQuery);
         const vector = serializeVector(embedding);
 
-        return this.prisma.$queryRaw<RagSearchResult[]>`
+        const results = await this.prisma.$queryRaw<RagSearchResult[]>`
             SELECT
                 chunk."id" AS "chunkId",
                 chunk."documentId",
@@ -61,6 +62,11 @@ export class RagSearchService {
                 chunk."embedding" <=> ${vector}::vector
             LIMIT ${searchLimit}
         `;
+
+        return results.filter(
+            (result) =>
+                result.similarity >= RAG_MIN_SIMILARITY,
+        );
     }
 
     private normalizeLimit(limit: number): number {

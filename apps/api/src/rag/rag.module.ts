@@ -10,6 +10,7 @@ import { RagDocumentProcessor } from './rag-document.processor';
 import { RagEmbeddingService } from './rag-embedding.service';
 import { RagSearchController } from './rag-search.controller';
 import { RagSearchService } from './rag-search.service';
+import { RagAnswerService } from './rag-answer.service';
 
 @Module({
     imports: [
@@ -28,11 +29,13 @@ import { RagSearchService } from './rag-search.service';
         RagDocumentProcessor,
         RagEmbeddingService,
         RagSearchService,
+        RagAnswerService,
     ],
     exports: [
         RagDocumentService,
         RagEmbeddingService,
         RagSearchService,
+        RagAnswerService,
     ],
 })
 export class RagModule {}

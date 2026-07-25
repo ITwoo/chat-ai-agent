@@ -18,6 +18,9 @@ import { RagAnswerService } from '../rag/rag-answer.service';
 import { RAG_SEARCH_TOOL_NAME } from '../rag/rag.constants';
 import { AgentToolContext } from './types/agent-tool-context.type';
 import { ragSearchToolInputSchema } from '../rag/schemas/rag-search-tool.schema';
+import { z } from 'zod';
+import { ragCitationSchema } from '../rag/schemas/rag-citation.schema';
+import { createRagCitations } from '../rag/utils/rag-citation.util';
 
 const SYSTEM_PROMPT = `
 너는 1인 가구용 개인 생활 관리 AI Agent다.
@@ -63,6 +66,9 @@ search_rag_documents와 지출 조회·생성·수정 Tool을 한 응답에서 �
 
 const AgentState = new StateSchema({
     messages: MessagesValue,
+    ragCitations: z
+        .array(ragCitationSchema)
+        .default(() => []),
 });
 
 type AgentModel = ReturnType<ChatOpenAI['bindTools']>;
@@ -114,6 +120,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
 
             return {
                 messages: [response],
+                ragCitations: [],
             };
         };
 
@@ -215,6 +222,8 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 input.limit,
             );
 
+            const citations = createRagCitations(results);
+
             const answer = await this.ragAnswerService.answer(
                 question,
                 results,
@@ -233,6 +242,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                     toolMessage,
                     answer,
                 ],
+                ragCitations: citations,
             };
         };
     }

@@ -2,7 +2,6 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import {
     END,
     GraphNode,
-    MemorySaver,
     MessagesValue,
     START,
     StateGraph,
@@ -10,10 +9,15 @@ import {
 } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { ChatOpenAI } from '@langchain/openai';
-import { AIMessage, SystemMessage } from '@langchain/core/messages';
+import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import { StructuredToolInterface } from '@langchain/core/tools';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { ConfigService } from '@nestjs/config';
+import { RagSearchService } from '../rag/rag-search.service';
+import { RagAnswerService } from '../rag/rag-answer.service';
+import { RAG_SEARCH_TOOL_NAME } from '../rag/rag.constants';
+import { AgentToolContext } from './types/agent-tool-context.type';
+import { ragSearchToolInputSchema } from '../rag/schemas/rag-search-tool.schema';
 
 const SYSTEM_PROMPT = `
 너는 1인 가구용 개인 생활 관리 AI Agent다.
@@ -68,6 +72,8 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
 
     constructor(
         private readonly configService: ConfigService,
+        private readonly ragSearchService: RagSearchService,
+        private readonly ragAnswerService: RagAnswerService,
     ){}
 
     async onModuleInit(): Promise<void> {
@@ -125,5 +131,89 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             .compile({
                 checkpointer: this.checkpointer,
             });
+    }
+
+    private createRagAnswerNode(
+        context: AgentToolContext,
+    ) {
+        return async (
+            state: typeof AgentState.State,
+        ) => {
+            const lastMessage = state.messages.at(-1);
+
+            if (
+                !lastMessage
+                || !AIMessage.isInstance(lastMessage)
+            ) {
+                throw new Error(
+                    'RAG 답변 노드는 AIMessage 뒤에서만 실행할 수 있습니다.',
+                );
+            }
+
+            const ragToolCall = lastMessage.tool_calls?.find(
+                (toolCall) =>
+                    toolCall.name === RAG_SEARCH_TOOL_NAME,
+            );
+
+            if (!ragToolCall) {
+                throw new Error(
+                    'search_rag_documents Tool 호출을 찾을 수 없습니다.',
+                );
+            }
+
+            if (!ragToolCall.id) {
+                throw new Error(
+                    'RAG Tool 호출 ID가 존재하지 않습니다.',
+                );
+            }
+
+            const input = ragSearchToolInputSchema.parse(
+                ragToolCall.args,
+            );
+
+            const userMessage = [...state.messages]
+                .reverse()
+                .find((message) =>
+                    HumanMessage.isInstance(message),
+                );
+
+            if (
+                !userMessage
+                || !HumanMessage.isInstance(userMessage)
+                || typeof userMessage.content !== 'string'
+            ) {
+                throw new Error(
+                    'RAG 답변에 사용할 사용자 질문을 찾을 수 없습니다.',
+                );
+            }
+
+            const question = userMessage.content.trim();
+
+            const results = await this.ragSearchService.search(
+                context.userId,
+                input.query,
+                input.limit,
+            );
+
+            const answer = await this.ragAnswerService.answer(
+                question,
+                results,
+            );
+
+            const toolMessage = new ToolMessage({
+                tool_call_id: ragToolCall.id,
+                content: JSON.stringify({
+                    handledBy: 'rag_answer_node',
+                    resultCount: results.length,
+                }),
+            });
+
+            return {
+                messages: [
+                    toolMessage,
+                    answer,
+                ],
+            };
+        };
     }
 }

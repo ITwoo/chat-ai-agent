@@ -5,10 +5,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { interrupt } from '@langchain/langgraph';
 import { ExpenseUpdateApprovalRequest, updateExpenseDecisionSchema } from './agent-interrupt.schema';
 import { RagSearchService } from '../rag/rag-search.service';
-
-type AgentToolContext = {
-    userId: number;
-}
+import { RAG_SEARCH_TOOL_NAME } from '../rag/rag.constants';
+import { ragSearchToolInputSchema } from '../rag/schemas/rag-search-tool.schema';
+import { AgentToolContext } from './types/agent-tool-context.type';
 
 const EXPENSE_CATEGORIES = [
     '식비',
@@ -777,27 +776,10 @@ export class AgentToolsService {
                 });
             },
             {
-                name: 'search_rag_documents',
+                name: RAG_SEARCH_TOOL_NAME,
                 description:
                     '사용자가 업로드한 문서에서 질문과 관련된 내용을 의미 기반으로 검색한다. 사용자가 자신의 문서, 이력서, 메모, 자료 또는 업로드한 파일의 내용을 묻거나 문서에서 정보를 찾아달라고 요청할 때 사용한다. 일반 상식 질문이나 지출 데이터 조회에는 사용하지 않는다.',
-                schema: z.object({
-                    query: z
-                        .string()
-                        .trim()
-                        .min(1)
-                        .describe(
-                            '문서에서 검색할 구체적인 질문 또는 검색 문장',
-                        ),
-                    limit: z
-                        .number()
-                        .int()
-                        .min(1)
-                        .max(10)
-                        .default(5)
-                        .describe(
-                            '검색할 최대 청크 수. 기본값은 5이고 최대 10이다.',
-                        ),
-                }),
+                schema: ragSearchToolInputSchema,
             },
         );
     }

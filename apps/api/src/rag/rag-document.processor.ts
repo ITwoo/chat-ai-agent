@@ -88,41 +88,41 @@ export class RagDocumentProcessor extends WorkerHost {
             }
 
             await this.prisma.$transaction(async (tx) => {
-            await tx.ragDocumentChunk.deleteMany({
-                where: { documentId },
+                await tx.ragDocumentChunk.deleteMany({
+                    where: { documentId },
+                });
+
+                for (const chunk of embeddedChunks) {
+                    const vector = serializeVector(chunk.embedding);
+
+                    await tx.$executeRaw`
+                        INSERT INTO "RagDocumentChunk" (
+                            "documentId",
+                            "chunkIndex",
+                            "content",
+                            "tokenCount",
+                            "embedding"
+                        )
+                        VALUES (
+                            ${documentId},
+                            ${chunk.chunkIndex},
+                            ${chunk.content},
+                            ${chunk.tokenCount},
+                            ${vector}::vector
+                        )
+                    `;
+                }
+
+                await tx.ragDocument.update({
+                    where: { id: documentId },
+                    data: {
+                        status: 'READY',
+                        error: null,
+                    },
+                });
             });
 
-            for (const chunk of embeddedChunks) {
-                const vector = serializeVector(chunk.embedding);
-
-                await tx.$executeRaw`
-                    INSERT INTO "RagDocumentChunk" (
-                        "documentId",
-                        "chunkIndex",
-                        "content",
-                        "tokenCount",
-                        "embedding"
-                    )
-                    VALUES (
-                        ${documentId},
-                        ${chunk.chunkIndex},
-                        ${chunk.content},
-                        ${chunk.tokenCount},
-                        ${vector}::vector
-                    )
-                `;
-            }
-
-            await tx.ragDocument.update({
-                where: { id: documentId },
-                data: {
-                    status: 'READY',
-                    error: null,
-                },
-            });
-        });
-
-        await job.updateProgress(100);
+            await job.updateProgress(100);
 
             this.logger.log(
                 `RAG 문서 처리 완료: documentId=${documentId}, chunks=${chunks.length}`,

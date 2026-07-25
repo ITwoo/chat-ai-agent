@@ -96,13 +96,15 @@ export class AgentService {
     }
 
     private createGraphForUser(userId: number): AgentGraph {
-        const tools = this.agentToolsService.getTools({
+        const context = {
             userId,
-        });
+        }
+
+        const tools = this.agentToolsService.getTools(context);
 
         const model = this.createModel().bindTools(tools);
 
-        return this.agentGraphFactory.createGraph(model, tools);
+        return this.agentGraphFactory.createGraph(model, tools, context);
     }
 
     async generateReply(

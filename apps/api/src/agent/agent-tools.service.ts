@@ -4,7 +4,6 @@ import { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service';
 import { interrupt } from '@langchain/langgraph';
 import { ExpenseUpdateApprovalRequest, updateExpenseDecisionSchema } from './agent-interrupt.schema';
-import { RagSearchService } from '../rag/rag-search.service';
 import { RAG_SEARCH_TOOL_NAME } from '../rag/rag.constants';
 import { ragSearchToolInputSchema } from '../rag/schemas/rag-search-tool.schema';
 import { AgentToolContext } from './types/agent-tool-context.type';
@@ -33,7 +32,6 @@ export class AgentToolsService {
 
     constructor(
         private readonly prisma: PrismaService,
-        private readonly ragSearchService: RagSearchService,
     ) { }
 
     getTools(context: AgentToolContext): StructuredToolInterface[] {
@@ -44,7 +42,7 @@ export class AgentToolsService {
             this.createExpenseListTool(context),
             this.createFindExpensesTool(context),
             this.createUpdateExpenseTool(context),
-            this.createSearchRagDocumentsTool(context),
+            this.createSearchRagDocumentsTool(),
         ];
     }
 
@@ -741,44 +739,19 @@ export class AgentToolsService {
         );
     }
 
-    private createSearchRagDocumentsTool(context: AgentToolContext) {
+    private createSearchRagDocumentsTool() {
         return tool(
             async ({ query, limit }) => {
-                this.logger.log('[tool] search_rag_documents');
-
-                const results = await this.ragSearchService.search(
-                    context.userId,
+                return JSON.stringify({
+                    handledBy: 'rag_answer_node',
                     query,
                     limit,
-                );
-
-                if (results.length === 0) {
-                    return JSON.stringify({
-                        query,
-                        count: 0,
-                        message:
-                            '업로드된 문서에서 질문과 관련된 근거를 찾지 못했습니다.',
-                        results: [],
-                    });
-                }
-
-                return JSON.stringify({
-                    query,
-                    count: results.length,
-                    results: results.map((result) => ({
-                        chunkId: result.chunkId,
-                        documentId: result.documentId,
-                        chunkIndex: result.chunkIndex,
-                        fileName: result.fileName,
-                        content: result.content,
-                        similarity: result.similarity,
-                    })),
                 });
             },
             {
                 name: RAG_SEARCH_TOOL_NAME,
                 description:
-                    '사용자가 업로드한 문서에서 질문과 관련된 내용을 의미 기반으로 검색한다. 사용자가 자신의 문서, 이력서, 메모, 자료 또는 업로드한 파일의 내용을 묻거나 문서에서 정보를 찾아달라고 요청할 때 사용한다. 일반 상식 질문이나 지출 데이터 조회에는 사용하지 않는다.',
+                    '사용자가 업로드한 문서, 이력서, 메모 또는 파일 내용에서 근거를 찾아 답해야 할 때 사용한다. 반드시 이 Tool만 단독으로 호출하고 다른 Tool과 동시에 호출하지 않는다.',
                 schema: ragSearchToolInputSchema,
             },
         );

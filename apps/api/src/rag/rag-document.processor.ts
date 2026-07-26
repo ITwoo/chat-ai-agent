@@ -133,19 +133,45 @@ export class RagDocumentProcessor extends WorkerHost {
                 chunkCount: chunks.length,
             };
         } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
+            const normalizedError = error instanceof Error ? error : new Error(String(error));
 
+            await this.handleProcessingFailure(job, normalizedError);
+
+            throw normalizedError;
+        }
+    }
+
+    private async handleProcessingFailure(
+        job: Job<DocumentIngestionJobData, DocumentIngestionJobResult>,
+        error: Error,
+    ): Promise<void> {
+        const { documentId, userId, storageKey } = job.data;
+        const maxAttempts = job.opts.attempts ?? 1;
+        const currentAttempt = job.attemptsMade + 1;
+        const willRetry = currentAttempt < maxAttempts;
+
+        const status = willRetry ? 'PENDING' : 'FAILED';
+        const errorMessage = willRetry
+            ? `문서 처리 실패, 재시도 예정 (${currentAttempt}/${maxAttempts}): ${error.message}`
+            : error.message;
+
+        try {
             await this.prisma.ragDocument.updateMany({
                 where: { id: documentId, userId, storageKey },
-                data: { status: 'FAILED', error: message },
+                data: { status, error: errorMessage },
             });
-
+        } catch (updateError) {
             this.logger.error(
-                `RAG 문서 처리 실패: documentId=${documentId}, error=${message}`,
+                `RAG 문서 실패 상태 저장 오류: documentId=${documentId}, error=${String(updateError)}`,
             );
-
-            throw error instanceof Error ? error : new Error(message);
         }
+
+        const logMessage =
+            `RAG 문서 처리 실패: documentId=${documentId}, attempt=${currentAttempt}/${maxAttempts}, ` +
+            `willRetry=${willRetry}, error=${error.message}`;
+
+        if (willRetry) this.logger.warn(logMessage);
+        else this.logger.error(logMessage);
     }
 
     private async readDocument(storageKey: string): Promise<string> {

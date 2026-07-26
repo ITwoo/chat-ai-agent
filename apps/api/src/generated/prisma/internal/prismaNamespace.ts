@@ -392,7 +392,8 @@ export const ModelName = {
   RefreshTokenSession: 'RefreshTokenSession',
   AgentPendingApproval: 'AgentPendingApproval',
   RagDocument: 'RagDocument',
-  RagDocumentChunk: 'RagDocumentChunk'
+  RagDocumentChunk: 'RagDocumentChunk',
+  ChatMessageRagCitation: 'ChatMessageRagCitation'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -408,7 +409,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "board" | "chatRoom" | "chatMessage" | "expense" | "refreshTokenSession" | "agentPendingApproval" | "ragDocument" | "ragDocumentChunk"
+    modelProps: "user" | "board" | "chatRoom" | "chatMessage" | "expense" | "refreshTokenSession" | "agentPendingApproval" | "ragDocument" | "ragDocumentChunk" | "chatMessageRagCitation"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1078,6 +1079,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ChatMessageRagCitation: {
+      payload: Prisma.$ChatMessageRagCitationPayload<ExtArgs>
+      fields: Prisma.ChatMessageRagCitationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ChatMessageRagCitationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChatMessageRagCitationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ChatMessageRagCitationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChatMessageRagCitationPayload>
+        }
+        findFirst: {
+          args: Prisma.ChatMessageRagCitationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChatMessageRagCitationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ChatMessageRagCitationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChatMessageRagCitationPayload>
+        }
+        findMany: {
+          args: Prisma.ChatMessageRagCitationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChatMessageRagCitationPayload>[]
+        }
+        create: {
+          args: Prisma.ChatMessageRagCitationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChatMessageRagCitationPayload>
+        }
+        createMany: {
+          args: Prisma.ChatMessageRagCitationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ChatMessageRagCitationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChatMessageRagCitationPayload>[]
+        }
+        delete: {
+          args: Prisma.ChatMessageRagCitationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChatMessageRagCitationPayload>
+        }
+        update: {
+          args: Prisma.ChatMessageRagCitationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChatMessageRagCitationPayload>
+        }
+        deleteMany: {
+          args: Prisma.ChatMessageRagCitationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ChatMessageRagCitationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ChatMessageRagCitationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChatMessageRagCitationPayload>[]
+        }
+        upsert: {
+          args: Prisma.ChatMessageRagCitationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChatMessageRagCitationPayload>
+        }
+        aggregate: {
+          args: Prisma.ChatMessageRagCitationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateChatMessageRagCitation>
+        }
+        groupBy: {
+          args: Prisma.ChatMessageRagCitationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ChatMessageRagCitationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ChatMessageRagCitationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ChatMessageRagCitationCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1232,6 +1307,20 @@ export const RagDocumentChunkScalarFieldEnum = {
 } as const
 
 export type RagDocumentChunkScalarFieldEnum = (typeof RagDocumentChunkScalarFieldEnum)[keyof typeof RagDocumentChunkScalarFieldEnum]
+
+
+export const ChatMessageRagCitationScalarFieldEnum = {
+  id: 'id',
+  chatMessageId: 'chatMessageId',
+  documentId: 'documentId',
+  chunkId: 'chunkId',
+  chunkIndex: 'chunkIndex',
+  fileName: 'fileName',
+  similarity: 'similarity',
+  createdAt: 'createdAt'
+} as const
+
+export type ChatMessageRagCitationScalarFieldEnum = (typeof ChatMessageRagCitationScalarFieldEnum)[keyof typeof ChatMessageRagCitationScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1524,6 +1613,7 @@ export type GlobalOmitConfig = {
   agentPendingApproval?: Prisma.AgentPendingApprovalOmit
   ragDocument?: Prisma.RagDocumentOmit
   ragDocumentChunk?: Prisma.RagDocumentChunkOmit
+  chatMessageRagCitation?: Prisma.ChatMessageRagCitationOmit
 }
 
 /* Types for Logging */

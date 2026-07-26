@@ -5,7 +5,8 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ChatMessage, ChatMessageRole, ChatMessageStatus, ChatRoom } from '../generated/prisma/client';
+import { ChatMessage, ChatMessageRole, ChatMessageStatus, ChatRoom, Prisma } from '../generated/prisma/client';
+import { RagCitation } from '../rag/schemas/rag-citation.schema';
 
 type ChatUser = {
     id: number;
@@ -17,6 +18,12 @@ type ChatGenerationResult = {
     assistantMessage: ChatMessage;
 }
 
+const ragCitationSelect = { documentId: true, chunkId: true, chunkIndex: true, fileName: true, similarity: true } as const;
+
+type ChatMessageWithRagCitations = Prisma.ChatMessageGetPayload<{
+    include: { ragCitations: { select: typeof ragCitationSelect } };
+}>;
+
 const RECENT_CONTEXT_MESSAGE_LIMIT = 20;
 
 const DEFAULT_MESSAGE_PAGE_SIZE = 30;
@@ -27,7 +34,7 @@ export type GetMessagesOptions = {
 }
 
 export type ChatMessagesPageResult = {
-    messages: ChatMessage[];
+    messages: ChatMessageWithRagCitations[];
     nextCursor: number | null;
 }
 
@@ -76,6 +83,12 @@ export class ChatService {
                     }
                     : {}
                 ),
+            },
+            include: {
+                ragCitations: {
+                    select: ragCitationSelect,
+                    orderBy: { similarity: 'desc' },
+                },
             },
             orderBy: {
                 id: 'desc',
@@ -126,16 +139,24 @@ export class ChatService {
         return room;
     }
 
-    async saveAssistantMessage(roomId: number, userId: number, assistantContent: string): Promise<ChatMessage> {
+    async saveAssistantMessage(roomId: number, userId: number, assistantContent: string, ragCitations: RagCitation[] = []): Promise<ChatMessageWithRagCitations> {
         await this.assertRoomOwner(roomId, userId);
 
-        const assistantMessage = await this.createMessage({
-            roomId,
-            role: ChatMessageRole.ASSISTANT,
-            content: assistantContent
-        });
+        return this.prisma.$transaction(async (tx) => {
+            const assistantMessage = await tx.chatMessage.create({
+                data: {
+                    roomId,
+                    role: ChatMessageRole.ASSISTANT,
+                    content: assistantContent,
+                    ragCitations: ragCitations.length ? { createMany: { data: ragCitations } } : undefined,
+                },
+                include: { ragCitations: { select: ragCitationSelect }},
+            });
 
-        return assistantMessage;
+            await tx.chatRoom.update({ where: { id: roomId }, data: { updatedAt: new Date() } });
+
+            return assistantMessage;
+        });
     }
 
     async getContextMessages(

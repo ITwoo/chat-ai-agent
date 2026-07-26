@@ -92,6 +92,8 @@ model ChatMessage {
     content String          @db.Text
     status  ChatMessageStatus @default(COMPLETED)
 
+    ragCitations ChatMessageRagCitation[]
+
     createdAt DateTime @default(now())
 
     @@index([roomId])
@@ -188,4 +190,21 @@ model RagDocumentChunk {
 
   @@unique([documentId, chunkIndex])
   @@index([documentId])
+}
+
+model ChatMessageRagCitation {
+    id Int @id @default(autoincrement())
+
+    chatMessageId Int
+    chatMessage ChatMessage @relation(fields: [chatMessageId], references: [id], onDelete: Cascade)
+
+    documentId Int
+    chunkId    Int
+    chunkIndex Int
+    fileName   String @db.VarChar(255)
+    similarity Float
+
+    createdAt DateTime @default(now())
+
+    @@index([chatMessageId])
 }

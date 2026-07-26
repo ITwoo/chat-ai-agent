@@ -59,7 +59,8 @@ export const ModelName = {
   RefreshTokenSession: 'RefreshTokenSession',
   AgentPendingApproval: 'AgentPendingApproval',
   RagDocument: 'RagDocument',
-  RagDocumentChunk: 'RagDocumentChunk'
+  RagDocumentChunk: 'RagDocumentChunk',
+  ChatMessageRagCitation: 'ChatMessageRagCitation'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -193,6 +194,20 @@ export const RagDocumentChunkScalarFieldEnum = {
 } as const
 
 export type RagDocumentChunkScalarFieldEnum = (typeof RagDocumentChunkScalarFieldEnum)[keyof typeof RagDocumentChunkScalarFieldEnum]
+
+
+export const ChatMessageRagCitationScalarFieldEnum = {
+  id: 'id',
+  chatMessageId: 'chatMessageId',
+  documentId: 'documentId',
+  chunkId: 'chunkId',
+  chunkIndex: 'chunkIndex',
+  fileName: 'fileName',
+  similarity: 'similarity',
+  createdAt: 'createdAt'
+} as const
+
+export type ChatMessageRagCitationScalarFieldEnum = (typeof ChatMessageRagCitationScalarFieldEnum)[keyof typeof ChatMessageRagCitationScalarFieldEnum]
 
 
 export const SortOrder = {

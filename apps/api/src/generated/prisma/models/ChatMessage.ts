@@ -229,6 +229,7 @@ export type ChatMessageWhereInput = {
   status?: Prisma.EnumChatMessageStatusFilter<"ChatMessage"> | $Enums.ChatMessageStatus
   createdAt?: Prisma.DateTimeFilter<"ChatMessage"> | Date | string
   room?: Prisma.XOR<Prisma.ChatRoomScalarRelationFilter, Prisma.ChatRoomWhereInput>
+  ragCitations?: Prisma.ChatMessageRagCitationListRelationFilter
 }
 
 export type ChatMessageOrderByWithRelationInput = {
@@ -239,6 +240,7 @@ export type ChatMessageOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   room?: Prisma.ChatRoomOrderByWithRelationInput
+  ragCitations?: Prisma.ChatMessageRagCitationOrderByRelationAggregateInput
 }
 
 export type ChatMessageWhereUniqueInput = Prisma.AtLeast<{
@@ -252,6 +254,7 @@ export type ChatMessageWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumChatMessageStatusFilter<"ChatMessage"> | $Enums.ChatMessageStatus
   createdAt?: Prisma.DateTimeFilter<"ChatMessage"> | Date | string
   room?: Prisma.XOR<Prisma.ChatRoomScalarRelationFilter, Prisma.ChatRoomWhereInput>
+  ragCitations?: Prisma.ChatMessageRagCitationListRelationFilter
 }, "id">
 
 export type ChatMessageOrderByWithAggregationInput = {
@@ -286,6 +289,7 @@ export type ChatMessageCreateInput = {
   status?: $Enums.ChatMessageStatus
   createdAt?: Date | string
   room: Prisma.ChatRoomCreateNestedOneWithoutMessagesInput
+  ragCitations?: Prisma.ChatMessageRagCitationCreateNestedManyWithoutChatMessageInput
 }
 
 export type ChatMessageUncheckedCreateInput = {
@@ -295,6 +299,7 @@ export type ChatMessageUncheckedCreateInput = {
   content: string
   status?: $Enums.ChatMessageStatus
   createdAt?: Date | string
+  ragCitations?: Prisma.ChatMessageRagCitationUncheckedCreateNestedManyWithoutChatMessageInput
 }
 
 export type ChatMessageUpdateInput = {
@@ -303,6 +308,7 @@ export type ChatMessageUpdateInput = {
   status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   room?: Prisma.ChatRoomUpdateOneRequiredWithoutMessagesNestedInput
+  ragCitations?: Prisma.ChatMessageRagCitationUpdateManyWithoutChatMessageNestedInput
 }
 
 export type ChatMessageUncheckedUpdateInput = {
@@ -312,6 +318,7 @@ export type ChatMessageUncheckedUpdateInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ragCitations?: Prisma.ChatMessageRagCitationUncheckedUpdateManyWithoutChatMessageNestedInput
 }
 
 export type ChatMessageCreateManyInput = {
@@ -386,6 +393,11 @@ export type ChatMessageSumOrderByAggregateInput = {
   roomId?: Prisma.SortOrder
 }
 
+export type ChatMessageScalarRelationFilter = {
+  is?: Prisma.ChatMessageWhereInput
+  isNot?: Prisma.ChatMessageWhereInput
+}
+
 export type ChatMessageCreateNestedManyWithoutRoomInput = {
   create?: Prisma.XOR<Prisma.ChatMessageCreateWithoutRoomInput, Prisma.ChatMessageUncheckedCreateWithoutRoomInput> | Prisma.ChatMessageCreateWithoutRoomInput[] | Prisma.ChatMessageUncheckedCreateWithoutRoomInput[]
   connectOrCreate?: Prisma.ChatMessageCreateOrConnectWithoutRoomInput | Prisma.ChatMessageCreateOrConnectWithoutRoomInput[]
@@ -436,11 +448,26 @@ export type EnumChatMessageStatusFieldUpdateOperationsInput = {
   set?: $Enums.ChatMessageStatus
 }
 
+export type ChatMessageCreateNestedOneWithoutRagCitationsInput = {
+  create?: Prisma.XOR<Prisma.ChatMessageCreateWithoutRagCitationsInput, Prisma.ChatMessageUncheckedCreateWithoutRagCitationsInput>
+  connectOrCreate?: Prisma.ChatMessageCreateOrConnectWithoutRagCitationsInput
+  connect?: Prisma.ChatMessageWhereUniqueInput
+}
+
+export type ChatMessageUpdateOneRequiredWithoutRagCitationsNestedInput = {
+  create?: Prisma.XOR<Prisma.ChatMessageCreateWithoutRagCitationsInput, Prisma.ChatMessageUncheckedCreateWithoutRagCitationsInput>
+  connectOrCreate?: Prisma.ChatMessageCreateOrConnectWithoutRagCitationsInput
+  upsert?: Prisma.ChatMessageUpsertWithoutRagCitationsInput
+  connect?: Prisma.ChatMessageWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ChatMessageUpdateToOneWithWhereWithoutRagCitationsInput, Prisma.ChatMessageUpdateWithoutRagCitationsInput>, Prisma.ChatMessageUncheckedUpdateWithoutRagCitationsInput>
+}
+
 export type ChatMessageCreateWithoutRoomInput = {
   role: $Enums.ChatMessageRole
   content: string
   status?: $Enums.ChatMessageStatus
   createdAt?: Date | string
+  ragCitations?: Prisma.ChatMessageRagCitationCreateNestedManyWithoutChatMessageInput
 }
 
 export type ChatMessageUncheckedCreateWithoutRoomInput = {
@@ -449,6 +476,7 @@ export type ChatMessageUncheckedCreateWithoutRoomInput = {
   content: string
   status?: $Enums.ChatMessageStatus
   createdAt?: Date | string
+  ragCitations?: Prisma.ChatMessageRagCitationUncheckedCreateNestedManyWithoutChatMessageInput
 }
 
 export type ChatMessageCreateOrConnectWithoutRoomInput = {
@@ -489,6 +517,56 @@ export type ChatMessageScalarWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"ChatMessage"> | Date | string
 }
 
+export type ChatMessageCreateWithoutRagCitationsInput = {
+  role: $Enums.ChatMessageRole
+  content: string
+  status?: $Enums.ChatMessageStatus
+  createdAt?: Date | string
+  room: Prisma.ChatRoomCreateNestedOneWithoutMessagesInput
+}
+
+export type ChatMessageUncheckedCreateWithoutRagCitationsInput = {
+  id?: number
+  roomId: number
+  role: $Enums.ChatMessageRole
+  content: string
+  status?: $Enums.ChatMessageStatus
+  createdAt?: Date | string
+}
+
+export type ChatMessageCreateOrConnectWithoutRagCitationsInput = {
+  where: Prisma.ChatMessageWhereUniqueInput
+  create: Prisma.XOR<Prisma.ChatMessageCreateWithoutRagCitationsInput, Prisma.ChatMessageUncheckedCreateWithoutRagCitationsInput>
+}
+
+export type ChatMessageUpsertWithoutRagCitationsInput = {
+  update: Prisma.XOR<Prisma.ChatMessageUpdateWithoutRagCitationsInput, Prisma.ChatMessageUncheckedUpdateWithoutRagCitationsInput>
+  create: Prisma.XOR<Prisma.ChatMessageCreateWithoutRagCitationsInput, Prisma.ChatMessageUncheckedCreateWithoutRagCitationsInput>
+  where?: Prisma.ChatMessageWhereInput
+}
+
+export type ChatMessageUpdateToOneWithWhereWithoutRagCitationsInput = {
+  where?: Prisma.ChatMessageWhereInput
+  data: Prisma.XOR<Prisma.ChatMessageUpdateWithoutRagCitationsInput, Prisma.ChatMessageUncheckedUpdateWithoutRagCitationsInput>
+}
+
+export type ChatMessageUpdateWithoutRagCitationsInput = {
+  role?: Prisma.EnumChatMessageRoleFieldUpdateOperationsInput | $Enums.ChatMessageRole
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  room?: Prisma.ChatRoomUpdateOneRequiredWithoutMessagesNestedInput
+}
+
+export type ChatMessageUncheckedUpdateWithoutRagCitationsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  roomId?: Prisma.IntFieldUpdateOperationsInput | number
+  role?: Prisma.EnumChatMessageRoleFieldUpdateOperationsInput | $Enums.ChatMessageRole
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type ChatMessageCreateManyRoomInput = {
   id?: number
   role: $Enums.ChatMessageRole
@@ -502,6 +580,7 @@ export type ChatMessageUpdateWithoutRoomInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ragCitations?: Prisma.ChatMessageRagCitationUpdateManyWithoutChatMessageNestedInput
 }
 
 export type ChatMessageUncheckedUpdateWithoutRoomInput = {
@@ -510,6 +589,7 @@ export type ChatMessageUncheckedUpdateWithoutRoomInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ragCitations?: Prisma.ChatMessageRagCitationUncheckedUpdateManyWithoutChatMessageNestedInput
 }
 
 export type ChatMessageUncheckedUpdateManyWithoutRoomInput = {
@@ -521,6 +601,35 @@ export type ChatMessageUncheckedUpdateManyWithoutRoomInput = {
 }
 
 
+/**
+ * Count Type ChatMessageCountOutputType
+ */
+
+export type ChatMessageCountOutputType = {
+  ragCitations: number
+}
+
+export type ChatMessageCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  ragCitations?: boolean | ChatMessageCountOutputTypeCountRagCitationsArgs
+}
+
+/**
+ * ChatMessageCountOutputType without action
+ */
+export type ChatMessageCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ChatMessageCountOutputType
+   */
+  select?: Prisma.ChatMessageCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * ChatMessageCountOutputType without action
+ */
+export type ChatMessageCountOutputTypeCountRagCitationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ChatMessageRagCitationWhereInput
+}
+
 
 export type ChatMessageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -530,6 +639,8 @@ export type ChatMessageSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   status?: boolean
   createdAt?: boolean
   room?: boolean | Prisma.ChatRoomDefaultArgs<ExtArgs>
+  ragCitations?: boolean | Prisma.ChatMessage$ragCitationsArgs<ExtArgs>
+  _count?: boolean | Prisma.ChatMessageCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["chatMessage"]>
 
 export type ChatMessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -564,6 +675,8 @@ export type ChatMessageSelectScalar = {
 export type ChatMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "roomId" | "role" | "content" | "status" | "createdAt", ExtArgs["result"]["chatMessage"]>
 export type ChatMessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   room?: boolean | Prisma.ChatRoomDefaultArgs<ExtArgs>
+  ragCitations?: boolean | Prisma.ChatMessage$ragCitationsArgs<ExtArgs>
+  _count?: boolean | Prisma.ChatMessageCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ChatMessageIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   room?: boolean | Prisma.ChatRoomDefaultArgs<ExtArgs>
@@ -576,6 +689,7 @@ export type $ChatMessagePayload<ExtArgs extends runtime.Types.Extensions.Interna
   name: "ChatMessage"
   objects: {
     room: Prisma.$ChatRoomPayload<ExtArgs>
+    ragCitations: Prisma.$ChatMessageRagCitationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -979,6 +1093,7 @@ readonly fields: ChatMessageFieldRefs;
 export interface Prisma__ChatMessageClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   room<T extends Prisma.ChatRoomDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ChatRoomDefaultArgs<ExtArgs>>): Prisma.Prisma__ChatRoomClient<runtime.Types.Result.GetResult<Prisma.$ChatRoomPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  ragCitations<T extends Prisma.ChatMessage$ragCitationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ChatMessage$ragCitationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ChatMessageRagCitationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1412,6 +1527,30 @@ export type ChatMessageDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * Limit how many ChatMessages to delete.
    */
   limit?: number
+}
+
+/**
+ * ChatMessage.ragCitations
+ */
+export type ChatMessage$ragCitationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ChatMessageRagCitation
+   */
+  select?: Prisma.ChatMessageRagCitationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ChatMessageRagCitation
+   */
+  omit?: Prisma.ChatMessageRagCitationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ChatMessageRagCitationInclude<ExtArgs> | null
+  where?: Prisma.ChatMessageRagCitationWhereInput
+  orderBy?: Prisma.ChatMessageRagCitationOrderByWithRelationInput | Prisma.ChatMessageRagCitationOrderByWithRelationInput[]
+  cursor?: Prisma.ChatMessageRagCitationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ChatMessageRagCitationScalarFieldEnum | Prisma.ChatMessageRagCitationScalarFieldEnum[]
 }
 
 /**

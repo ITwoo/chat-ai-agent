@@ -22,12 +22,21 @@ export interface ChatRoomResponse {
   updatedAt: string;
 }
 
+export type RagCitationResponse = {
+  documentId: number;
+  chunkId: number;
+  chunkIndex: number;
+  fileName: string;
+  similarity: number;
+};
+
 export interface ChatMessageResponse {
   id: number;
   roomId: number;
   role: ChatMessageRole;
   content: string;
   status: ChatMessageStatus;
+  ragCitations: RagCitationResponse[];
   createdAt: string;
 }
 

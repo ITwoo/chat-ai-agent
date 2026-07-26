@@ -24,6 +24,7 @@ import { PendingAgentApproval } from './types/pending-agent-approval.type';
 import { PendingAgentApprovalStoreService } from './pending-agent-approval-store.service';
 import { RedisLock, RedisLockService } from '../redis/redis-lock.service';
 import { RedisRateLimitService } from '../redis/redis-rate-limit.service';
+import { RagCitation } from '../rag/schemas/rag-citation.schema';
 
 type AuthenticatedSocket = Socket & {
     data: {
@@ -275,7 +276,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
             const agentThreadId = this.getAgentThreadId(user.id, payload.roomId, userMessage.id);
 
-            this.server.to(roomName).emit('message_created', userMessage);
+            this.server.to(roomName).emit('message_created', { ...userMessage, ragCitations: []});
 
             const updatedRoom = await this.chatService.updateRoomTitleFromFirstMessage(
                 payload.roomId,
@@ -295,6 +296,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             })
 
             let assistantContent = '';
+            let ragCitations: RagCitation[] = [];
             let isCancelled = false;
             let isWaitingForApproval = false;
 
@@ -326,6 +328,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                     continue;
                 }
 
+                if (event.type === 'completed') {
+                    ragCitations = event.ragCitations;
+                    continue;
+                }
+
                 isWaitingForApproval = true;
 
                 await this.setPendingApproval(
@@ -346,11 +353,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                         userMessageId,
                     );
 
-                    this.server.to(roomName).emit('message_updated', userMessage);
+                    this.server.to(roomName).emit('message_updated', { ...userMessage, ragCitations: []});
 
                     this.server.to(roomName).emit('assistant_message_cancelled', {
                         roomId: payload.roomId,
-                        message: assistantMessage,
+                        message: { ...assistantMessage, ragCitations: []},
                     });
                 } else {
                     this.server.to(roomName).emit('assistant_message_cancelled', {
@@ -373,6 +380,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 payload.roomId,
                 user.id,
                 assistantContent,
+                ragCitations,
             );
 
             this.server.to(roomName).emit('assistant_message_completed', {
@@ -392,11 +400,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                         userMessageId,
                     );
 
-                    this.server.to(roomName).emit('message_updated', userMessage);
+                    this.server.to(roomName).emit('message_updated', { ...userMessage, ragCitations: []});
 
                     this.server.to(roomName).emit('assistant_message_cancelled', {
                         roomId: payload.roomId,
-                        message: assistantMessage,
+                        message: { ...assistantMessage, ragCitations: []},
                     });
                 } else {
                     this.server.to(roomName).emit('assistant_message_cancelled', {
@@ -414,11 +422,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                     userMessageId,
                 );
 
-                this.server.to(roomName).emit('message_updated', userMessage);
+                this.server.to(roomName).emit('message_updated', { ...userMessage, ragCitations: []});
 
                 this.server.to(roomName).emit('assistant_message_failed', {
                     roomId: payload.roomId,
-                    message: assistantMessage,
+                    message: { ...assistantMessage, ragCitations: []},
                 });
 
                 return;
@@ -810,7 +818,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
                 this.server.to(roomName).emit(
                     'message_created',
-                    approvalMessage,
+                    { ...approvalMessage, ragCitations: [] },
                 );
             }
 
@@ -851,6 +859,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             );
 
             let assistantContent = '';
+            let ragCitations: RagCitation[] = [];
             let isCancelled = false;
             let isWaitingForApproval = false;
 
@@ -879,6 +888,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                     continue;
                 }
 
+                if (event.type === 'completed') {
+                    ragCitations = event.ragCitations;
+                    continue;
+                }
                 isWaitingForApproval = true;
 
                 await this.setPendingApproval(
@@ -900,14 +913,14 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
                 this.server.to(roomName).emit(
                     'message_updated',
-                    userMessage,
+                    { ...userMessage, ragCitations: []},
                 );
 
                 this.server.to(roomName).emit(
                     'assistant_message_cancelled',
                     {
                         roomId,
-                        message: assistantMessage,
+                        message: { ...assistantMessage, ragCitations: []},
                     },
                 );
 
@@ -926,6 +939,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 roomId,
                 user.id,
                 assistantContent,
+                ragCitations,
             );
 
             this.server.to(roomName).emit(
@@ -944,15 +958,15 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 );
 
                 this.server.to(roomName).emit(
-                    'message_update',
-                    userMessage,
+                    'message_updated',
+                    { ...userMessage, ragCitations: []},
                 );
 
                 this.server.to(roomName).emit(
                     'assistant_message_cancelled',
                     {
                         roomId,
-                        message: assistantMessage,
+                        message: { ...assistantMessage, ragCitations: []},
                     },
                 );
 

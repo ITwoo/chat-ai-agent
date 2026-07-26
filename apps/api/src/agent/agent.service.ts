@@ -8,12 +8,14 @@ import { AgentGraph, AgentGraphFactory } from './agent-graph.factory';
 import { AgentToolsService } from './agent-tools.service';
 import { ApprovalIntent, approvalIntentSchema, ExpenseUpdateApprovalRequest, expenseUpdateApprovalRequestSchema, UpdateExpenseDecision } from './agent-interrupt.schema';
 import { Command } from '@langchain/langgraph';
+import { RagCitation, ragCitationSchema } from '../rag/schemas/rag-citation.schema';
 
 export type AgentStreamEvent =
     | {
           type: 'text_delta';
           delta: string;
       }
+    | { type: 'completed'; ragCitations: RagCitation[] }
     | {
           type: 'approval_required';
           threadId: string;
@@ -201,26 +203,26 @@ export class AgentService {
             }
         }
 
-        if(!stream.interrupted) {
+        if (stream.interrupted) {
+            if (stream.interrupts.length !== 1) {
+                throw new Error('현재 여러 승인 요청의 동시 처리는 지원하지 않습니다.');
+            }
+
+            const result = expenseUpdateApprovalRequestSchema.safeParse(stream.interrupts[0]?.payload);
+
+            if (!result.success) {
+                throw new Error('지원하지 않는 승인 요청 형식입니다.');
+            }
+
+            yield { type: 'approval_required', threadId, request: result.data };
             return;
         }
 
-        if(stream.interrupts.length !== 1) {
-            throw new Error('현재 여러 승인 요청의 동시 처리는 지원하지 않습니다.');
-        }
-
-        const interruptValue = stream.interrupts[0]?.payload;
-
-        const approvalRequestResult = expenseUpdateApprovalRequestSchema.safeParse(interruptValue);
-
-        if(!approvalRequestResult.success) {
-            throw new Error('지원하지 않는 승인 요청 형식입니다.');
-        }
+        const output = await stream.output;
 
         yield {
-            type: 'approval_required',
-            threadId,
-            request: approvalRequestResult.data,
+            type: 'completed',
+            ragCitations: ragCitationSchema.array().parse(output.ragCitations),
         };
     }
 

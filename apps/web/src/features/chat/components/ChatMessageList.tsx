@@ -182,6 +182,29 @@ export function ChatMessageList({
         );
     };
 
+    const renderRagCitations = (message: ChatMessageResponse) => {
+        if (message.role !== 'ASSISTANT' || message.ragCitations.length === 0) {
+            return null;
+        }
+
+        return (
+            <div className="mt-3 border-t border-slate-200 pt-3">
+                <p className="mb-2 text-xs font-semibold text-slate-500">참고 문서</p>
+
+                <ul className="space-y-1.5">
+                    {message.ragCitations.map((citation, index) => (
+                        <li key={`${citation.chunkId}-${index}`} className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                            <p className="break-all font-medium text-slate-700">{citation.fileName}</p>
+                            <p className="mt-0.5 text-slate-400">
+                                청크 {citation.chunkIndex + 1} · 검색 유사도 {(citation.similarity * 100).toFixed(1)}%
+                            </p>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        );
+    };
+
     if (!room) {
         return (
             <section className="min-h-0 flex-1 overflow-y-auto bg-gray-50 px-4 py-4 md:px-6 md:py-6">
@@ -262,6 +285,7 @@ export function ChatMessageList({
                                 </p>
                             )}
                             {renderMessageContent(message)}
+                            {renderRagCitations(message)}
                             {canRetry && (
                                 <button
                                     type="button"

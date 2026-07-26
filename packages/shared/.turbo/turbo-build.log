@@ -1,0 +1,4 @@
+
+> @repo/shared@1.0.0 build C:\develop\chat-ai-agent\packages\shared
+> tsc -p tsconfig.json
+

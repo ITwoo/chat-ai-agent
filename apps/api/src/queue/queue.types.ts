@@ -18,3 +18,5 @@ export type DocumentIngestionJobResult = {
     documentId: number;
     chunkCount: number;
 };
+
+export type RemoveDocumentIngestionJobResult = 'NOT_FOUND' | 'REMOVED' | 'ACTIVE';

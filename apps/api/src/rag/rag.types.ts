@@ -1,3 +1,5 @@
+import { RagDocumentStatus } from "../generated/prisma/enums";
+
 export type RagEmbeddingResult = {
     embedding: number[];
     tokenCount: number;
@@ -19,4 +21,31 @@ export type RagSearchResult = {
     fileName: string;
     distance: number;
     similarity: number;
+};
+
+export type RagDocumentListItem = {
+    id: number;
+    fileName: string;
+    mimeType: string;
+    sizeBytes: number;
+    status: RagDocumentStatus;
+    error: string | null;
+    chunkCount: number;
+    createdAt: Date;
+    updatedAt: Date;
+};
+
+export type RagDocumentsPageResult = {
+    documents: RagDocumentListItem[];
+    nextCursor: number | null;
+};
+
+export type DeleteRagDocumentResult = {
+    documentId: number;
+    deleted: true;
+};
+
+export type ReprocessRagDocumentResult = {
+    documentId: number;
+    status: 'PENDING';
 };

@@ -10,7 +10,7 @@ import { RAG_MIN_SIMILARITY } from './rag.constants';
 
 const DEFAULT_SEARCH_LIMIT = 5;
 const MAX_SEARCH_LIMIT = 10;
-
+const SEARCH_CANDIDATE_MULTIPLIER = 4;
 @Injectable()
 export class RagSearchService {
     constructor(
@@ -32,8 +32,8 @@ export class RagSearchService {
         }
 
         const searchLimit = this.normalizeLimit(limit);
-        const { embedding } =
-            await this.ragEmbeddingService.embedText(normalizedQuery);
+        const candidateLimit = searchLimit * SEARCH_CANDIDATE_MULTIPLIER;
+        const { embedding } = await this.ragEmbeddingService.embedText(normalizedQuery);
         const vector = serializeVector(embedding);
 
         const results = await this.prisma.$queryRaw<RagSearchResult[]>`
@@ -60,13 +60,10 @@ export class RagSearchService {
               AND chunk."embedding" IS NOT NULL
             ORDER BY
                 chunk."embedding" <=> ${vector}::vector
-            LIMIT ${searchLimit}
+            LIMIT ${candidateLimit}
         `;
 
-        return results.filter(
-            (result) =>
-                result.similarity >= RAG_MIN_SIMILARITY,
-        );
+        return this.selectDiverseResults(results, searchLimit);
     }
 
     private normalizeLimit(limit: number): number {
@@ -75,5 +72,30 @@ export class RagSearchService {
         }
 
         return Math.min(limit, MAX_SEARCH_LIMIT);
+    }
+
+    private selectDiverseResults(results: RagSearchResult[], limit: number): RagSearchResult[] {
+        const filteredResults = results.filter((result) => result.similarity >= RAG_MIN_SIMILARITY);
+        const selectedResults: RagSearchResult[] = [];
+        const deferredResults: RagSearchResult[] = [];
+
+        for (const result of filteredResults) {
+            const overlapsSelectedChunk = selectedResults.some((selectedResult) =>
+                selectedResult.documentId === result.documentId
+                && Math.abs(selectedResult.chunkIndex - result.chunkIndex) <= 1,
+            );
+
+            if (overlapsSelectedChunk) deferredResults.push(result);
+            else selectedResults.push(result);
+
+            if (selectedResults.length === limit) return selectedResults;
+        }
+
+        for (const result of deferredResults) {
+            selectedResults.push(result);
+            if (selectedResults.length === limit) break;
+        }
+
+        return selectedResults;
     }
 }

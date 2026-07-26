@@ -7,6 +7,7 @@ import { BoardListPage } from '../features/board/pages/BoardListPage';
 import { BoardEditPage } from '../features/board/pages/BoardEditPage';
 import { BoardCreatePage } from '../features/board/pages/BoardCreatePage';
 import { ChatPage } from '../pages/ChatPage';
+import { RagDocumentsPage } from '../features/rag/pages/RagDocumentsPage';
 
 function HomePage() {
     return <h1>Home</h1>;
@@ -48,6 +49,10 @@ export const router = createBrowserRouter([
                         path: 'chat',
                         element: <ChatPage />,
                     },
+                    {
+                        path: 'rag',
+                        element: <RagDocumentsPage />
+                    }
                 ],
             },
         ],

@@ -69,19 +69,27 @@ async function request(
     response: Response;
     data: unknown;
 }> {
+    const isFormData = body instanceof FormData;
+
+    let fetchBody = undefined;
+
+    if(body !== undefined){
+        fetchBody = isFormData ? body : JSON.stringify(body);
+    }
+    
     const response = await fetch(`${API_BASE_URL}${path}`, {
         method,
         headers: {
-            'Content-Type': 'application/json',
+            ...(isFormData ? {} : {'Content-Type': 'application/json'}),
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: body ? JSON.stringify(body) : undefined,
+        body: fetchBody,
         credentials: 'include',
     });
-
+    
     const responseText = await response.text();
     const data = parseResponseText(responseText);
-
+    
     return {
         response,
         data,

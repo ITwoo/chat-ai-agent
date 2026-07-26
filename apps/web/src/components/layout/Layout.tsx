@@ -68,6 +68,9 @@ export function Layout() {
                             <NavLink to="/chat" className={navLinkClass}>
                                 AI 채팅
                             </NavLink>
+                            <NavLink to="/rag" className={navLinkClass}>
+                                RAG 문서
+                            </NavLink>
                         </nav>
                     </div>
 

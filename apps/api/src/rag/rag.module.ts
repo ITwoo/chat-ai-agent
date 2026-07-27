@@ -11,10 +11,13 @@ import { RagEmbeddingService } from './rag-embedding.service';
 import { RagSearchController } from './rag-search.controller';
 import { RagSearchService } from './rag-search.service';
 import { RagAnswerService } from './rag-answer.service';
+import { RedisModule } from '../redis/redis.module';
+import { RagDocumentRecoveryService } from './rag-document-recovery.service';
 
 @Module({
     imports: [
         QueueModule,
+        RedisModule,
         MulterModule.registerAsync({
             inject: [ConfigService],
             useFactory: createRagMulterOptions,
@@ -36,6 +39,7 @@ import { RagAnswerService } from './rag-answer.service';
         RagEmbeddingService,
         RagSearchService,
         RagAnswerService,
+        RagDocumentRecoveryService,
     ],
 })
 export class RagModule {}

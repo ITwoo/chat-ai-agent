@@ -49,3 +49,11 @@ export type ReprocessRagDocumentResult = {
     documentId: number;
     status: 'PENDING';
 };
+
+export type RecoverStuckRagDocumentsResult = {
+    checkedCount: number;
+    requeuedCount: number;
+    resetToPendingCount: number;
+    markedFailedCount: number;
+    activeCount: number;
+};

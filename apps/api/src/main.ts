@@ -11,6 +11,8 @@ async function bootstrap() {
     const logger = new Logger('Bootstrap');
 
     const app = await NestFactory.create(AppModule);
+    app.enableShutdownHooks();
+    
     const configService = app.get(ConfigService);
 
     const configFileName = configService.get<string>('ENV_NAME') ?? '';

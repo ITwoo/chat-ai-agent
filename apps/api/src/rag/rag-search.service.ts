@@ -11,6 +11,7 @@ import { RAG_MIN_SIMILARITY } from './rag.constants';
 const DEFAULT_SEARCH_LIMIT = 5;
 const MAX_SEARCH_LIMIT = 10;
 const SEARCH_CANDIDATE_MULTIPLIER = 4;
+const MAX_PREFERRED_CHUNKS_PER_DOCUMENT = 2;
 @Injectable()
 export class RagSearchService {
     constructor(
@@ -36,32 +37,40 @@ export class RagSearchService {
         const { embedding } = await this.ragEmbeddingService.embedText(normalizedQuery);
         const vector = serializeVector(embedding);
 
-        const results = await this.prisma.$queryRaw<RagSearchResult[]>`
-            SELECT
-                chunk."id" AS "chunkId",
-                chunk."documentId",
-                chunk."chunkIndex",
-                chunk."content",
-                chunk."tokenCount",
-                document."fileName",
-                (
-                    chunk."embedding" <=> ${vector}::vector
-                )::double precision AS "distance",
-                (
-                    1 - (
+        const results = await this.prisma.$transaction(
+            async (tx) => {
+                await tx.$executeRaw`
+                    SET LOCAL hnsw.iterative_scan = 'strict_order'
+                `;
+
+                return tx.$queryRaw<RagSearchResult[]>`
+                    SELECT
+                        chunk."id" AS "chunkId",
+                        chunk."documentId",
+                        chunk."chunkIndex",
+                        chunk."content",
+                        chunk."tokenCount",
+                        document."fileName",
+                        (
+                            chunk."embedding" <=> ${vector}::vector
+                        )::double precision AS "distance",
+                        (
+                            1 - (
+                                chunk."embedding" <=> ${vector}::vector
+                            )
+                        )::double precision AS "similarity"
+                    FROM "RagDocumentChunk" AS chunk
+                    INNER JOIN "RagDocument" AS document
+                        ON document."id" = chunk."documentId"
+                    WHERE document."userId" = ${userId}
+                    AND document."status" = 'READY'
+                    AND chunk."embedding" IS NOT NULL
+                    ORDER BY
                         chunk."embedding" <=> ${vector}::vector
-                    )
-                )::double precision AS "similarity"
-            FROM "RagDocumentChunk" AS chunk
-            INNER JOIN "RagDocument" AS document
-                ON document."id" = chunk."documentId"
-            WHERE document."userId" = ${userId}
-              AND document."status" = 'READY'
-              AND chunk."embedding" IS NOT NULL
-            ORDER BY
-                chunk."embedding" <=> ${vector}::vector
-            LIMIT ${candidateLimit}
-        `;
+                    LIMIT ${candidateLimit}
+                `;
+            },
+        );
 
         return this.selectDiverseResults(results, searchLimit);
     }
@@ -78,15 +87,24 @@ export class RagSearchService {
         const filteredResults = results.filter((result) => result.similarity >= RAG_MIN_SIMILARITY);
         const selectedResults: RagSearchResult[] = [];
         const deferredResults: RagSearchResult[] = [];
+        const documentChunkCounts = new Map<number, number>();
 
         for (const result of filteredResults) {
-            const overlapsSelectedChunk = selectedResults.some((selectedResult) =>
-                selectedResult.documentId === result.documentId
-                && Math.abs(selectedResult.chunkIndex - result.chunkIndex) <= 1,
+            const selectedDocumentCount = documentChunkCounts.get(result.documentId) ?? 0;
+            const hasAdjacentChunk = selectedResults.some(
+                (selected) => selected.documentId === result.documentId && Math.abs(selected.chunkIndex - result.chunkIndex) <= 1,
             );
+            const shouldDefer =
+                selectedDocumentCount >= MAX_PREFERRED_CHUNKS_PER_DOCUMENT ||
+                hasAdjacentChunk;
 
-            if (overlapsSelectedChunk) deferredResults.push(result);
-            else selectedResults.push(result);
+            if (shouldDefer) {
+                deferredResults.push(result);
+                continue;
+            }
+            
+            selectedResults.push(result);
+            documentChunkCounts.set(result.documentId, selectedDocumentCount + 1);
 
             if (selectedResults.length === limit) return selectedResults;
         }

@@ -20,3 +20,7 @@ export type DocumentIngestionJobResult = {
 };
 
 export type RemoveDocumentIngestionJobResult = 'NOT_FOUND' | 'REMOVED' | 'ACTIVE';
+
+export type DocumentIngestionJobSnapshot =
+    | { state: 'NOT_FOUND' }
+    | { state: 'WAITING' | 'DELAYED' | 'ACTIVE' | 'COMPLETED' | 'FAILED' | 'UNKNOWN'; failedReason: string | null };

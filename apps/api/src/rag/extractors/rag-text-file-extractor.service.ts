@@ -3,6 +3,7 @@ import { UnrecoverableError } from 'bullmq';
 import { readFile } from 'node:fs/promises';
 import type {
     RagDocumentExtractionInput,
+    RagDocumentExtractionResult,
     RagDocumentTextExtractor,
 } from './rag-document-extractor.types';
 
@@ -12,7 +13,7 @@ export class RagTextFileExtractor implements RagDocumentTextExtractor {
         return extension === '.txt';
     }
 
-    async extract(input: RagDocumentExtractionInput): Promise<string> {
+    async extract(input: RagDocumentExtractionInput): Promise<RagDocumentExtractionResult> {
         let content: string;
 
         try {
@@ -33,6 +34,13 @@ export class RagTextFileExtractor implements RagDocumentTextExtractor {
             throw new UnrecoverableError('RAG 문서가 비어 있습니다.');
         }
 
-        return normalizedContent;
+        return {
+            sections: [
+                {
+                    content: normalizedContent,
+                    pageNumber: null,
+                },
+            ],
+        };
     }
 }

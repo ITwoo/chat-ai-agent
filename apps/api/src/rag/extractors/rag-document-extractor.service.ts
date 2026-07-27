@@ -8,8 +8,9 @@ import {
     resolve,
     sep,
 } from 'node:path';
-import type { RagDocumentTextExtractor } from './rag-document-extractor.types';
+import type { RagDocumentExtractionResult, RagDocumentTextExtractor } from './rag-document-extractor.types';
 import { RagTextFileExtractor } from './rag-text-file-extractor.service';
+import { RagPdfFileExtractor } from './rag-pdf-file-extractor.service';
 
 @Injectable()
 export class RagDocumentExtractorService {
@@ -18,11 +19,15 @@ export class RagDocumentExtractorService {
     constructor(
         private readonly configService: ConfigService,
         ragTextFileExtractor: RagTextFileExtractor,
+        ragPdfFileExtractor: RagPdfFileExtractor,
     ) {
-        this.extractors = [ragTextFileExtractor];
+        this.extractors = [
+            ragTextFileExtractor,
+            ragPdfFileExtractor,
+        ];
     }
 
-    async extract(storageKey: string): Promise<string> {
+    async extract(storageKey: string): Promise<RagDocumentExtractionResult> {
         const uploadDir = resolve(
             process.cwd(),
             this.configService.get<string>('RAG_UPLOAD_DIR') ??

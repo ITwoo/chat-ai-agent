@@ -1301,6 +1301,7 @@ export const RagDocumentChunkScalarFieldEnum = {
   id: 'id',
   documentId: 'documentId',
   chunkIndex: 'chunkIndex',
+  pageNumber: 'pageNumber',
   content: 'content',
   tokenCount: 'tokenCount',
   createdAt: 'createdAt'

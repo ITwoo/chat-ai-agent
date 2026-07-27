@@ -7,6 +7,7 @@ export type RagEmbeddingResult = {
 
 export type EmbeddedChunk = {
     chunkIndex: number;
+    pageNumber: number | null;
     content: string;
     tokenCount: number;
     embedding: number[];
@@ -16,6 +17,7 @@ export type RagSearchResult = {
     chunkId: number;
     documentId: number;
     chunkIndex: number;
+    pageNumber: number | null;
     content: string;
     tokenCount: number | null;
     fileName: string;

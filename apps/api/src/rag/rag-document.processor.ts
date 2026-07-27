@@ -63,8 +63,19 @@ export class RagDocumentProcessor extends WorkerHost {
                 };
             }
 
-            const content = await this.ragDocumentExtractorService.extract(storageKey);
-            const chunks = await this.splitter.splitText(content);
+            const extraction = await this.ragDocumentExtractorService.extract(storageKey);
+            const chunks: Array<{ content: string; pageNumber: number | null }> = [];
+
+            for (const section of extraction.sections) {
+                const sectionChunks = await this.splitter.splitText(section.content);
+
+                for (const content of sectionChunks) {
+                    chunks.push({
+                        content,
+                        pageNumber: section.pageNumber,
+                    });
+                }
+            }
 
             if (chunks.length === 0) {
                 throw new UnrecoverableError('문서에서 저장할 텍스트를 찾을 수 없습니다.');
@@ -74,11 +85,12 @@ export class RagDocumentProcessor extends WorkerHost {
 
             for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
                 const chunk = chunks[chunkIndex];
-                const result = await this.ragEmbeddingService.embedText(chunk);
+                const result = await this.ragEmbeddingService.embedText(chunk.content);
 
                 embeddedChunks.push({
                     chunkIndex,
-                    content: chunk,
+                    pageNumber: chunk.pageNumber,
+                    content: chunk.content,
                     tokenCount: result.tokenCount,
                     embedding: result.embedding,
                 });
@@ -116,6 +128,7 @@ export class RagDocumentProcessor extends WorkerHost {
                         INSERT INTO "RagDocumentChunk" (
                             "documentId",
                             "chunkIndex",
+                            "pageNumber",
                             "content",
                             "tokenCount",
                             "embedding"
@@ -123,6 +136,7 @@ export class RagDocumentProcessor extends WorkerHost {
                         VALUES (
                             ${documentId},
                             ${chunk.chunkIndex},
+                            ${chunk.pageNumber},
                             ${chunk.content},
                             ${chunk.tokenCount},
                             ${vector}::vector

@@ -15,6 +15,7 @@ import { RedisModule } from '../redis/redis.module';
 import { RagDocumentRecoveryService } from './rag-document-recovery.service';
 import { RagTextFileExtractor } from './extractors/rag-text-file-extractor.service';
 import { RagDocumentExtractorService } from './extractors/rag-document-extractor.service';
+import { RagPdfFileExtractor } from './extractors/rag-pdf-file-extractor.service';
 
 @Module({
     imports: [
@@ -36,15 +37,15 @@ import { RagDocumentExtractorService } from './extractors/rag-document-extractor
         RagEmbeddingService,
         RagSearchService,
         RagAnswerService,
+        RagDocumentExtractorService,
+        RagPdfFileExtractor,
+        RagTextFileExtractor,
     ],
     exports: [
         RagDocumentService,
         RagEmbeddingService,
         RagSearchService,
         RagAnswerService,
-        RagDocumentRecoveryService,
-        RagDocumentExtractorService,
-        RagTextFileExtractor,
     ],
 })
-export class RagModule {}
+export class RagModule { }

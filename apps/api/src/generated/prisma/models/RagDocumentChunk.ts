@@ -30,6 +30,7 @@ export type RagDocumentChunkAvgAggregateOutputType = {
   id: number | null
   documentId: number | null
   chunkIndex: number | null
+  pageNumber: number | null
   tokenCount: number | null
 }
 
@@ -37,6 +38,7 @@ export type RagDocumentChunkSumAggregateOutputType = {
   id: number | null
   documentId: number | null
   chunkIndex: number | null
+  pageNumber: number | null
   tokenCount: number | null
 }
 
@@ -44,6 +46,7 @@ export type RagDocumentChunkMinAggregateOutputType = {
   id: number | null
   documentId: number | null
   chunkIndex: number | null
+  pageNumber: number | null
   content: string | null
   tokenCount: number | null
   createdAt: Date | null
@@ -53,6 +56,7 @@ export type RagDocumentChunkMaxAggregateOutputType = {
   id: number | null
   documentId: number | null
   chunkIndex: number | null
+  pageNumber: number | null
   content: string | null
   tokenCount: number | null
   createdAt: Date | null
@@ -62,6 +66,7 @@ export type RagDocumentChunkCountAggregateOutputType = {
   id: number
   documentId: number
   chunkIndex: number
+  pageNumber: number
   content: number
   tokenCount: number
   createdAt: number
@@ -73,6 +78,7 @@ export type RagDocumentChunkAvgAggregateInputType = {
   id?: true
   documentId?: true
   chunkIndex?: true
+  pageNumber?: true
   tokenCount?: true
 }
 
@@ -80,6 +86,7 @@ export type RagDocumentChunkSumAggregateInputType = {
   id?: true
   documentId?: true
   chunkIndex?: true
+  pageNumber?: true
   tokenCount?: true
 }
 
@@ -87,6 +94,7 @@ export type RagDocumentChunkMinAggregateInputType = {
   id?: true
   documentId?: true
   chunkIndex?: true
+  pageNumber?: true
   content?: true
   tokenCount?: true
   createdAt?: true
@@ -96,6 +104,7 @@ export type RagDocumentChunkMaxAggregateInputType = {
   id?: true
   documentId?: true
   chunkIndex?: true
+  pageNumber?: true
   content?: true
   tokenCount?: true
   createdAt?: true
@@ -105,6 +114,7 @@ export type RagDocumentChunkCountAggregateInputType = {
   id?: true
   documentId?: true
   chunkIndex?: true
+  pageNumber?: true
   content?: true
   tokenCount?: true
   createdAt?: true
@@ -201,6 +211,7 @@ export type RagDocumentChunkGroupByOutputType = {
   id: number
   documentId: number
   chunkIndex: number
+  pageNumber: number | null
   content: string
   tokenCount: number | null
   createdAt: Date
@@ -233,6 +244,7 @@ export type RagDocumentChunkWhereInput = {
   id?: Prisma.IntFilter<"RagDocumentChunk"> | number
   documentId?: Prisma.IntFilter<"RagDocumentChunk"> | number
   chunkIndex?: Prisma.IntFilter<"RagDocumentChunk"> | number
+  pageNumber?: Prisma.IntNullableFilter<"RagDocumentChunk"> | number | null
   content?: Prisma.StringFilter<"RagDocumentChunk"> | string
   tokenCount?: Prisma.IntNullableFilter<"RagDocumentChunk"> | number | null
   createdAt?: Prisma.DateTimeFilter<"RagDocumentChunk"> | Date | string
@@ -243,6 +255,7 @@ export type RagDocumentChunkOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   documentId?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
+  pageNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrder
   tokenCount?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -257,6 +270,7 @@ export type RagDocumentChunkWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.RagDocumentChunkWhereInput | Prisma.RagDocumentChunkWhereInput[]
   documentId?: Prisma.IntFilter<"RagDocumentChunk"> | number
   chunkIndex?: Prisma.IntFilter<"RagDocumentChunk"> | number
+  pageNumber?: Prisma.IntNullableFilter<"RagDocumentChunk"> | number | null
   content?: Prisma.StringFilter<"RagDocumentChunk"> | string
   tokenCount?: Prisma.IntNullableFilter<"RagDocumentChunk"> | number | null
   createdAt?: Prisma.DateTimeFilter<"RagDocumentChunk"> | Date | string
@@ -267,6 +281,7 @@ export type RagDocumentChunkOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   documentId?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
+  pageNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrder
   tokenCount?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -284,6 +299,7 @@ export type RagDocumentChunkScalarWhereWithAggregatesInput = {
   id?: Prisma.IntWithAggregatesFilter<"RagDocumentChunk"> | number
   documentId?: Prisma.IntWithAggregatesFilter<"RagDocumentChunk"> | number
   chunkIndex?: Prisma.IntWithAggregatesFilter<"RagDocumentChunk"> | number
+  pageNumber?: Prisma.IntNullableWithAggregatesFilter<"RagDocumentChunk"> | number | null
   content?: Prisma.StringWithAggregatesFilter<"RagDocumentChunk"> | string
   tokenCount?: Prisma.IntNullableWithAggregatesFilter<"RagDocumentChunk"> | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"RagDocumentChunk"> | Date | string
@@ -291,6 +307,7 @@ export type RagDocumentChunkScalarWhereWithAggregatesInput = {
 
 export type RagDocumentChunkCreateInput = {
   chunkIndex: number
+  pageNumber?: number | null
   content: string
   tokenCount?: number | null
   createdAt?: Date | string
@@ -301,6 +318,7 @@ export type RagDocumentChunkUncheckedCreateInput = {
   id?: number
   documentId: number
   chunkIndex: number
+  pageNumber?: number | null
   content: string
   tokenCount?: number | null
   createdAt?: Date | string
@@ -308,6 +326,7 @@ export type RagDocumentChunkUncheckedCreateInput = {
 
 export type RagDocumentChunkUpdateInput = {
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  pageNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tokenCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -318,6 +337,7 @@ export type RagDocumentChunkUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   documentId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  pageNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tokenCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -327,6 +347,7 @@ export type RagDocumentChunkCreateManyInput = {
   id?: number
   documentId: number
   chunkIndex: number
+  pageNumber?: number | null
   content: string
   tokenCount?: number | null
   createdAt?: Date | string
@@ -334,6 +355,7 @@ export type RagDocumentChunkCreateManyInput = {
 
 export type RagDocumentChunkUpdateManyMutationInput = {
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  pageNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tokenCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -343,6 +365,7 @@ export type RagDocumentChunkUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   documentId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  pageNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tokenCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -367,6 +390,7 @@ export type RagDocumentChunkCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   documentId?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
+  pageNumber?: Prisma.SortOrder
   content?: Prisma.SortOrder
   tokenCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -376,6 +400,7 @@ export type RagDocumentChunkAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   documentId?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
+  pageNumber?: Prisma.SortOrder
   tokenCount?: Prisma.SortOrder
 }
 
@@ -383,6 +408,7 @@ export type RagDocumentChunkMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   documentId?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
+  pageNumber?: Prisma.SortOrder
   content?: Prisma.SortOrder
   tokenCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -392,6 +418,7 @@ export type RagDocumentChunkMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   documentId?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
+  pageNumber?: Prisma.SortOrder
   content?: Prisma.SortOrder
   tokenCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -401,6 +428,7 @@ export type RagDocumentChunkSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   documentId?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
+  pageNumber?: Prisma.SortOrder
   tokenCount?: Prisma.SortOrder
 }
 
@@ -456,6 +484,7 @@ export type NullableIntFieldUpdateOperationsInput = {
 
 export type RagDocumentChunkCreateWithoutDocumentInput = {
   chunkIndex: number
+  pageNumber?: number | null
   content: string
   tokenCount?: number | null
   createdAt?: Date | string
@@ -464,6 +493,7 @@ export type RagDocumentChunkCreateWithoutDocumentInput = {
 export type RagDocumentChunkUncheckedCreateWithoutDocumentInput = {
   id?: number
   chunkIndex: number
+  pageNumber?: number | null
   content: string
   tokenCount?: number | null
   createdAt?: Date | string
@@ -502,6 +532,7 @@ export type RagDocumentChunkScalarWhereInput = {
   id?: Prisma.IntFilter<"RagDocumentChunk"> | number
   documentId?: Prisma.IntFilter<"RagDocumentChunk"> | number
   chunkIndex?: Prisma.IntFilter<"RagDocumentChunk"> | number
+  pageNumber?: Prisma.IntNullableFilter<"RagDocumentChunk"> | number | null
   content?: Prisma.StringFilter<"RagDocumentChunk"> | string
   tokenCount?: Prisma.IntNullableFilter<"RagDocumentChunk"> | number | null
   createdAt?: Prisma.DateTimeFilter<"RagDocumentChunk"> | Date | string
@@ -510,6 +541,7 @@ export type RagDocumentChunkScalarWhereInput = {
 export type RagDocumentChunkCreateManyDocumentInput = {
   id?: number
   chunkIndex: number
+  pageNumber?: number | null
   content: string
   tokenCount?: number | null
   createdAt?: Date | string
@@ -517,6 +549,7 @@ export type RagDocumentChunkCreateManyDocumentInput = {
 
 export type RagDocumentChunkUpdateWithoutDocumentInput = {
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  pageNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tokenCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -525,6 +558,7 @@ export type RagDocumentChunkUpdateWithoutDocumentInput = {
 export type RagDocumentChunkUncheckedUpdateWithoutDocumentInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  pageNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tokenCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -533,6 +567,7 @@ export type RagDocumentChunkUncheckedUpdateWithoutDocumentInput = {
 export type RagDocumentChunkUncheckedUpdateManyWithoutDocumentInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  pageNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   content?: Prisma.StringFieldUpdateOperationsInput | string
   tokenCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -544,6 +579,7 @@ export type RagDocumentChunkSelect<ExtArgs extends runtime.Types.Extensions.Inte
   id?: boolean
   documentId?: boolean
   chunkIndex?: boolean
+  pageNumber?: boolean
   content?: boolean
   tokenCount?: boolean
   createdAt?: boolean
@@ -554,6 +590,7 @@ export type RagDocumentChunkSelectCreateManyAndReturn<ExtArgs extends runtime.Ty
   id?: boolean
   documentId?: boolean
   chunkIndex?: boolean
+  pageNumber?: boolean
   content?: boolean
   tokenCount?: boolean
   createdAt?: boolean
@@ -564,6 +601,7 @@ export type RagDocumentChunkSelectUpdateManyAndReturn<ExtArgs extends runtime.Ty
   id?: boolean
   documentId?: boolean
   chunkIndex?: boolean
+  pageNumber?: boolean
   content?: boolean
   tokenCount?: boolean
   createdAt?: boolean
@@ -574,12 +612,13 @@ export type RagDocumentChunkSelectScalar = {
   id?: boolean
   documentId?: boolean
   chunkIndex?: boolean
+  pageNumber?: boolean
   content?: boolean
   tokenCount?: boolean
   createdAt?: boolean
 }
 
-export type RagDocumentChunkOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "documentId" | "chunkIndex" | "content" | "tokenCount" | "createdAt", ExtArgs["result"]["ragDocumentChunk"]>
+export type RagDocumentChunkOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "documentId" | "chunkIndex" | "pageNumber" | "content" | "tokenCount" | "createdAt", ExtArgs["result"]["ragDocumentChunk"]>
 export type RagDocumentChunkInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   document?: boolean | Prisma.RagDocumentDefaultArgs<ExtArgs>
 }
@@ -599,6 +638,7 @@ export type $RagDocumentChunkPayload<ExtArgs extends runtime.Types.Extensions.In
     id: number
     documentId: number
     chunkIndex: number
+    pageNumber: number | null
     content: string
     tokenCount: number | null
     createdAt: Date
@@ -1029,6 +1069,7 @@ export interface RagDocumentChunkFieldRefs {
   readonly id: Prisma.FieldRef<"RagDocumentChunk", 'Int'>
   readonly documentId: Prisma.FieldRef<"RagDocumentChunk", 'Int'>
   readonly chunkIndex: Prisma.FieldRef<"RagDocumentChunk", 'Int'>
+  readonly pageNumber: Prisma.FieldRef<"RagDocumentChunk", 'Int'>
   readonly content: Prisma.FieldRef<"RagDocumentChunk", 'String'>
   readonly tokenCount: Prisma.FieldRef<"RagDocumentChunk", 'Int'>
   readonly createdAt: Prisma.FieldRef<"RagDocumentChunk", 'DateTime'>

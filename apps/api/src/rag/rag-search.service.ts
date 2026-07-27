@@ -48,6 +48,7 @@ export class RagSearchService {
                         chunk."id" AS "chunkId",
                         chunk."documentId",
                         chunk."chunkIndex",
+                        chunk."pageNumber",
                         chunk."content",
                         chunk."tokenCount",
                         document."fileName",

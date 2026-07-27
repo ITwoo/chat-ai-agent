@@ -35,10 +35,14 @@ export function createRagMulterOptions(
                 file.mimetype === 'text/plain' &&
                 extension === '.txt';
 
-            if (!isTextFile) {
+            const isPdfFile =
+                file.mimetype === 'application/pdf' &&
+                extension === '.pdf';
+
+            if (!isTextFile && isPdfFile) {
                 callback(
                     new BadRequestException(
-                        '현재는 .txt 파일만 업로드할 수 있습니다.',
+                        '현재는 .txt 또는 .pdf 파일만 업로드할 수 있습니다.',
                     ),
                     false,
                 );

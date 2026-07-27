@@ -180,6 +180,7 @@ model RagDocumentChunk {
   id         Int    @id @default(autoincrement())
   documentId Int
   chunkIndex Int
+  pageNumber Int?
   content    String @db.Text
   tokenCount Int?
   embedding  Unsupported("vector")?

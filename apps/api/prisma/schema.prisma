@@ -202,6 +202,7 @@ model ChatMessageRagCitation {
     documentId Int
     chunkId    Int
     chunkIndex Int
+    pageNumber Int?
     fileName   String @db.VarChar(255)
     similarity Float
 

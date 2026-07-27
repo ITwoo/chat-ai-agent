@@ -1316,6 +1316,7 @@ export const ChatMessageRagCitationScalarFieldEnum = {
   documentId: 'documentId',
   chunkId: 'chunkId',
   chunkIndex: 'chunkIndex',
+  pageNumber: 'pageNumber',
   fileName: 'fileName',
   similarity: 'similarity',
   createdAt: 'createdAt'

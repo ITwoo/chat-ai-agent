@@ -26,6 +26,7 @@ export type RagCitationResponse = {
   documentId: number;
   chunkId: number;
   chunkIndex: number;
+  pageNumber: number | null;
   fileName: string;
   similarity: number;
 };

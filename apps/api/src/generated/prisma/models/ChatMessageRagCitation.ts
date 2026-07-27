@@ -32,6 +32,7 @@ export type ChatMessageRagCitationAvgAggregateOutputType = {
   documentId: number | null
   chunkId: number | null
   chunkIndex: number | null
+  pageNumber: number | null
   similarity: number | null
 }
 
@@ -41,6 +42,7 @@ export type ChatMessageRagCitationSumAggregateOutputType = {
   documentId: number | null
   chunkId: number | null
   chunkIndex: number | null
+  pageNumber: number | null
   similarity: number | null
 }
 
@@ -50,6 +52,7 @@ export type ChatMessageRagCitationMinAggregateOutputType = {
   documentId: number | null
   chunkId: number | null
   chunkIndex: number | null
+  pageNumber: number | null
   fileName: string | null
   similarity: number | null
   createdAt: Date | null
@@ -61,6 +64,7 @@ export type ChatMessageRagCitationMaxAggregateOutputType = {
   documentId: number | null
   chunkId: number | null
   chunkIndex: number | null
+  pageNumber: number | null
   fileName: string | null
   similarity: number | null
   createdAt: Date | null
@@ -72,6 +76,7 @@ export type ChatMessageRagCitationCountAggregateOutputType = {
   documentId: number
   chunkId: number
   chunkIndex: number
+  pageNumber: number
   fileName: number
   similarity: number
   createdAt: number
@@ -85,6 +90,7 @@ export type ChatMessageRagCitationAvgAggregateInputType = {
   documentId?: true
   chunkId?: true
   chunkIndex?: true
+  pageNumber?: true
   similarity?: true
 }
 
@@ -94,6 +100,7 @@ export type ChatMessageRagCitationSumAggregateInputType = {
   documentId?: true
   chunkId?: true
   chunkIndex?: true
+  pageNumber?: true
   similarity?: true
 }
 
@@ -103,6 +110,7 @@ export type ChatMessageRagCitationMinAggregateInputType = {
   documentId?: true
   chunkId?: true
   chunkIndex?: true
+  pageNumber?: true
   fileName?: true
   similarity?: true
   createdAt?: true
@@ -114,6 +122,7 @@ export type ChatMessageRagCitationMaxAggregateInputType = {
   documentId?: true
   chunkId?: true
   chunkIndex?: true
+  pageNumber?: true
   fileName?: true
   similarity?: true
   createdAt?: true
@@ -125,6 +134,7 @@ export type ChatMessageRagCitationCountAggregateInputType = {
   documentId?: true
   chunkId?: true
   chunkIndex?: true
+  pageNumber?: true
   fileName?: true
   similarity?: true
   createdAt?: true
@@ -223,6 +233,7 @@ export type ChatMessageRagCitationGroupByOutputType = {
   documentId: number
   chunkId: number
   chunkIndex: number
+  pageNumber: number | null
   fileName: string
   similarity: number
   createdAt: Date
@@ -257,6 +268,7 @@ export type ChatMessageRagCitationWhereInput = {
   documentId?: Prisma.IntFilter<"ChatMessageRagCitation"> | number
   chunkId?: Prisma.IntFilter<"ChatMessageRagCitation"> | number
   chunkIndex?: Prisma.IntFilter<"ChatMessageRagCitation"> | number
+  pageNumber?: Prisma.IntNullableFilter<"ChatMessageRagCitation"> | number | null
   fileName?: Prisma.StringFilter<"ChatMessageRagCitation"> | string
   similarity?: Prisma.FloatFilter<"ChatMessageRagCitation"> | number
   createdAt?: Prisma.DateTimeFilter<"ChatMessageRagCitation"> | Date | string
@@ -269,6 +281,7 @@ export type ChatMessageRagCitationOrderByWithRelationInput = {
   documentId?: Prisma.SortOrder
   chunkId?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
+  pageNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   fileName?: Prisma.SortOrder
   similarity?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -284,6 +297,7 @@ export type ChatMessageRagCitationWhereUniqueInput = Prisma.AtLeast<{
   documentId?: Prisma.IntFilter<"ChatMessageRagCitation"> | number
   chunkId?: Prisma.IntFilter<"ChatMessageRagCitation"> | number
   chunkIndex?: Prisma.IntFilter<"ChatMessageRagCitation"> | number
+  pageNumber?: Prisma.IntNullableFilter<"ChatMessageRagCitation"> | number | null
   fileName?: Prisma.StringFilter<"ChatMessageRagCitation"> | string
   similarity?: Prisma.FloatFilter<"ChatMessageRagCitation"> | number
   createdAt?: Prisma.DateTimeFilter<"ChatMessageRagCitation"> | Date | string
@@ -296,6 +310,7 @@ export type ChatMessageRagCitationOrderByWithAggregationInput = {
   documentId?: Prisma.SortOrder
   chunkId?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
+  pageNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   fileName?: Prisma.SortOrder
   similarity?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -315,6 +330,7 @@ export type ChatMessageRagCitationScalarWhereWithAggregatesInput = {
   documentId?: Prisma.IntWithAggregatesFilter<"ChatMessageRagCitation"> | number
   chunkId?: Prisma.IntWithAggregatesFilter<"ChatMessageRagCitation"> | number
   chunkIndex?: Prisma.IntWithAggregatesFilter<"ChatMessageRagCitation"> | number
+  pageNumber?: Prisma.IntNullableWithAggregatesFilter<"ChatMessageRagCitation"> | number | null
   fileName?: Prisma.StringWithAggregatesFilter<"ChatMessageRagCitation"> | string
   similarity?: Prisma.FloatWithAggregatesFilter<"ChatMessageRagCitation"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ChatMessageRagCitation"> | Date | string
@@ -324,6 +340,7 @@ export type ChatMessageRagCitationCreateInput = {
   documentId: number
   chunkId: number
   chunkIndex: number
+  pageNumber?: number | null
   fileName: string
   similarity: number
   createdAt?: Date | string
@@ -336,6 +353,7 @@ export type ChatMessageRagCitationUncheckedCreateInput = {
   documentId: number
   chunkId: number
   chunkIndex: number
+  pageNumber?: number | null
   fileName: string
   similarity: number
   createdAt?: Date | string
@@ -345,6 +363,7 @@ export type ChatMessageRagCitationUpdateInput = {
   documentId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  pageNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   similarity?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -357,6 +376,7 @@ export type ChatMessageRagCitationUncheckedUpdateInput = {
   documentId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  pageNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   similarity?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -368,6 +388,7 @@ export type ChatMessageRagCitationCreateManyInput = {
   documentId: number
   chunkId: number
   chunkIndex: number
+  pageNumber?: number | null
   fileName: string
   similarity: number
   createdAt?: Date | string
@@ -377,6 +398,7 @@ export type ChatMessageRagCitationUpdateManyMutationInput = {
   documentId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  pageNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   similarity?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -388,6 +410,7 @@ export type ChatMessageRagCitationUncheckedUpdateManyInput = {
   documentId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  pageNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   similarity?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -409,6 +432,7 @@ export type ChatMessageRagCitationCountOrderByAggregateInput = {
   documentId?: Prisma.SortOrder
   chunkId?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
+  pageNumber?: Prisma.SortOrder
   fileName?: Prisma.SortOrder
   similarity?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -420,6 +444,7 @@ export type ChatMessageRagCitationAvgOrderByAggregateInput = {
   documentId?: Prisma.SortOrder
   chunkId?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
+  pageNumber?: Prisma.SortOrder
   similarity?: Prisma.SortOrder
 }
 
@@ -429,6 +454,7 @@ export type ChatMessageRagCitationMaxOrderByAggregateInput = {
   documentId?: Prisma.SortOrder
   chunkId?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
+  pageNumber?: Prisma.SortOrder
   fileName?: Prisma.SortOrder
   similarity?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -440,6 +466,7 @@ export type ChatMessageRagCitationMinOrderByAggregateInput = {
   documentId?: Prisma.SortOrder
   chunkId?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
+  pageNumber?: Prisma.SortOrder
   fileName?: Prisma.SortOrder
   similarity?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -451,6 +478,7 @@ export type ChatMessageRagCitationSumOrderByAggregateInput = {
   documentId?: Prisma.SortOrder
   chunkId?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
+  pageNumber?: Prisma.SortOrder
   similarity?: Prisma.SortOrder
 }
 
@@ -508,6 +536,7 @@ export type ChatMessageRagCitationCreateWithoutChatMessageInput = {
   documentId: number
   chunkId: number
   chunkIndex: number
+  pageNumber?: number | null
   fileName: string
   similarity: number
   createdAt?: Date | string
@@ -518,6 +547,7 @@ export type ChatMessageRagCitationUncheckedCreateWithoutChatMessageInput = {
   documentId: number
   chunkId: number
   chunkIndex: number
+  pageNumber?: number | null
   fileName: string
   similarity: number
   createdAt?: Date | string
@@ -558,6 +588,7 @@ export type ChatMessageRagCitationScalarWhereInput = {
   documentId?: Prisma.IntFilter<"ChatMessageRagCitation"> | number
   chunkId?: Prisma.IntFilter<"ChatMessageRagCitation"> | number
   chunkIndex?: Prisma.IntFilter<"ChatMessageRagCitation"> | number
+  pageNumber?: Prisma.IntNullableFilter<"ChatMessageRagCitation"> | number | null
   fileName?: Prisma.StringFilter<"ChatMessageRagCitation"> | string
   similarity?: Prisma.FloatFilter<"ChatMessageRagCitation"> | number
   createdAt?: Prisma.DateTimeFilter<"ChatMessageRagCitation"> | Date | string
@@ -568,6 +599,7 @@ export type ChatMessageRagCitationCreateManyChatMessageInput = {
   documentId: number
   chunkId: number
   chunkIndex: number
+  pageNumber?: number | null
   fileName: string
   similarity: number
   createdAt?: Date | string
@@ -577,6 +609,7 @@ export type ChatMessageRagCitationUpdateWithoutChatMessageInput = {
   documentId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  pageNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   similarity?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -587,6 +620,7 @@ export type ChatMessageRagCitationUncheckedUpdateWithoutChatMessageInput = {
   documentId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  pageNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   similarity?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -597,6 +631,7 @@ export type ChatMessageRagCitationUncheckedUpdateManyWithoutChatMessageInput = {
   documentId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkId?: Prisma.IntFieldUpdateOperationsInput | number
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  pageNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   fileName?: Prisma.StringFieldUpdateOperationsInput | string
   similarity?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -610,6 +645,7 @@ export type ChatMessageRagCitationSelect<ExtArgs extends runtime.Types.Extension
   documentId?: boolean
   chunkId?: boolean
   chunkIndex?: boolean
+  pageNumber?: boolean
   fileName?: boolean
   similarity?: boolean
   createdAt?: boolean
@@ -622,6 +658,7 @@ export type ChatMessageRagCitationSelectCreateManyAndReturn<ExtArgs extends runt
   documentId?: boolean
   chunkId?: boolean
   chunkIndex?: boolean
+  pageNumber?: boolean
   fileName?: boolean
   similarity?: boolean
   createdAt?: boolean
@@ -634,6 +671,7 @@ export type ChatMessageRagCitationSelectUpdateManyAndReturn<ExtArgs extends runt
   documentId?: boolean
   chunkId?: boolean
   chunkIndex?: boolean
+  pageNumber?: boolean
   fileName?: boolean
   similarity?: boolean
   createdAt?: boolean
@@ -646,12 +684,13 @@ export type ChatMessageRagCitationSelectScalar = {
   documentId?: boolean
   chunkId?: boolean
   chunkIndex?: boolean
+  pageNumber?: boolean
   fileName?: boolean
   similarity?: boolean
   createdAt?: boolean
 }
 
-export type ChatMessageRagCitationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "chatMessageId" | "documentId" | "chunkId" | "chunkIndex" | "fileName" | "similarity" | "createdAt", ExtArgs["result"]["chatMessageRagCitation"]>
+export type ChatMessageRagCitationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "chatMessageId" | "documentId" | "chunkId" | "chunkIndex" | "pageNumber" | "fileName" | "similarity" | "createdAt", ExtArgs["result"]["chatMessageRagCitation"]>
 export type ChatMessageRagCitationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   chatMessage?: boolean | Prisma.ChatMessageDefaultArgs<ExtArgs>
 }
@@ -673,6 +712,7 @@ export type $ChatMessageRagCitationPayload<ExtArgs extends runtime.Types.Extensi
     documentId: number
     chunkId: number
     chunkIndex: number
+    pageNumber: number | null
     fileName: string
     similarity: number
     createdAt: Date
@@ -1105,6 +1145,7 @@ export interface ChatMessageRagCitationFieldRefs {
   readonly documentId: Prisma.FieldRef<"ChatMessageRagCitation", 'Int'>
   readonly chunkId: Prisma.FieldRef<"ChatMessageRagCitation", 'Int'>
   readonly chunkIndex: Prisma.FieldRef<"ChatMessageRagCitation", 'Int'>
+  readonly pageNumber: Prisma.FieldRef<"ChatMessageRagCitation", 'Int'>
   readonly fileName: Prisma.FieldRef<"ChatMessageRagCitation", 'String'>
   readonly similarity: Prisma.FieldRef<"ChatMessageRagCitation", 'Float'>
   readonly createdAt: Prisma.FieldRef<"ChatMessageRagCitation", 'DateTime'>

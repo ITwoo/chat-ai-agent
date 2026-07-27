@@ -18,7 +18,14 @@ type ChatGenerationResult = {
     assistantMessage: ChatMessage;
 }
 
-const ragCitationSelect = { documentId: true, chunkId: true, chunkIndex: true, fileName: true, similarity: true } as const;
+const ragCitationSelect = {
+    documentId: true,
+    chunkId: true,
+    chunkIndex: true,
+    pageNumber: true,
+    fileName: true,
+    similarity: true
+} as const;
 
 type ChatMessageWithRagCitations = Prisma.ChatMessageGetPayload<{
     include: { ragCitations: { select: typeof ragCitationSelect } };
@@ -102,8 +109,8 @@ export class ChatService {
         return {
             messages: pageMessages.reverse(),
             nextCursor: hasMore
-            ? pageMessages[pageMessages.length -1]?.id ?? null
-            : null,
+                ? pageMessages[pageMessages.length - 1]?.id ?? null
+                : null,
         };
     }
 
@@ -150,7 +157,7 @@ export class ChatService {
                     content: assistantContent,
                     ragCitations: ragCitations.length ? { createMany: { data: ragCitations } } : undefined,
                 },
-                include: { ragCitations: { select: ragCitationSelect }},
+                include: { ragCitations: { select: ragCitationSelect } },
             });
 
             await tx.chatRoom.update({ where: { id: roomId }, data: { updatedAt: new Date() } });

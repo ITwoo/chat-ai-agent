@@ -10,6 +10,7 @@ export function createRagCitations(
         documentId: result.documentId,
         chunkId: result.chunkId,
         chunkIndex: result.chunkIndex,
+        pageNumber: result.pageNumber,
         fileName: result.fileName,
         similarity: result.similarity,
     }));

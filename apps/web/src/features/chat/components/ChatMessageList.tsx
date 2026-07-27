@@ -194,7 +194,7 @@ export function ChatMessageList({
                 <ul className="space-y-1.5">
                     {message.ragCitations.map((citation, index) => (
                         <li key={`${citation.chunkId}-${index}`} className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                            <p className="break-all font-medium text-slate-700">{citation.fileName}</p>
+                            <p className="break-all font-medium text-slate-700">{citation.fileName}{citation.pageNumber !== null && ` · ${citation.pageNumber}페이지`}</p>
                             <p className="mt-0.5 text-slate-400">
                                 청크 {citation.chunkIndex + 1} · 검색 유사도 {(citation.similarity * 100).toFixed(1)}%
                             </p>

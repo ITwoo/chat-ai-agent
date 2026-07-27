@@ -17,6 +17,7 @@ import type {
 import { RagEmbeddingService } from './rag-embedding.service';
 import { EmbeddedChunk } from './rag.types';
 import { serializeVector } from './utils/rag-vector.util';
+import { RagDocumentExtractorService } from './extractors/rag-document-extractor.service';
 
 const CHUNK_SIZE = 1000;
 const CHUNK_OVERLAP = 200;
@@ -35,8 +36,8 @@ export class RagDocumentProcessor extends WorkerHost {
 
     constructor(
         private readonly prisma: PrismaService,
-        private readonly configService: ConfigService,
         private readonly ragEmbeddingService: RagEmbeddingService,
+        private readonly ragDocumentExtractorService: RagDocumentExtractorService,
     ) {
         super();
     }
@@ -62,7 +63,7 @@ export class RagDocumentProcessor extends WorkerHost {
                 };
             }
 
-            const content = await this.readDocument(storageKey);
+            const content = await this.ragDocumentExtractorService.extract(storageKey);
             const chunks = await this.splitter.splitText(content);
 
             if (chunks.length === 0) {
@@ -253,28 +254,4 @@ export class RagDocumentProcessor extends WorkerHost {
         else this.logger.error(logMessage);
     }
 
-    private async readDocument(storageKey: string): Promise<string> {
-        const uploadDir = this.configService.get<string>('RAG_UPLOAD_DIR') ?? 'uploads/rag';
-        const filePath = resolve(process.cwd(), uploadDir, storageKey);
-
-        let content: string;
-
-        try {
-            content = await readFile(filePath, 'utf8');
-        } catch (error) {
-            if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-                throw new UnrecoverableError(`RAG 원본 파일을 찾을 수 없습니다: storageKey=${storageKey}`);
-            }
-
-            throw error;
-        }
-
-        const normalizedContent = content.replace(/^\uFEFF/, '').trim();
-
-        if (!normalizedContent) {
-            throw new UnrecoverableError('RAG 문서가 비어 있습니다.');
-        }
-
-        return normalizedContent;
-    }
 }

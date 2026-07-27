@@ -13,6 +13,8 @@ import { RagSearchService } from './rag-search.service';
 import { RagAnswerService } from './rag-answer.service';
 import { RedisModule } from '../redis/redis.module';
 import { RagDocumentRecoveryService } from './rag-document-recovery.service';
+import { RagTextFileExtractor } from './extractors/rag-text-file-extractor.service';
+import { RagDocumentExtractorService } from './extractors/rag-document-extractor.service';
 
 @Module({
     imports: [
@@ -29,6 +31,7 @@ import { RagDocumentRecoveryService } from './rag-document-recovery.service';
     ],
     providers: [
         RagDocumentService,
+        RagDocumentRecoveryService,
         RagDocumentProcessor,
         RagEmbeddingService,
         RagSearchService,
@@ -40,6 +43,8 @@ import { RagDocumentRecoveryService } from './rag-document-recovery.service';
         RagSearchService,
         RagAnswerService,
         RagDocumentRecoveryService,
+        RagDocumentExtractorService,
+        RagTextFileExtractor,
     ],
 })
 export class RagModule {}

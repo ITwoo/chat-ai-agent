@@ -1219,6 +1219,9 @@ export type BoardScalarFieldEnum = (typeof BoardScalarFieldEnum)[keyof typeof Bo
 export const ChatRoomScalarFieldEnum = {
   id: 'id',
   title: 'title',
+  summary: 'summary',
+  summaryThroughMessageId: 'summaryThroughMessageId',
+  summaryUpdatedAt: 'summaryUpdatedAt',
   userId: 'userId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

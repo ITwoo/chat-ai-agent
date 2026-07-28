@@ -474,14 +474,6 @@ export type RagDocumentChunkUncheckedUpdateManyWithoutDocumentNestedInput = {
   deleteMany?: Prisma.RagDocumentChunkScalarWhereInput | Prisma.RagDocumentChunkScalarWhereInput[]
 }
 
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type RagDocumentChunkCreateWithoutDocumentInput = {
   chunkIndex: number
   pageNumber?: number | null

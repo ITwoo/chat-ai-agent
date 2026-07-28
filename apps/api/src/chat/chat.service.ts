@@ -32,6 +32,7 @@ type ChatMessageWithRagCitations = Prisma.ChatMessageGetPayload<{
 }>;
 
 const RECENT_CONTEXT_MESSAGE_LIMIT = 20;
+const SUMMARY_MESSAGE_BATCH_LIMIT = 40;
 
 const DEFAULT_MESSAGE_PAGE_SIZE = 30;
 
@@ -44,6 +45,12 @@ export type ChatMessagesPageResult = {
     messages: ChatMessageWithRagCitations[];
     nextCursor: number | null;
 }
+
+export type ChatSummaryTarget = {
+    currentSummary: string | null;
+    messages: ChatMessage[];
+    throughMessageId: number;
+};
 
 @Injectable()
 export class ChatService {
@@ -188,6 +195,70 @@ export class ChatService {
         });
 
         return messages.reverse();
+    }
+
+    async getSummaryTarget(
+        roomId: number,
+        userId: number,
+    ): Promise<ChatSummaryTarget | null> {
+        const room = await this.assertRoomOwner(roomId, userId);
+
+        const where = {
+            roomId,
+            status: ChatMessageStatus.COMPLETED,
+            ...(room.summaryThroughMessageId !== null
+                ? {
+                    id: {
+                        gt: room.summaryThroughMessageId,
+                    },
+                }
+                : {}),
+        } satisfies Prisma.ChatMessageWhereInput;
+
+        const unsummarizedMessageCount =
+            await this.prisma.chatMessage.count({
+                where,
+            });
+
+        const summarizableMessageCount =
+            unsummarizedMessageCount -
+            RECENT_CONTEXT_MESSAGE_LIMIT;
+
+        if (summarizableMessageCount <= 0) {
+            return null;
+        }
+
+        const messages =
+            await this.prisma.chatMessage.findMany({
+                where,
+                orderBy: {
+                    id: 'asc',
+                },
+                take: Math.min(
+                    summarizableMessageCount,
+                    SUMMARY_MESSAGE_BATCH_LIMIT,
+                ),
+            });
+
+        if (
+            messages.at(-1)?.role ===
+            ChatMessageRole.USER
+        ) {
+            messages.pop();
+        }
+
+        const throughMessageId =
+            messages.at(-1)?.id;
+
+        if (throughMessageId === undefined) {
+            return null;
+        }
+
+        return {
+            currentSummary: room.summary,
+            messages,
+            throughMessageId,
+        };
     }
 
     async updateRoomTitleFromFirstMessage(roomId: number, userId: number, content: string): Promise<ChatRoom> {

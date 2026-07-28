@@ -500,10 +500,6 @@ export type ExpenseUncheckedUpdateManyWithoutUserNestedInput = {
   deleteMany?: Prisma.ExpenseScalarWhereInput | Prisma.ExpenseScalarWhereInput[]
 }
 
-export type NullableStringFieldUpdateOperationsInput = {
-  set?: string | null
-}
-
 export type ExpenseCreateWithoutUserInput = {
   amount: number
   category: string

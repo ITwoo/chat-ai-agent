@@ -288,7 +288,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
             this.server.to(roomName).emit('chat_room_updated', updatedRoom)
 
-            const contextMessages = await this.chatService.getContextMessages(
+            const agentContext  = await this.chatService.getContextMessages(
                 payload.roomId,
                 user.id,
             );
@@ -307,7 +307,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
             for await (const event of this.agentService.streamReply(
                 user.id,
-                contextMessages,
+                agentContext,
                 agentThreadId,
                 abortController.signal,
             )) {

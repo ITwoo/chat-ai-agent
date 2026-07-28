@@ -46,6 +46,11 @@ export type ChatMessagesPageResult = {
     nextCursor: number | null;
 }
 
+export type ChatAgentContext = {
+    summary: string | null;
+    messages: ChatMessage[];
+};
+
 export type ChatSummaryTarget = {
     currentSummary: string | null;
     currentSummaryThroughMessageId: number | null;
@@ -185,8 +190,41 @@ export class ChatService {
     async getContextMessages(
         roomId: number,
         userId: number,
-    ): Promise<ChatMessage[]> {
-        return this.getRecentMessages(roomId, userId);
+    ): Promise<ChatAgentContext> {
+        const room = await this.assertRoomOwner(roomId, userId);
+        const summary = room.summary?.trim() || null;
+
+        const summaryThroughMessageId =
+            summary !== null
+                ? room.summaryThroughMessageId
+                : null;
+
+        const messages = await this.prisma.chatMessage.findMany({
+            where: {
+                roomId,
+                status: ChatMessageStatus.COMPLETED,
+                ...(summaryThroughMessageId !== null
+                    ? {
+                        id: {
+                            gt: summaryThroughMessageId,
+                        },
+                    }
+                    : {}),
+            },
+            orderBy: {
+                id: 'desc',
+            },
+            ...(summaryThroughMessageId === null
+                ? {
+                    take: RECENT_CONTEXT_MESSAGE_LIMIT,
+                }
+                : {}),
+        });
+
+        return {
+            summary,
+            messages: messages.reverse(),
+        };
     }
 
     async getRecentMessages(roomId: number, userId: number): Promise<ChatMessage[]> {

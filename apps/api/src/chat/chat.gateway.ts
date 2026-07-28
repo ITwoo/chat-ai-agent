@@ -25,6 +25,7 @@ import { PendingAgentApprovalStoreService } from './pending-agent-approval-store
 import { RedisLock, RedisLockService } from '../redis/redis-lock.service';
 import { RedisRateLimitService } from '../redis/redis-rate-limit.service';
 import { RagCitation } from '../rag/schemas/rag-citation.schema';
+import { ChatSummaryService } from './chat-summary.service';
 
 type AuthenticatedSocket = Socket & {
     data: {
@@ -88,6 +89,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     constructor(
         private readonly chatService: ChatService,
+        private readonly chatSummaryService: ChatSummaryService,
         private readonly agentService: AgentService,
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService,
@@ -388,6 +390,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 message: assistantMessage,
             });
 
+            void this.summarizeRoomSafely(payload.roomId, user.id);
         } catch (error) {
             if (
                 this.cancelledRooms.has(processingKey) ||
@@ -555,6 +558,36 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     private getRoomName(roomId: number) {
         return `chat_room:${roomId}`;
+    }
+
+    private async summarizeRoomSafely(
+        roomId: number,
+        userId: number,
+    ): Promise<void> {
+        try {
+            const result = await this.chatSummaryService.summarizeRoom(
+                roomId,
+                userId,
+            );
+
+            if (result === 'SAVED') {
+                this.logger.log(
+                    `채팅 요약 갱신 완료: roomId=${roomId}, userId=${userId}`,
+                );
+                return;
+            }
+
+            if (result === 'STALE') {
+                this.logger.debug(
+                    `채팅 요약 갱신 건너뜀: roomId=${roomId}, userId=${userId}, reason=stale`,
+                );
+            }
+        } catch (error) {
+            this.logger.error(
+                `채팅 요약 갱신 실패: roomId=${roomId}, userId=${userId}`,
+                error instanceof Error ? error.stack : String(error),
+            );
+        }
     }
 
     private isAbortError(error: unknown) {

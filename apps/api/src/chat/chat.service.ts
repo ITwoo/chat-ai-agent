@@ -48,9 +48,18 @@ export type ChatMessagesPageResult = {
 
 export type ChatSummaryTarget = {
     currentSummary: string | null;
+    currentSummaryThroughMessageId: number | null;
     messages: ChatMessage[];
     throughMessageId: number;
 };
+
+export type SaveChatSummaryInput = {
+    summary: string;
+    expectedThroughMessageId: number | null;
+    throughMessageId: number;
+};
+
+export type SaveChatSummaryResult = 'SAVED' | 'STALE';
 
 @Injectable()
 export class ChatService {
@@ -256,9 +265,33 @@ export class ChatService {
 
         return {
             currentSummary: room.summary,
+            currentSummaryThroughMessageId: room.summaryThroughMessageId,
             messages,
             throughMessageId,
         };
+    }
+
+    async saveSummary(
+        roomId: number,
+        userId: number,
+        input: SaveChatSummaryInput,
+    ): Promise<SaveChatSummaryResult> {
+        await this.assertRoomOwner(roomId, userId);
+
+        const updated = await this.prisma.chatRoom.updateMany({
+            where: {
+                id: roomId,
+                userId,
+                summaryThroughMessageId: input.expectedThroughMessageId,
+            },
+            data: {
+                summary: input.summary,
+                summaryThroughMessageId: input.throughMessageId,
+                summaryUpdatedAt: new Date(),
+            },
+        });
+
+        return updated.count === 1 ? 'SAVED' : 'STALE';
     }
 
     async updateRoomTitleFromFirstMessage(roomId: number, userId: number, content: string): Promise<ChatRoom> {

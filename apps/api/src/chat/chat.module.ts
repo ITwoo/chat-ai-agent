@@ -6,6 +6,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AgentModule } from '../agent/agent.module';
 import { PendingAgentApprovalStoreService } from './pending-agent-approval-store.service';
 import { RedisModule } from '../redis/redis.module';
+import { ChatSummaryService } from './chat-summary.service';
 
 @Module({
     imports: [JwtModule, AgentModule, RedisModule],
@@ -13,6 +14,7 @@ import { RedisModule } from '../redis/redis.module';
     providers: [
         ChatService,
         ChatGateway,
+        ChatSummaryService,
         PendingAgentApprovalStoreService,
     ],
 })

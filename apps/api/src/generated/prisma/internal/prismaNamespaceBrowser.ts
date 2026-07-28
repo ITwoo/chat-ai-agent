@@ -60,7 +60,8 @@ export const ModelName = {
   AgentPendingApproval: 'AgentPendingApproval',
   RagDocument: 'RagDocument',
   RagDocumentChunk: 'RagDocumentChunk',
-  ChatMessageRagCitation: 'ChatMessageRagCitation'
+  ChatMessageRagCitation: 'ChatMessageRagCitation',
+  UserMemory: 'UserMemory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -213,6 +214,22 @@ export const ChatMessageRagCitationScalarFieldEnum = {
 } as const
 
 export type ChatMessageRagCitationScalarFieldEnum = (typeof ChatMessageRagCitationScalarFieldEnum)[keyof typeof ChatMessageRagCitationScalarFieldEnum]
+
+
+export const UserMemoryScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  memoryKey: 'memoryKey',
+  content: 'content',
+  status: 'status',
+  sourceMessageId: 'sourceMessageId',
+  lastConfirmedAt: 'lastConfirmedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserMemoryScalarFieldEnum = (typeof UserMemoryScalarFieldEnum)[keyof typeof UserMemoryScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -43,3 +43,21 @@ export const RagDocumentStatus = {
 } as const
 
 export type RagDocumentStatus = (typeof RagDocumentStatus)[keyof typeof RagDocumentStatus]
+
+
+export const UserMemoryType = {
+  PROFILE: 'PROFILE',
+  PREFERENCE: 'PREFERENCE',
+  GOAL: 'GOAL',
+  CONSTRAINT: 'CONSTRAINT'
+} as const
+
+export type UserMemoryType = (typeof UserMemoryType)[keyof typeof UserMemoryType]
+
+
+export const UserMemoryStatus = {
+  ACTIVE: 'ACTIVE',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type UserMemoryStatus = (typeof UserMemoryStatus)[keyof typeof UserMemoryStatus]

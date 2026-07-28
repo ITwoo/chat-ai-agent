@@ -393,7 +393,8 @@ export const ModelName = {
   AgentPendingApproval: 'AgentPendingApproval',
   RagDocument: 'RagDocument',
   RagDocumentChunk: 'RagDocumentChunk',
-  ChatMessageRagCitation: 'ChatMessageRagCitation'
+  ChatMessageRagCitation: 'ChatMessageRagCitation',
+  UserMemory: 'UserMemory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -409,7 +410,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "board" | "chatRoom" | "chatMessage" | "expense" | "refreshTokenSession" | "agentPendingApproval" | "ragDocument" | "ragDocumentChunk" | "chatMessageRagCitation"
+    modelProps: "user" | "board" | "chatRoom" | "chatMessage" | "expense" | "refreshTokenSession" | "agentPendingApproval" | "ragDocument" | "ragDocumentChunk" | "chatMessageRagCitation" | "userMemory"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1153,6 +1154,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    UserMemory: {
+      payload: Prisma.$UserMemoryPayload<ExtArgs>
+      fields: Prisma.UserMemoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UserMemoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMemoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UserMemoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMemoryPayload>
+        }
+        findFirst: {
+          args: Prisma.UserMemoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMemoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UserMemoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMemoryPayload>
+        }
+        findMany: {
+          args: Prisma.UserMemoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMemoryPayload>[]
+        }
+        create: {
+          args: Prisma.UserMemoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMemoryPayload>
+        }
+        createMany: {
+          args: Prisma.UserMemoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UserMemoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMemoryPayload>[]
+        }
+        delete: {
+          args: Prisma.UserMemoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMemoryPayload>
+        }
+        update: {
+          args: Prisma.UserMemoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMemoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.UserMemoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UserMemoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UserMemoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMemoryPayload>[]
+        }
+        upsert: {
+          args: Prisma.UserMemoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMemoryPayload>
+        }
+        aggregate: {
+          args: Prisma.UserMemoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUserMemory>
+        }
+        groupBy: {
+          args: Prisma.UserMemoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserMemoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UserMemoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserMemoryCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1328,6 +1403,22 @@ export const ChatMessageRagCitationScalarFieldEnum = {
 export type ChatMessageRagCitationScalarFieldEnum = (typeof ChatMessageRagCitationScalarFieldEnum)[keyof typeof ChatMessageRagCitationScalarFieldEnum]
 
 
+export const UserMemoryScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  memoryKey: 'memoryKey',
+  content: 'content',
+  status: 'status',
+  sourceMessageId: 'sourceMessageId',
+  lastConfirmedAt: 'lastConfirmedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserMemoryScalarFieldEnum = (typeof UserMemoryScalarFieldEnum)[keyof typeof UserMemoryScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1499,6 +1590,34 @@ export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, '
 export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
 
+
+/**
+ * Reference to a field of type 'UserMemoryType'
+ */
+export type EnumUserMemoryTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserMemoryType'>
+    
+
+
+/**
+ * Reference to a field of type 'UserMemoryType[]'
+ */
+export type ListEnumUserMemoryTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserMemoryType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'UserMemoryStatus'
+ */
+export type EnumUserMemoryStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserMemoryStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'UserMemoryStatus[]'
+ */
+export type ListEnumUserMemoryStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserMemoryStatus[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -1619,6 +1738,7 @@ export type GlobalOmitConfig = {
   ragDocument?: Prisma.RagDocumentOmit
   ragDocumentChunk?: Prisma.RagDocumentChunkOmit
   chatMessageRagCitation?: Prisma.ChatMessageRagCitationOmit
+  userMemory?: Prisma.UserMemoryOmit
 }
 
 /* Types for Logging */

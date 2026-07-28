@@ -362,6 +362,40 @@ export type FloatWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedFloatFilter<$PrismaModel>
 }
 
+export type EnumUserMemoryTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserMemoryType | Prisma.EnumUserMemoryTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.UserMemoryType[] | Prisma.ListEnumUserMemoryTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.UserMemoryType[] | Prisma.ListEnumUserMemoryTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumUserMemoryTypeFilter<$PrismaModel> | $Enums.UserMemoryType
+}
+
+export type EnumUserMemoryStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserMemoryStatus | Prisma.EnumUserMemoryStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.UserMemoryStatus[] | Prisma.ListEnumUserMemoryStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.UserMemoryStatus[] | Prisma.ListEnumUserMemoryStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumUserMemoryStatusFilter<$PrismaModel> | $Enums.UserMemoryStatus
+}
+
+export type EnumUserMemoryTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserMemoryType | Prisma.EnumUserMemoryTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.UserMemoryType[] | Prisma.ListEnumUserMemoryTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.UserMemoryType[] | Prisma.ListEnumUserMemoryTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumUserMemoryTypeWithAggregatesFilter<$PrismaModel> | $Enums.UserMemoryType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumUserMemoryTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumUserMemoryTypeFilter<$PrismaModel>
+}
+
+export type EnumUserMemoryStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserMemoryStatus | Prisma.EnumUserMemoryStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.UserMemoryStatus[] | Prisma.ListEnumUserMemoryStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.UserMemoryStatus[] | Prisma.ListEnumUserMemoryStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumUserMemoryStatusWithAggregatesFilter<$PrismaModel> | $Enums.UserMemoryStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumUserMemoryStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumUserMemoryStatusFilter<$PrismaModel>
+}
+
 export type NestedIntFilter<$PrismaModel = never> = {
   equals?: number | Prisma.IntFieldRefInput<$PrismaModel>
   in?: number[] | Prisma.ListIntFieldRefInput<$PrismaModel>
@@ -681,6 +715,40 @@ export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
   _sum?: Prisma.NestedFloatFilter<$PrismaModel>
   _min?: Prisma.NestedFloatFilter<$PrismaModel>
   _max?: Prisma.NestedFloatFilter<$PrismaModel>
+}
+
+export type NestedEnumUserMemoryTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserMemoryType | Prisma.EnumUserMemoryTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.UserMemoryType[] | Prisma.ListEnumUserMemoryTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.UserMemoryType[] | Prisma.ListEnumUserMemoryTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumUserMemoryTypeFilter<$PrismaModel> | $Enums.UserMemoryType
+}
+
+export type NestedEnumUserMemoryStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserMemoryStatus | Prisma.EnumUserMemoryStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.UserMemoryStatus[] | Prisma.ListEnumUserMemoryStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.UserMemoryStatus[] | Prisma.ListEnumUserMemoryStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumUserMemoryStatusFilter<$PrismaModel> | $Enums.UserMemoryStatus
+}
+
+export type NestedEnumUserMemoryTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserMemoryType | Prisma.EnumUserMemoryTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.UserMemoryType[] | Prisma.ListEnumUserMemoryTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.UserMemoryType[] | Prisma.ListEnumUserMemoryTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumUserMemoryTypeWithAggregatesFilter<$PrismaModel> | $Enums.UserMemoryType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumUserMemoryTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumUserMemoryTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumUserMemoryStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserMemoryStatus | Prisma.EnumUserMemoryStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.UserMemoryStatus[] | Prisma.ListEnumUserMemoryStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.UserMemoryStatus[] | Prisma.ListEnumUserMemoryStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumUserMemoryStatusWithAggregatesFilter<$PrismaModel> | $Enums.UserMemoryStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumUserMemoryStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumUserMemoryStatusFilter<$PrismaModel>
 }
 
 

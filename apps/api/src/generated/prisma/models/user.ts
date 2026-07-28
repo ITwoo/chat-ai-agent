@@ -220,6 +220,7 @@ export type UserWhereInput = {
   chatRooms?: Prisma.ChatRoomListRelationFilter
   expense?: Prisma.ExpenseListRelationFilter
   refreshTokenSessions?: Prisma.RefreshTokenSessionListRelationFilter
+  memories?: Prisma.UserMemoryListRelationFilter
   ragDocuments?: Prisma.RagDocumentListRelationFilter
 }
 
@@ -233,6 +234,7 @@ export type UserOrderByWithRelationInput = {
   chatRooms?: Prisma.ChatRoomOrderByRelationAggregateInput
   expense?: Prisma.ExpenseOrderByRelationAggregateInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionOrderByRelationAggregateInput
+  memories?: Prisma.UserMemoryOrderByRelationAggregateInput
   ragDocuments?: Prisma.RagDocumentOrderByRelationAggregateInput
 }
 
@@ -249,6 +251,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   chatRooms?: Prisma.ChatRoomListRelationFilter
   expense?: Prisma.ExpenseListRelationFilter
   refreshTokenSessions?: Prisma.RefreshTokenSessionListRelationFilter
+  memories?: Prisma.UserMemoryListRelationFilter
   ragDocuments?: Prisma.RagDocumentListRelationFilter
 }, "id" | "username">
 
@@ -285,6 +288,7 @@ export type UserCreateInput = {
   chatRooms?: Prisma.ChatRoomCreateNestedManyWithoutUserInput
   expense?: Prisma.ExpenseCreateNestedManyWithoutUserInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionCreateNestedManyWithoutUserInput
+  memories?: Prisma.UserMemoryCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentCreateNestedManyWithoutUserInput
 }
 
@@ -298,6 +302,7 @@ export type UserUncheckedCreateInput = {
   chatRooms?: Prisma.ChatRoomUncheckedCreateNestedManyWithoutUserInput
   expense?: Prisma.ExpenseUncheckedCreateNestedManyWithoutUserInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedCreateNestedManyWithoutUserInput
+  memories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -310,6 +315,7 @@ export type UserUpdateInput = {
   chatRooms?: Prisma.ChatRoomUpdateManyWithoutUserNestedInput
   expense?: Prisma.ExpenseUpdateManyWithoutUserNestedInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUpdateManyWithoutUserNestedInput
+  memories?: Prisma.UserMemoryUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUpdateManyWithoutUserNestedInput
 }
 
@@ -323,6 +329,7 @@ export type UserUncheckedUpdateInput = {
   chatRooms?: Prisma.ChatRoomUncheckedUpdateManyWithoutUserNestedInput
   expense?: Prisma.ExpenseUncheckedUpdateManyWithoutUserNestedInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedUpdateManyWithoutUserNestedInput
+  memories?: Prisma.UserMemoryUncheckedUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -472,6 +479,20 @@ export type UserUpdateOneRequiredWithoutRagDocumentsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutRagDocumentsInput, Prisma.UserUpdateWithoutRagDocumentsInput>, Prisma.UserUncheckedUpdateWithoutRagDocumentsInput>
 }
 
+export type UserCreateNestedOneWithoutMemoriesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutMemoriesInput, Prisma.UserUncheckedCreateWithoutMemoriesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMemoriesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutMemoriesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutMemoriesInput, Prisma.UserUncheckedCreateWithoutMemoriesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMemoriesInput
+  upsert?: Prisma.UserUpsertWithoutMemoriesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutMemoriesInput, Prisma.UserUpdateWithoutMemoriesInput>, Prisma.UserUncheckedUpdateWithoutMemoriesInput>
+}
+
 export type UserCreateWithoutBoardsInput = {
   username: string
   password: string
@@ -480,6 +501,7 @@ export type UserCreateWithoutBoardsInput = {
   chatRooms?: Prisma.ChatRoomCreateNestedManyWithoutUserInput
   expense?: Prisma.ExpenseCreateNestedManyWithoutUserInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionCreateNestedManyWithoutUserInput
+  memories?: Prisma.UserMemoryCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentCreateNestedManyWithoutUserInput
 }
 
@@ -492,6 +514,7 @@ export type UserUncheckedCreateWithoutBoardsInput = {
   chatRooms?: Prisma.ChatRoomUncheckedCreateNestedManyWithoutUserInput
   expense?: Prisma.ExpenseUncheckedCreateNestedManyWithoutUserInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedCreateNestedManyWithoutUserInput
+  memories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -519,6 +542,7 @@ export type UserUpdateWithoutBoardsInput = {
   chatRooms?: Prisma.ChatRoomUpdateManyWithoutUserNestedInput
   expense?: Prisma.ExpenseUpdateManyWithoutUserNestedInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUpdateManyWithoutUserNestedInput
+  memories?: Prisma.UserMemoryUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUpdateManyWithoutUserNestedInput
 }
 
@@ -531,6 +555,7 @@ export type UserUncheckedUpdateWithoutBoardsInput = {
   chatRooms?: Prisma.ChatRoomUncheckedUpdateManyWithoutUserNestedInput
   expense?: Prisma.ExpenseUncheckedUpdateManyWithoutUserNestedInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedUpdateManyWithoutUserNestedInput
+  memories?: Prisma.UserMemoryUncheckedUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -542,6 +567,7 @@ export type UserCreateWithoutChatRoomsInput = {
   boards?: Prisma.BoardCreateNestedManyWithoutUserInput
   expense?: Prisma.ExpenseCreateNestedManyWithoutUserInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionCreateNestedManyWithoutUserInput
+  memories?: Prisma.UserMemoryCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentCreateNestedManyWithoutUserInput
 }
 
@@ -554,6 +580,7 @@ export type UserUncheckedCreateWithoutChatRoomsInput = {
   boards?: Prisma.BoardUncheckedCreateNestedManyWithoutUserInput
   expense?: Prisma.ExpenseUncheckedCreateNestedManyWithoutUserInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedCreateNestedManyWithoutUserInput
+  memories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -581,6 +608,7 @@ export type UserUpdateWithoutChatRoomsInput = {
   boards?: Prisma.BoardUpdateManyWithoutUserNestedInput
   expense?: Prisma.ExpenseUpdateManyWithoutUserNestedInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUpdateManyWithoutUserNestedInput
+  memories?: Prisma.UserMemoryUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUpdateManyWithoutUserNestedInput
 }
 
@@ -593,6 +621,7 @@ export type UserUncheckedUpdateWithoutChatRoomsInput = {
   boards?: Prisma.BoardUncheckedUpdateManyWithoutUserNestedInput
   expense?: Prisma.ExpenseUncheckedUpdateManyWithoutUserNestedInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedUpdateManyWithoutUserNestedInput
+  memories?: Prisma.UserMemoryUncheckedUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -604,6 +633,7 @@ export type UserCreateWithoutExpenseInput = {
   boards?: Prisma.BoardCreateNestedManyWithoutUserInput
   chatRooms?: Prisma.ChatRoomCreateNestedManyWithoutUserInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionCreateNestedManyWithoutUserInput
+  memories?: Prisma.UserMemoryCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentCreateNestedManyWithoutUserInput
 }
 
@@ -616,6 +646,7 @@ export type UserUncheckedCreateWithoutExpenseInput = {
   boards?: Prisma.BoardUncheckedCreateNestedManyWithoutUserInput
   chatRooms?: Prisma.ChatRoomUncheckedCreateNestedManyWithoutUserInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedCreateNestedManyWithoutUserInput
+  memories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -643,6 +674,7 @@ export type UserUpdateWithoutExpenseInput = {
   boards?: Prisma.BoardUpdateManyWithoutUserNestedInput
   chatRooms?: Prisma.ChatRoomUpdateManyWithoutUserNestedInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUpdateManyWithoutUserNestedInput
+  memories?: Prisma.UserMemoryUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUpdateManyWithoutUserNestedInput
 }
 
@@ -655,6 +687,7 @@ export type UserUncheckedUpdateWithoutExpenseInput = {
   boards?: Prisma.BoardUncheckedUpdateManyWithoutUserNestedInput
   chatRooms?: Prisma.ChatRoomUncheckedUpdateManyWithoutUserNestedInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedUpdateManyWithoutUserNestedInput
+  memories?: Prisma.UserMemoryUncheckedUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -666,6 +699,7 @@ export type UserCreateWithoutRefreshTokenSessionsInput = {
   boards?: Prisma.BoardCreateNestedManyWithoutUserInput
   chatRooms?: Prisma.ChatRoomCreateNestedManyWithoutUserInput
   expense?: Prisma.ExpenseCreateNestedManyWithoutUserInput
+  memories?: Prisma.UserMemoryCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentCreateNestedManyWithoutUserInput
 }
 
@@ -678,6 +712,7 @@ export type UserUncheckedCreateWithoutRefreshTokenSessionsInput = {
   boards?: Prisma.BoardUncheckedCreateNestedManyWithoutUserInput
   chatRooms?: Prisma.ChatRoomUncheckedCreateNestedManyWithoutUserInput
   expense?: Prisma.ExpenseUncheckedCreateNestedManyWithoutUserInput
+  memories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -705,6 +740,7 @@ export type UserUpdateWithoutRefreshTokenSessionsInput = {
   boards?: Prisma.BoardUpdateManyWithoutUserNestedInput
   chatRooms?: Prisma.ChatRoomUpdateManyWithoutUserNestedInput
   expense?: Prisma.ExpenseUpdateManyWithoutUserNestedInput
+  memories?: Prisma.UserMemoryUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUpdateManyWithoutUserNestedInput
 }
 
@@ -717,6 +753,7 @@ export type UserUncheckedUpdateWithoutRefreshTokenSessionsInput = {
   boards?: Prisma.BoardUncheckedUpdateManyWithoutUserNestedInput
   chatRooms?: Prisma.ChatRoomUncheckedUpdateManyWithoutUserNestedInput
   expense?: Prisma.ExpenseUncheckedUpdateManyWithoutUserNestedInput
+  memories?: Prisma.UserMemoryUncheckedUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -729,6 +766,7 @@ export type UserCreateWithoutRagDocumentsInput = {
   chatRooms?: Prisma.ChatRoomCreateNestedManyWithoutUserInput
   expense?: Prisma.ExpenseCreateNestedManyWithoutUserInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionCreateNestedManyWithoutUserInput
+  memories?: Prisma.UserMemoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutRagDocumentsInput = {
@@ -741,6 +779,7 @@ export type UserUncheckedCreateWithoutRagDocumentsInput = {
   chatRooms?: Prisma.ChatRoomUncheckedCreateNestedManyWithoutUserInput
   expense?: Prisma.ExpenseUncheckedCreateNestedManyWithoutUserInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedCreateNestedManyWithoutUserInput
+  memories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutRagDocumentsInput = {
@@ -768,6 +807,7 @@ export type UserUpdateWithoutRagDocumentsInput = {
   chatRooms?: Prisma.ChatRoomUpdateManyWithoutUserNestedInput
   expense?: Prisma.ExpenseUpdateManyWithoutUserNestedInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUpdateManyWithoutUserNestedInput
+  memories?: Prisma.UserMemoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRagDocumentsInput = {
@@ -780,6 +820,73 @@ export type UserUncheckedUpdateWithoutRagDocumentsInput = {
   chatRooms?: Prisma.ChatRoomUncheckedUpdateManyWithoutUserNestedInput
   expense?: Prisma.ExpenseUncheckedUpdateManyWithoutUserNestedInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedUpdateManyWithoutUserNestedInput
+  memories?: Prisma.UserMemoryUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutMemoriesInput = {
+  username: string
+  password: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  boards?: Prisma.BoardCreateNestedManyWithoutUserInput
+  chatRooms?: Prisma.ChatRoomCreateNestedManyWithoutUserInput
+  expense?: Prisma.ExpenseCreateNestedManyWithoutUserInput
+  refreshTokenSessions?: Prisma.RefreshTokenSessionCreateNestedManyWithoutUserInput
+  ragDocuments?: Prisma.RagDocumentCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutMemoriesInput = {
+  id?: number
+  username: string
+  password: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  boards?: Prisma.BoardUncheckedCreateNestedManyWithoutUserInput
+  chatRooms?: Prisma.ChatRoomUncheckedCreateNestedManyWithoutUserInput
+  expense?: Prisma.ExpenseUncheckedCreateNestedManyWithoutUserInput
+  refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedCreateNestedManyWithoutUserInput
+  ragDocuments?: Prisma.RagDocumentUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutMemoriesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutMemoriesInput, Prisma.UserUncheckedCreateWithoutMemoriesInput>
+}
+
+export type UserUpsertWithoutMemoriesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutMemoriesInput, Prisma.UserUncheckedUpdateWithoutMemoriesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutMemoriesInput, Prisma.UserUncheckedCreateWithoutMemoriesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutMemoriesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutMemoriesInput, Prisma.UserUncheckedUpdateWithoutMemoriesInput>
+}
+
+export type UserUpdateWithoutMemoriesInput = {
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  boards?: Prisma.BoardUpdateManyWithoutUserNestedInput
+  chatRooms?: Prisma.ChatRoomUpdateManyWithoutUserNestedInput
+  expense?: Prisma.ExpenseUpdateManyWithoutUserNestedInput
+  refreshTokenSessions?: Prisma.RefreshTokenSessionUpdateManyWithoutUserNestedInput
+  ragDocuments?: Prisma.RagDocumentUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutMemoriesInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  boards?: Prisma.BoardUncheckedUpdateManyWithoutUserNestedInput
+  chatRooms?: Prisma.ChatRoomUncheckedUpdateManyWithoutUserNestedInput
+  expense?: Prisma.ExpenseUncheckedUpdateManyWithoutUserNestedInput
+  refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedUpdateManyWithoutUserNestedInput
+  ragDocuments?: Prisma.RagDocumentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -792,6 +899,7 @@ export type UserCountOutputType = {
   chatRooms: number
   expense: number
   refreshTokenSessions: number
+  memories: number
   ragDocuments: number
 }
 
@@ -800,6 +908,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   chatRooms?: boolean | UserCountOutputTypeCountChatRoomsArgs
   expense?: boolean | UserCountOutputTypeCountExpenseArgs
   refreshTokenSessions?: boolean | UserCountOutputTypeCountRefreshTokenSessionsArgs
+  memories?: boolean | UserCountOutputTypeCountMemoriesArgs
   ragDocuments?: boolean | UserCountOutputTypeCountRagDocumentsArgs
 }
 
@@ -844,6 +953,13 @@ export type UserCountOutputTypeCountRefreshTokenSessionsArgs<ExtArgs extends run
 /**
  * UserCountOutputType without action
  */
+export type UserCountOutputTypeCountMemoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserMemoryWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
 export type UserCountOutputTypeCountRagDocumentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.RagDocumentWhereInput
 }
@@ -859,6 +975,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   chatRooms?: boolean | Prisma.User$chatRoomsArgs<ExtArgs>
   expense?: boolean | Prisma.User$expenseArgs<ExtArgs>
   refreshTokenSessions?: boolean | Prisma.User$refreshTokenSessionsArgs<ExtArgs>
+  memories?: boolean | Prisma.User$memoriesArgs<ExtArgs>
   ragDocuments?: boolean | Prisma.User$ragDocumentsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
@@ -893,6 +1010,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   chatRooms?: boolean | Prisma.User$chatRoomsArgs<ExtArgs>
   expense?: boolean | Prisma.User$expenseArgs<ExtArgs>
   refreshTokenSessions?: boolean | Prisma.User$refreshTokenSessionsArgs<ExtArgs>
+  memories?: boolean | Prisma.User$memoriesArgs<ExtArgs>
   ragDocuments?: boolean | Prisma.User$ragDocumentsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -906,6 +1024,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     chatRooms: Prisma.$ChatRoomPayload<ExtArgs>[]
     expense: Prisma.$ExpensePayload<ExtArgs>[]
     refreshTokenSessions: Prisma.$RefreshTokenSessionPayload<ExtArgs>[]
+    memories: Prisma.$UserMemoryPayload<ExtArgs>[]
     ragDocuments: Prisma.$RagDocumentPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1312,6 +1431,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   chatRooms<T extends Prisma.User$chatRoomsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$chatRoomsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ChatRoomPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   expense<T extends Prisma.User$expenseArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$expenseArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ExpensePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   refreshTokenSessions<T extends Prisma.User$refreshTokenSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$refreshTokenSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RefreshTokenSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  memories<T extends Prisma.User$memoriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$memoriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserMemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   ragDocuments<T extends Prisma.User$ragDocumentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ragDocumentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RagDocumentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1833,6 +1953,30 @@ export type User$refreshTokenSessionsArgs<ExtArgs extends runtime.Types.Extensio
   take?: number
   skip?: number
   distinct?: Prisma.RefreshTokenSessionScalarFieldEnum | Prisma.RefreshTokenSessionScalarFieldEnum[]
+}
+
+/**
+ * User.memories
+ */
+export type User$memoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserMemory
+   */
+  select?: Prisma.UserMemorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserMemory
+   */
+  omit?: Prisma.UserMemoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserMemoryInclude<ExtArgs> | null
+  where?: Prisma.UserMemoryWhereInput
+  orderBy?: Prisma.UserMemoryOrderByWithRelationInput | Prisma.UserMemoryOrderByWithRelationInput[]
+  cursor?: Prisma.UserMemoryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserMemoryScalarFieldEnum | Prisma.UserMemoryScalarFieldEnum[]
 }
 
 /**

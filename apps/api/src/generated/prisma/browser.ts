@@ -67,3 +67,8 @@ export type RagDocumentChunk = Prisma.RagDocumentChunkModel
  * 
  */
 export type ChatMessageRagCitation = Prisma.ChatMessageRagCitationModel
+/**
+ * Model UserMemory
+ * 
+ */
+export type UserMemory = Prisma.UserMemoryModel

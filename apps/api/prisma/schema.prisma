@@ -26,10 +26,22 @@ enum  ChatMessageStatus {
 }
 
 enum RagDocumentStatus {
-  PENDING
-  PROCESSING
-  READY
-  FAILED
+    PENDING
+    PROCESSING
+    READY
+    FAILED
+}
+
+enum UserMemoryType {
+    PROFILE
+    PREFERENCE
+    GOAL
+    CONSTRAINT
+}
+
+enum UserMemoryStatus {
+    ACTIVE
+    ARCHIVED
 }
 
 model User {
@@ -41,6 +53,7 @@ model User {
     chatRooms ChatRoom[]
     expense   Expense[]
     refreshTokenSessions RefreshTokenSession[]
+    memories UserMemory[]
     ragDocuments RagDocument[]
 
     createdAt DateTime @default(now())
@@ -90,13 +103,11 @@ model ChatMessage {
 
     roomId Int
     room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-
     role    ChatMessageRole
     content String          @db.Text
     status  ChatMessageStatus @default(COMPLETED)
-
     ragCitations ChatMessageRagCitation[]
-
+    sourcedUserMemories UserMemory[] @relation("UserMemorySourceMessage")
     createdAt DateTime @default(now())
 
     @@index([roomId])
@@ -159,41 +170,41 @@ model AgentPendingApproval {
 }
 
 model RagDocument {
-  id            Int               @id @default(autoincrement())
-  userId        Int
-  fileName      String            @db.VarChar(255)
-  storageKey    String            @unique @db.VarChar(255)
-  mimeType      String            @db.VarChar(100)
-  sizeBytes     Int
-  status        RagDocumentStatus @default(PENDING)
-  error         String?           @db.Text
+    id            Int               @id @default(autoincrement())
+    userId        Int
+    fileName      String            @db.VarChar(255)
+    storageKey    String            @unique @db.VarChar(255)
+    mimeType      String            @db.VarChar(100)
+    sizeBytes     Int
+    status        RagDocumentStatus @default(PENDING)
+    error         String?           @db.Text
 
-  user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chunks RagDocumentChunk[]
+    user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+    chunks RagDocumentChunk[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  @@index([userId])
-  @@index([userId, status])
-  @@index([createdAt])
+    @@index([userId])
+    @@index([userId, status])
+    @@index([createdAt])
 }
 
 model RagDocumentChunk {
-  id         Int    @id @default(autoincrement())
-  documentId Int
-  chunkIndex Int
-  pageNumber Int?
-  content    String @db.Text
-  tokenCount Int?
-  embedding  Unsupported("vector")?
+    id         Int    @id @default(autoincrement())
+    documentId Int
+    chunkIndex Int
+    pageNumber Int?
+    content    String @db.Text
+    tokenCount Int?
+    embedding  Unsupported("vector")?
 
-  document RagDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+    document RagDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
+    createdAt DateTime @default(now())
 
-  @@unique([documentId, chunkIndex])
-  @@index([documentId])
+    @@unique([documentId, chunkIndex])
+    @@index([documentId])
 }
 
 model ChatMessageRagCitation {
@@ -212,4 +223,26 @@ model ChatMessageRagCitation {
     createdAt DateTime @default(now())
 
     @@index([chatMessageId])
+}
+
+model UserMemory {
+    id              Int              @id @default(autoincrement())
+    userId          Int
+    type            UserMemoryType
+    memoryKey       String           @db.VarChar(120)
+    content         String           @db.Text
+    status          UserMemoryStatus @default(ACTIVE)
+    sourceMessageId Int?
+    lastConfirmedAt DateTime         @default(now())
+    createdAt       DateTime         @default(now())
+    updatedAt       DateTime         @updatedAt
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    sourceMessage ChatMessage? @relation("UserMemorySourceMessage", fields: [sourceMessageId], references: [id], onDelete: SetNull)
+
+    @@unique([userId, memoryKey])
+    @@index([userId, status])
+    @@index([userId, type, status])
+    @@index([sourceMessageId])
 }

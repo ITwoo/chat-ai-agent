@@ -26,6 +26,7 @@ import { RedisLock, RedisLockService } from '../redis/redis-lock.service';
 import { RedisRateLimitService } from '../redis/redis-rate-limit.service';
 import { RagCitation } from '../rag/schemas/rag-citation.schema';
 import { ChatSummaryService } from './chat-summary.service';
+import { UserMemoryExtractionService } from '../user-memory/user-memory-extraction.service';
 
 type AuthenticatedSocket = Socket & {
     data: {
@@ -90,6 +91,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     constructor(
         private readonly chatService: ChatService,
         private readonly chatSummaryService: ChatSummaryService,
+        private readonly userMemoryExtractionService: UserMemoryExtractionService,
         private readonly agentService: AgentService,
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService,
@@ -274,6 +276,12 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 payload.content,
             );
 
+            void this.extractUserMemoriesSafely(
+                user.id,
+                userMessage.id,
+                userMessage.content,
+            );
+            
             userMessageId = userMessage.id;
 
             const agentThreadId = this.getAgentThreadId(user.id, payload.roomId, userMessage.id);
@@ -1141,4 +1149,29 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         );
     }
 
+
+    private async extractUserMemoriesSafely(
+        userId: number,
+        messageId: number,
+        content: string,
+    ): Promise<void> {
+        try {
+            const result = await this.userMemoryExtractionService.extractAndSave(
+                userId,
+                messageId,
+                content,
+            );
+
+            if (result.savedCount > 0) {
+                this.logger.log(
+                    `사용자 장기 메모리 저장 완료: userId=${userId}, messageId=${messageId}, savedCount=${result.savedCount}`,
+                );
+            }
+        } catch (error) {
+            this.logger.error(
+                `사용자 장기 메모리 추출 실패: userId=${userId}, messageId=${messageId}`,
+                error instanceof Error ? error.stack : String(error),
+            );
+        }
+    }
 }

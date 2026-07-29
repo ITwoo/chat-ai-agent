@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ChatOpenAI } from '@langchain/openai'
 import { AIMessage, BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import type { ChatMessage, UserMemory } from '../generated/prisma/client';
@@ -75,6 +75,7 @@ const USER_MEMORY_CONTEXT_INSTRUCTION = `
 
 @Injectable()
 export class AgentService {
+    private readonly logger = new Logger(AgentService.name);
 
     constructor(
         private readonly configService: ConfigService,
@@ -165,7 +166,7 @@ export class AgentService {
         threadId: string,
         signal?: AbortSignal,
     ): AsyncGenerator<AgentStreamEvent> {        
-        const userMemories = await this.userMemoryService.getActiveMemories(userId);
+        const userMemories = await this.getUserMemoriesSafely(userId);
         const langchainMessages = this.toLangChainMessages(context, userMemories);
 
         yield* this.streamGraph(
@@ -342,6 +343,21 @@ export class AgentService {
                 '</user_memories>',
             ].join('\n'),
         );
+    }
+
+    private async getUserMemoriesSafely(
+        userId: number,
+    ): Promise<UserMemory[]> {
+        try {
+            return await this.userMemoryService.getActiveMemories(userId);
+        } catch (error) {
+            this.logger.error(
+                `사용자 장기 메모리 조회 실패: userId=${userId}`,
+                error instanceof Error ? error.stack : String(error),
+            );
+
+            return [];
+        }
     }
 
 }

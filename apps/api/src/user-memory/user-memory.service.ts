@@ -7,12 +7,15 @@ import type {
     UserMemory,
 } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service';
-import type { UpsertUserMemoryInput } from './user-memory.types';
+import type { SearchUserMemoriesInput, UpsertUserMemoryInput } from './user-memory.types';
 
 const DEFAULT_MEMORY_LIMIT = 50;
 const MAX_MEMORY_LIMIT = 100;
 const MAX_MEMORY_KEY_LENGTH = 120;
 const MEMORY_KEY_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
+
+const DEFAULT_MEMORY_SEARCH_LIMIT = 10;
+const MAX_MEMORY_SEARCH_LIMIT = 20;
 
 @Injectable()
 export class UserMemoryService {
@@ -62,6 +65,16 @@ export class UserMemoryService {
         return Math.min(limit, MAX_MEMORY_LIMIT);
     }
 
+    private normalizeSearchLimit(limit?: number): number {
+        if (limit === undefined) return DEFAULT_MEMORY_SEARCH_LIMIT;
+
+        if (!Number.isInteger(limit) || limit < 1) {
+            return DEFAULT_MEMORY_SEARCH_LIMIT;
+        }
+
+        return Math.min(limit, MAX_MEMORY_SEARCH_LIMIT);
+    }
+
     private async assertSourceMessageOwner(
         userId: number,
         sourceMessageId: number | null,
@@ -103,6 +116,43 @@ export class UserMemoryService {
                 },
             ],
             take: this.normalizeLimit(limit),
+        });
+    }
+
+    async searchActiveMemories(
+        userId: number,
+        input: SearchUserMemoriesInput,
+    ): Promise<UserMemory[]> {
+        const query = input.query?.trim();
+
+        return this.prisma.userMemory.findMany({
+            where: {
+                userId,
+                status: 'ACTIVE',
+                ...(input.type ? { type: input.type } : {}),
+                ...(query
+                    ? {
+                        OR: [
+                            {
+                                memoryKey: {
+                                    contains: query,
+                                    mode: 'insensitive',
+                                },
+                            },
+                            {
+                                content: {
+                                    contains: query,
+                                    mode: 'insensitive',
+                                },
+                            },
+                        ],
+                    }
+                    : {}),
+            },
+            orderBy: {
+                updatedAt: 'desc',
+            },
+            take: this.normalizeSearchLimit(input.limit),
         });
     }
 

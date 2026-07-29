@@ -7,6 +7,7 @@ import { ExpenseUpdateApprovalRequest, updateExpenseDecisionSchema } from './age
 import { RAG_SEARCH_TOOL_NAME } from '../rag/rag.constants';
 import { ragSearchToolInputSchema } from '../rag/schemas/rag-search-tool.schema';
 import { AgentToolContext } from './types/agent-tool-context.type';
+import { UserMemoryToolsService } from '../user-memory/user-memory-tools.service';
 
 const EXPENSE_CATEGORIES = [
     '식비',
@@ -32,6 +33,7 @@ export class AgentToolsService {
 
     constructor(
         private readonly prisma: PrismaService,
+        private readonly userMemoryToolsService: UserMemoryToolsService, 
     ) { }
 
     getTools(context: AgentToolContext): StructuredToolInterface[] {
@@ -43,6 +45,7 @@ export class AgentToolsService {
             this.createFindExpensesTool(context),
             this.createUpdateExpenseTool(context),
             this.createSearchRagDocumentsTool(),
+            ...this.userMemoryToolsService.getTools(context),
         ];
     }
 

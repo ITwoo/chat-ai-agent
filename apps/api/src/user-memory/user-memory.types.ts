@@ -6,3 +6,9 @@ export type UpsertUserMemoryInput = {
     content: string;
     sourceMessageId: number | null;
 };
+
+export type SearchUserMemoriesInput = {
+    query?: string;
+    type?: UserMemoryType;
+    limit?: number;
+};

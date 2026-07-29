@@ -18,7 +18,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AgentService, AgentStreamEvent } from '../agent/agent.service';
-import { agentApprovalResponseSchema, ExpenseUpdateApprovalRequest, UpdateExpenseDecision } from '../agent/agent-interrupt.schema';
+import { AgentApprovalDecision, AgentApprovalRequest, agentApprovalResponseSchema, ExpenseUpdateApprovalRequest } from '../agent/agent-interrupt.schema';
 import { randomUUID } from 'node:crypto';
 import { PendingAgentApproval } from './types/pending-agent-approval.type';
 import { PendingAgentApprovalStoreService } from './pending-agent-approval-store.service';
@@ -631,7 +631,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
     private parseApprovalDecision(
         content: string,
-    ): UpdateExpenseDecision | null {
+    ): AgentApprovalDecision | null {
         const normalized = content
             .trim()
             .replace(/\s+/g, '')
@@ -654,8 +654,16 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
 
     private createApprovalRequestMessage(
-        request: ExpenseUpdateApprovalRequest,
+        request: AgentApprovalRequest,
     ): string {
+        if (request.type === 'user_memory_delete_approval') {
+            return [
+                request.message,
+                `- 타입: ${request.memory.type}`,
+                `- 키: ${request.memory.memoryKey}`,
+                `- 내용: ${request.memory.content}`,
+            ].join('\n');
+        }
         const changes: string[] = [];
 
         if (
@@ -1064,9 +1072,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
 
     private async resolveApprovalDecision(
-        request: ExpenseUpdateApprovalRequest,
+        request: AgentApprovalRequest,
         source: AgentApprovalSource,
-    ): Promise<UpdateExpenseDecision | null> {
+    ): Promise<AgentApprovalDecision | null> {
         if (source.type === 'button') {
             return {
                 action: source.action,

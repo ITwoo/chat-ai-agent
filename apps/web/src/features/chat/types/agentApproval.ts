@@ -26,11 +26,31 @@ export type ExpenseUpdateApprovalRequest = {
     };
 };
 
+export type UserMemoryDeleteApprovalRequest = {
+    type: 'user_memory_delete_approval';
+    action: 'delete_user_memory';
+    message: string;
+    memory: {
+        id: number;
+        type:
+            | 'PROFILE'
+            | 'PREFERENCE'
+            | 'GOAL'
+            | 'CONSTRAINT';
+        memoryKey: string;
+        content: string;
+    };
+};
+
+export type AgentApprovalRequest =
+    | ExpenseUpdateApprovalRequest
+    | UserMemoryDeleteApprovalRequest;
+
 export type PendingAgentApproval = {
     roomId: number;
     approvalId: string;
     userMessageId: number;
-    request: ExpenseUpdateApprovalRequest;
+    request: AgentApprovalRequest;
 };
 
 export type AgentApprovalResolvedEvent = {

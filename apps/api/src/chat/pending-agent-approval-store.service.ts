@@ -6,7 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type {
     PendingAgentApproval,
 } from './types/pending-agent-approval.type';
-import { expenseUpdateApprovalRequestSchema } from '../agent/agent-interrupt.schema';
+import { agentApprovalRequestSchema } from '../agent/agent-interrupt.schema';
 
 @Injectable()
 export class PendingAgentApprovalStoreService {
@@ -67,7 +67,7 @@ export class PendingAgentApprovalStoreService {
         }
 
         const requestResult =
-            expenseUpdateApprovalRequestSchema.safeParse(
+            agentApprovalRequestSchema.safeParse(
                 storedApproval.request,
             );
 

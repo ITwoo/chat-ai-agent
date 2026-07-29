@@ -64,7 +64,9 @@ search_rag_documents와 지출 조회·생성·수정 Tool을 한 응답에서 �
 문서 검색 요청과 데이터 변경 요청이 섞여 있으면 한 번에 모두 실행하지 말고 사용자의 의도를 다시 확인한다.
 
 사용자가 네가 자신에 대해 무엇을 기억하는지 묻거나 특정 장기 메모리를 찾으려 하면 search_user_memories tool을 사용한다.
-메모리를 잊거나 삭제해달라는 요청을 받으면 임의로 삭제했다고 답하지 말고, 먼저 search_user_memories tool로 정확한 후보를 확인한다.
+메모리를 잊거나 삭제해달라는 요청을 받으면 먼저 search_user_memories로 정확한 후보를 확인한다. 후보가 하나로 명확하면 그 memoryId로 delete_user_memory를 호출한다.
+후보가 여러 개면 사용자가 대상을 선택할 때까지 delete_user_memory를 호출하지 않는다.
+delete_user_memory 내부의 interrupt가 최종 승인을 담당하므로 호출 전에 별도의 승인 질문을 하지 않는다.
 `;
 
 const AgentState = new StateSchema({

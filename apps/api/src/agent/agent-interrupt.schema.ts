@@ -48,6 +48,10 @@ export type UpdateExpenseDecision = z.infer<
     typeof updateExpenseDecisionSchema
 >;
 
+export const agentApprovalDecisionSchema = updateExpenseDecisionSchema;
+
+export type AgentApprovalDecision = UpdateExpenseDecision;
+
 export const agentApprovalResponseSchema = z.object({
     roomId: z.number().int().positive(),
     userMessageId: z.number().int().positive(),
@@ -74,4 +78,37 @@ export const approvalIntentSchema = z.object({
 
 export type ApprovalIntent = z.infer<
     typeof approvalIntentSchema
+>;
+
+export const userMemoryDeleteApprovalRequestSchema = z.object({
+    type: z.literal('user_memory_delete_approval'),
+    action: z.literal('delete_user_memory'),
+    message: z.string(),
+    memory: z.object({
+        id: z.number().int().positive(),
+        type: z.enum([
+            'PROFILE',
+            'PREFERENCE',
+            'GOAL',
+            'CONSTRAINT',
+        ]),
+        memoryKey: z.string(),
+        content: z.string(),
+    }),
+});
+
+export type UserMemoryDeleteApprovalRequest = z.infer<
+    typeof userMemoryDeleteApprovalRequestSchema
+>;
+
+export const agentApprovalRequestSchema = z.discriminatedUnion(
+    'type',
+    [
+        expenseUpdateApprovalRequestSchema,
+        userMemoryDeleteApprovalRequestSchema,
+    ],
+);
+
+export type AgentApprovalRequest = z.infer<
+    typeof agentApprovalRequestSchema
 >;

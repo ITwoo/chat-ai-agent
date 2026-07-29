@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ChatOpenAI } from '@langchain/openai'
 import { AIMessage, BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
-import type { ChatMessage, UserMemory } from '../generated/prisma/client';
+import type { UserMemory } from '../generated/prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { ChatMessageRole } from '@repo/shared';
 import { AgentGraph, AgentGraphFactory } from './agent-graph.factory';
 import { AgentToolsService } from './agent-tools.service';
-import { ApprovalIntent, approvalIntentSchema, ExpenseUpdateApprovalRequest, expenseUpdateApprovalRequestSchema, UpdateExpenseDecision } from './agent-interrupt.schema';
+import { AgentApprovalDecision, AgentApprovalRequest, agentApprovalRequestSchema, ApprovalIntent, approvalIntentSchema } from './agent-interrupt.schema';
 import { Command } from '@langchain/langgraph';
 import { RagCitation, ragCitationSchema } from '../rag/schemas/rag-citation.schema';
 import { ChatAgentContext } from '../chat/chat.service';
@@ -21,7 +21,7 @@ export type AgentStreamEvent =
     | {
           type: 'approval_required';
           threadId: string;
-          request: ExpenseUpdateApprovalRequest;
+          request: AgentApprovalRequest;
       };
 
 type AgentGraphStreamInput = Parameters<AgentGraph['streamEvents']>[0];
@@ -38,7 +38,7 @@ const APPROVAL_INTENT_SYSTEM_PROMPT = `
   사용자가 현재 제안을 거절하거나 작업을 중단하라고 한다.
 
 - revise:
-  사용자가 현재 제안을 그대로 승인하지 않고 금액, 날짜, 제목, 카테고리, 메모 등 변경 내용을 새롭게 제시한다.
+  사용자가 현재 제안을 그대로 승인하지 않고 실행 대상이나 변경 내용을 새롭게 제시한다.
 
 - unclear:
   승인, 취소, 변경 중 어느 의도인지 명확하지 않거나 질문, 감탄, 관계없는 말을 한다.
@@ -92,7 +92,7 @@ export class AgentService {
     }
 
     async classifyApprovalIntent(
-        request: ExpenseUpdateApprovalRequest,
+        request: AgentApprovalRequest,
         content: string,
     ): Promise<ApprovalIntent> {
         const normalizedContent = content.trim();
@@ -182,7 +182,7 @@ export class AgentService {
     async *resumeReply(
         userId: number,
         threadId: string,
-        decision: UpdateExpenseDecision,
+        decision: AgentApprovalDecision,
         signal?: AbortSignal,
     ): AsyncGenerator<AgentStreamEvent> {
         yield* this.streamGraph(
@@ -232,7 +232,7 @@ export class AgentService {
                 throw new Error('현재 여러 승인 요청의 동시 처리는 지원하지 않습니다.');
             }
 
-            const result = expenseUpdateApprovalRequestSchema.safeParse(stream.interrupts[0]?.payload);
+            const result = agentApprovalRequestSchema.safeParse(stream.interrupts[0]?.payload);
 
             if (!result.success) {
                 throw new Error('지원하지 않는 승인 요청 형식입니다.');

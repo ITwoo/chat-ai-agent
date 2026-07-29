@@ -1,10 +1,10 @@
 import type {
-    ExpenseUpdateApprovalRequest,
+    AgentApprovalRequest,
 } from '../../agent/agent-interrupt.schema';
 
 export type PendingAgentApproval = {
     approvalId: string;
     threadId: string;
     originUserMessageId: number;
-    request: ExpenseUpdateApprovalRequest;
+    request: AgentApprovalRequest;
 };

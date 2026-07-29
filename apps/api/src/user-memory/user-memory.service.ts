@@ -99,7 +99,7 @@ export class UserMemoryService {
             },
             orderBy: [
                 {
-                    type: 'asc',
+                    lastConfirmedAt: 'desc',
                 },
                 {
                     updatedAt: 'desc',

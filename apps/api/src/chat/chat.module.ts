@@ -7,9 +7,15 @@ import { AgentModule } from '../agent/agent.module';
 import { PendingAgentApprovalStoreService } from './pending-agent-approval-store.service';
 import { RedisModule } from '../redis/redis.module';
 import { ChatSummaryService } from './chat-summary.service';
+import { UserMemoryModule } from '../user-memory/user-memory.module';
 
 @Module({
-    imports: [JwtModule, AgentModule, RedisModule],
+    imports: [
+        JwtModule,
+        AgentModule,
+        RedisModule,
+        UserMemoryModule, 
+    ],
     controllers: [ChatController],
     providers: [
         ChatService,

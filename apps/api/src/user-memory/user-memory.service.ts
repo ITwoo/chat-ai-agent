@@ -156,6 +156,27 @@ export class UserMemoryService {
         });
     }
 
+    async getActiveMemoryById(
+        userId: number,
+        memoryId: number,
+    ): Promise<UserMemory> {
+        const memory = await this.prisma.userMemory.findFirst({
+            where: {
+                id: memoryId,
+                userId,
+                status: 'ACTIVE',
+            },
+        });
+
+        if (!memory) {
+            throw new NotFoundException(
+                '활성 사용자 메모리를 찾을 수 없습니다.',
+            );
+        }
+
+        return memory;
+    }
+
     async upsertMemory(
         userId: number,
         input: UpsertUserMemoryInput,
@@ -233,6 +254,25 @@ export class UserMemoryService {
         if (result.count !== 1) {
             throw new NotFoundException(
                 '사용자 메모리를 찾을 수 없습니다.',
+            );
+        }
+    }
+
+    async deleteActiveMemory(
+        userId: number,
+        memoryId: number,
+    ): Promise<void> {
+        const result = await this.prisma.userMemory.deleteMany({
+            where: {
+                id: memoryId,
+                userId,
+                status: 'ACTIVE',
+            },
+        });
+
+        if (result.count !== 1) {
+            throw new NotFoundException(
+                '삭제할 활성 사용자 메모리를 찾을 수 없습니다.',
             );
         }
     }

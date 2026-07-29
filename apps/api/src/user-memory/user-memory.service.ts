@@ -101,9 +101,6 @@ export class UserMemoryService {
                 {
                     lastConfirmedAt: 'desc',
                 },
-                {
-                    updatedAt: 'desc',
-                },
             ],
             take: this.normalizeLimit(limit),
         });

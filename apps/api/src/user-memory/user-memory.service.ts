@@ -8,6 +8,8 @@ import type {
 } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service';
 import type { SearchUserMemoriesInput, UpsertUserMemoryInput } from './user-memory.types';
+import { RagEmbeddingService } from '../rag/rag-embedding.service.js';
+import { serializeVector } from '../rag/utils/rag-vector.util.js';
 
 const DEFAULT_MEMORY_LIMIT = 50;
 const MAX_MEMORY_LIMIT = 100;
@@ -19,7 +21,10 @@ const MAX_MEMORY_SEARCH_LIMIT = 20;
 
 @Injectable()
 export class UserMemoryService {
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly ragEmbeddingService: RagEmbeddingService,
+    ) {}
 
     private normalizeMemoryKey(memoryKey: string): string {
         const normalizedMemoryKey = memoryKey.trim().toLowerCase();
@@ -55,6 +60,14 @@ export class UserMemoryService {
         }
 
         return normalizedContent;
+    }
+
+    private createEmbeddingText(
+        type: UpsertUserMemoryInput['type'],
+        memoryKey: string,
+        content: string,
+    ): string {
+        return `[${type}] ${memoryKey}\n${content}`;
     }
 
     private normalizeLimit(limit: number): number {
@@ -181,41 +194,44 @@ export class UserMemoryService {
         userId: number,
         input: UpsertUserMemoryInput,
     ): Promise<UserMemory> {
-        const memoryKey = this.normalizeMemoryKey(
-            input.memoryKey,
-        );
+        const memoryKey = this.normalizeMemoryKey(input.memoryKey);
         const content = this.normalizeContent(input.content);
 
-        await this.assertSourceMessageOwner(
-            userId,
-            input.sourceMessageId,
-        );
+        await this.assertSourceMessageOwner(userId, input.sourceMessageId);
 
+        const embeddingText = this.createEmbeddingText(input.type, memoryKey, content);
+        const { embedding } = await this.ragEmbeddingService.embedText(embeddingText);
+        const vector = serializeVector(embedding);
         const confirmedAt = new Date();
 
-        return this.prisma.userMemory.upsert({
-            where: {
-                userId_memoryKey: {
+        return this.prisma.$transaction(async (tx) => {
+            const memory = await tx.userMemory.upsert({
+                where: { userId_memoryKey: { userId, memoryKey } },
+                create: {
                     userId,
+                    type: input.type,
                     memoryKey,
+                    content,
+                    status: 'ACTIVE',
+                    sourceMessageId: input.sourceMessageId,
+                    lastConfirmedAt: confirmedAt,
                 },
-            },
-            create: {
-                userId,
-                type: input.type,
-                memoryKey,
-                content,
-                status: 'ACTIVE',
-                sourceMessageId: input.sourceMessageId,
-                lastConfirmedAt: confirmedAt,
-            },
-            update: {
-                type: input.type,
-                content,
-                status: 'ACTIVE',
-                sourceMessageId: input.sourceMessageId,
-                lastConfirmedAt: confirmedAt,
-            },
+                update: {
+                    type: input.type,
+                    content,
+                    status: 'ACTIVE',
+                    sourceMessageId: input.sourceMessageId,
+                    lastConfirmedAt: confirmedAt,
+                },
+            });
+
+            await tx.$executeRaw`
+                UPDATE "UserMemory"
+                SET "embedding" = ${vector}::vector
+                WHERE "id" = ${memory.id}
+            `;
+
+            return memory;
         });
     }
 

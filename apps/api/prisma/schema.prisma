@@ -243,6 +243,7 @@ model UserMemory {
     type            UserMemoryType
     memoryKey       String           @db.VarChar(120)
     content         String           @db.Text
+    embedding       Unsupported("vector")?
     status          UserMemoryStatus @default(ACTIVE)
     sourceMessageId Int?
     lastConfirmedAt DateTime         @default(now())

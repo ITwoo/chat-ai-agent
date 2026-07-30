@@ -8,12 +8,14 @@ import { UserMemoryJobProcessor } from './user-memory-job.processor';
 import { UserMemoryJobStateService } from './user-memory-job-state.service';
 import { RedisModule } from '../redis/redis.module';
 import { UserMemoryRecoveryService } from './user-memory-recovery.service';
+import { RagModule } from '../rag/rag.module';
 
 @Module({
     imports: [
         PrismaModule,
         QueueModule,
         RedisModule,
+        RagModule,
     ],
     providers: [
         UserMemoryService,

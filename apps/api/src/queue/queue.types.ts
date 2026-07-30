@@ -24,3 +24,14 @@ export type RemoveDocumentIngestionJobResult = 'NOT_FOUND' | 'REMOVED' | 'ACTIVE
 export type DocumentIngestionJobSnapshot =
     | { state: 'NOT_FOUND' }
     | { state: 'WAITING' | 'DELAYED' | 'ACTIVE' | 'COMPLETED' | 'FAILED' | 'UNKNOWN'; failedReason: string | null };
+
+export type UserMemoryExtractionJobData = {
+    userId: number;
+    messageId: number;
+};
+
+export type UserMemoryExtractionJobResult = {
+    extractedCount: number;
+    savedCount: number;
+    skippedCount: number;
+};

@@ -1,8 +1,8 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Job, Queue } from 'bullmq';
-import { AGENT_JOB_NAME, AGENT_JOB_QUEUE, RAG_DOCUMENT_JOB_NAME, RAG_DOCUMENT_QUEUE } from './queue.constants';
-import { DocumentIngestionJobData, DocumentIngestionJobResult, DocumentIngestionJobSnapshot, HealthCheckJobData, HealthCheckJobResult, RemoveDocumentIngestionJobResult } from './queue.types';
+import { AGENT_JOB_NAME, AGENT_JOB_QUEUE, RAG_DOCUMENT_JOB_NAME, RAG_DOCUMENT_QUEUE, USER_MEMORY_JOB_NAME, USER_MEMORY_QUEUE } from './queue.constants';
+import { DocumentIngestionJobData, DocumentIngestionJobResult, DocumentIngestionJobSnapshot, HealthCheckJobData, HealthCheckJobResult, RemoveDocumentIngestionJobResult, UserMemoryExtractionJobData, UserMemoryExtractionJobResult } from './queue.types';
 
 @Injectable()
 export class QueueProducerService {
@@ -11,6 +11,8 @@ export class QueueProducerService {
         private readonly agentJobQueue: Queue<HealthCheckJobData, HealthCheckJobResult>,
         @InjectQueue(RAG_DOCUMENT_QUEUE)
         private readonly ragDocumentQueue: Queue<DocumentIngestionJobData, DocumentIngestionJobResult>,
+        @InjectQueue(USER_MEMORY_QUEUE)
+        private readonly userMemoryQueue: Queue<UserMemoryExtractionJobData, UserMemoryExtractionJobResult>,
     ) {}
 
     enqueueHealthCheck(): Promise<Job<HealthCheckJobData, HealthCheckJobResult>> {
@@ -31,6 +33,23 @@ export class QueueProducerService {
         );
     }
 
+    enqueueUserMemoryExtraction(
+        data: UserMemoryExtractionJobData,
+    ): Promise<
+        Job<
+            UserMemoryExtractionJobData,
+            UserMemoryExtractionJobResult
+        >
+    > {
+        return this.userMemoryQueue.add(
+            USER_MEMORY_JOB_NAME.EXTRACT,
+            data,
+            {
+                jobId: `user-memory-${data.messageId}`,
+            },
+        );
+    }
+    
     async removeDocumentIngestionJob(documentId: number): Promise<RemoveDocumentIngestionJobResult> {
         const jobId = `rag-document-${documentId}`;
         const job = await this.ragDocumentQueue.getJob(jobId);

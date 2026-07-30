@@ -8,13 +8,15 @@ import { PendingAgentApprovalStoreService } from './pending-agent-approval-store
 import { RedisModule } from '../redis/redis.module';
 import { ChatSummaryService } from './chat-summary.service';
 import { UserMemoryModule } from '../user-memory/user-memory.module';
+import { QueueModule } from '../queue/queue.module';
 
 @Module({
     imports: [
         JwtModule,
         AgentModule,
         RedisModule,
-        UserMemoryModule, 
+        UserMemoryModule,
+        QueueModule,
     ],
     controllers: [ChatController],
     providers: [

@@ -6,6 +6,7 @@ import type { ConfigService } from '@nestjs/config';
 import {
     AGENT_JOB_QUEUE,
     RAG_DOCUMENT_QUEUE,
+    USER_MEMORY_QUEUE,
 } from './queue.constants';
 
 function parseRedisUrl(redisUrl: string) {
@@ -50,6 +51,10 @@ export const queueOptions: RegisterQueueOptions[] = [
     },
     {
         name: RAG_DOCUMENT_QUEUE,
+        defaultJobOptions,
+    },
+    {
+        name: USER_MEMORY_QUEUE,
         defaultJobOptions,
     },
 ];

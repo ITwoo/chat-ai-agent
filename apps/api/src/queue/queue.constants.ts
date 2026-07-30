@@ -9,3 +9,9 @@ export const RAG_DOCUMENT_QUEUE = 'rag-document-jobs';
 export const RAG_DOCUMENT_JOB_NAME = {
     INGEST: 'ingest-document',
 } as const;
+
+export const USER_MEMORY_QUEUE = 'user-memory-jobs';
+
+export const USER_MEMORY_JOB_NAME = {
+    EXTRACT: 'extract-user-memories',
+} as const;

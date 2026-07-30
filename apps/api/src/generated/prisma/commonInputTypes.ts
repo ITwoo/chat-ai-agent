@@ -220,6 +220,13 @@ export type EnumChatMessageStatusFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumChatMessageStatusFilter<$PrismaModel> | $Enums.ChatMessageStatus
 }
 
+export type EnumUserMemoryExtractionStatusNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserMemoryExtractionStatus | Prisma.EnumUserMemoryExtractionStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.UserMemoryExtractionStatus[] | Prisma.ListEnumUserMemoryExtractionStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.UserMemoryExtractionStatus[] | Prisma.ListEnumUserMemoryExtractionStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumUserMemoryExtractionStatusNullableFilter<$PrismaModel> | $Enums.UserMemoryExtractionStatus | null
+}
+
 export type EnumChatMessageRoleWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.ChatMessageRole | Prisma.EnumChatMessageRoleFieldRefInput<$PrismaModel>
   in?: $Enums.ChatMessageRole[] | Prisma.ListEnumChatMessageRoleFieldRefInput<$PrismaModel>
@@ -238,6 +245,16 @@ export type EnumChatMessageStatusWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumChatMessageStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumChatMessageStatusFilter<$PrismaModel>
+}
+
+export type EnumUserMemoryExtractionStatusNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserMemoryExtractionStatus | Prisma.EnumUserMemoryExtractionStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.UserMemoryExtractionStatus[] | Prisma.ListEnumUserMemoryExtractionStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.UserMemoryExtractionStatus[] | Prisma.ListEnumUserMemoryExtractionStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumUserMemoryExtractionStatusNullableWithAggregatesFilter<$PrismaModel> | $Enums.UserMemoryExtractionStatus | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumUserMemoryExtractionStatusNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumUserMemoryExtractionStatusNullableFilter<$PrismaModel>
 }
 
 export type UuidFilter<$PrismaModel = never> = {
@@ -615,6 +632,13 @@ export type NestedEnumChatMessageStatusFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumChatMessageStatusFilter<$PrismaModel> | $Enums.ChatMessageStatus
 }
 
+export type NestedEnumUserMemoryExtractionStatusNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserMemoryExtractionStatus | Prisma.EnumUserMemoryExtractionStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.UserMemoryExtractionStatus[] | Prisma.ListEnumUserMemoryExtractionStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.UserMemoryExtractionStatus[] | Prisma.ListEnumUserMemoryExtractionStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumUserMemoryExtractionStatusNullableFilter<$PrismaModel> | $Enums.UserMemoryExtractionStatus | null
+}
+
 export type NestedEnumChatMessageRoleWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.ChatMessageRole | Prisma.EnumChatMessageRoleFieldRefInput<$PrismaModel>
   in?: $Enums.ChatMessageRole[] | Prisma.ListEnumChatMessageRoleFieldRefInput<$PrismaModel>
@@ -633,6 +657,16 @@ export type NestedEnumChatMessageStatusWithAggregatesFilter<$PrismaModel = never
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumChatMessageStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumChatMessageStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumUserMemoryExtractionStatusNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.UserMemoryExtractionStatus | Prisma.EnumUserMemoryExtractionStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.UserMemoryExtractionStatus[] | Prisma.ListEnumUserMemoryExtractionStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.UserMemoryExtractionStatus[] | Prisma.ListEnumUserMemoryExtractionStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumUserMemoryExtractionStatusNullableWithAggregatesFilter<$PrismaModel> | $Enums.UserMemoryExtractionStatus | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumUserMemoryExtractionStatusNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumUserMemoryExtractionStatusNullableFilter<$PrismaModel>
 }
 
 export type NestedUuidFilter<$PrismaModel = never> = {

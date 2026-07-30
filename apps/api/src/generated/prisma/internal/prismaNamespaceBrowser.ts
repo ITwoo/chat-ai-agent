@@ -124,6 +124,10 @@ export const ChatMessageScalarFieldEnum = {
   role: 'role',
   content: 'content',
   status: 'status',
+  memoryExtractionStatus: 'memoryExtractionStatus',
+  memoryExtractionError: 'memoryExtractionError',
+  memoryExtractionStartedAt: 'memoryExtractionStartedAt',
+  memoryExtractedAt: 'memoryExtractedAt',
   createdAt: 'createdAt'
 } as const
 

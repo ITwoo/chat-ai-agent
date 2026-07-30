@@ -42,6 +42,10 @@ export type ChatMessageMinAggregateOutputType = {
   role: $Enums.ChatMessageRole | null
   content: string | null
   status: $Enums.ChatMessageStatus | null
+  memoryExtractionStatus: $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError: string | null
+  memoryExtractionStartedAt: Date | null
+  memoryExtractedAt: Date | null
   createdAt: Date | null
 }
 
@@ -51,6 +55,10 @@ export type ChatMessageMaxAggregateOutputType = {
   role: $Enums.ChatMessageRole | null
   content: string | null
   status: $Enums.ChatMessageStatus | null
+  memoryExtractionStatus: $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError: string | null
+  memoryExtractionStartedAt: Date | null
+  memoryExtractedAt: Date | null
   createdAt: Date | null
 }
 
@@ -60,6 +68,10 @@ export type ChatMessageCountAggregateOutputType = {
   role: number
   content: number
   status: number
+  memoryExtractionStatus: number
+  memoryExtractionError: number
+  memoryExtractionStartedAt: number
+  memoryExtractedAt: number
   createdAt: number
   _all: number
 }
@@ -81,6 +93,10 @@ export type ChatMessageMinAggregateInputType = {
   role?: true
   content?: true
   status?: true
+  memoryExtractionStatus?: true
+  memoryExtractionError?: true
+  memoryExtractionStartedAt?: true
+  memoryExtractedAt?: true
   createdAt?: true
 }
 
@@ -90,6 +106,10 @@ export type ChatMessageMaxAggregateInputType = {
   role?: true
   content?: true
   status?: true
+  memoryExtractionStatus?: true
+  memoryExtractionError?: true
+  memoryExtractionStartedAt?: true
+  memoryExtractedAt?: true
   createdAt?: true
 }
 
@@ -99,6 +119,10 @@ export type ChatMessageCountAggregateInputType = {
   role?: true
   content?: true
   status?: true
+  memoryExtractionStatus?: true
+  memoryExtractionError?: true
+  memoryExtractionStartedAt?: true
+  memoryExtractedAt?: true
   createdAt?: true
   _all?: true
 }
@@ -195,6 +219,10 @@ export type ChatMessageGroupByOutputType = {
   role: $Enums.ChatMessageRole
   content: string
   status: $Enums.ChatMessageStatus
+  memoryExtractionStatus: $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError: string | null
+  memoryExtractionStartedAt: Date | null
+  memoryExtractedAt: Date | null
   createdAt: Date
   _count: ChatMessageCountAggregateOutputType | null
   _avg: ChatMessageAvgAggregateOutputType | null
@@ -227,6 +255,10 @@ export type ChatMessageWhereInput = {
   role?: Prisma.EnumChatMessageRoleFilter<"ChatMessage"> | $Enums.ChatMessageRole
   content?: Prisma.StringFilter<"ChatMessage"> | string
   status?: Prisma.EnumChatMessageStatusFilter<"ChatMessage"> | $Enums.ChatMessageStatus
+  memoryExtractionStatus?: Prisma.EnumUserMemoryExtractionStatusNullableFilter<"ChatMessage"> | $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: Prisma.StringNullableFilter<"ChatMessage"> | string | null
+  memoryExtractionStartedAt?: Prisma.DateTimeNullableFilter<"ChatMessage"> | Date | string | null
+  memoryExtractedAt?: Prisma.DateTimeNullableFilter<"ChatMessage"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ChatMessage"> | Date | string
   room?: Prisma.XOR<Prisma.ChatRoomScalarRelationFilter, Prisma.ChatRoomWhereInput>
   ragCitations?: Prisma.ChatMessageRagCitationListRelationFilter
@@ -239,6 +271,10 @@ export type ChatMessageOrderByWithRelationInput = {
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  memoryExtractionStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  memoryExtractionError?: Prisma.SortOrderInput | Prisma.SortOrder
+  memoryExtractionStartedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  memoryExtractedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   room?: Prisma.ChatRoomOrderByWithRelationInput
   ragCitations?: Prisma.ChatMessageRagCitationOrderByRelationAggregateInput
@@ -254,6 +290,10 @@ export type ChatMessageWhereUniqueInput = Prisma.AtLeast<{
   role?: Prisma.EnumChatMessageRoleFilter<"ChatMessage"> | $Enums.ChatMessageRole
   content?: Prisma.StringFilter<"ChatMessage"> | string
   status?: Prisma.EnumChatMessageStatusFilter<"ChatMessage"> | $Enums.ChatMessageStatus
+  memoryExtractionStatus?: Prisma.EnumUserMemoryExtractionStatusNullableFilter<"ChatMessage"> | $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: Prisma.StringNullableFilter<"ChatMessage"> | string | null
+  memoryExtractionStartedAt?: Prisma.DateTimeNullableFilter<"ChatMessage"> | Date | string | null
+  memoryExtractedAt?: Prisma.DateTimeNullableFilter<"ChatMessage"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ChatMessage"> | Date | string
   room?: Prisma.XOR<Prisma.ChatRoomScalarRelationFilter, Prisma.ChatRoomWhereInput>
   ragCitations?: Prisma.ChatMessageRagCitationListRelationFilter
@@ -266,6 +306,10 @@ export type ChatMessageOrderByWithAggregationInput = {
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  memoryExtractionStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  memoryExtractionError?: Prisma.SortOrderInput | Prisma.SortOrder
+  memoryExtractionStartedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  memoryExtractedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.ChatMessageCountOrderByAggregateInput
   _avg?: Prisma.ChatMessageAvgOrderByAggregateInput
@@ -283,6 +327,10 @@ export type ChatMessageScalarWhereWithAggregatesInput = {
   role?: Prisma.EnumChatMessageRoleWithAggregatesFilter<"ChatMessage"> | $Enums.ChatMessageRole
   content?: Prisma.StringWithAggregatesFilter<"ChatMessage"> | string
   status?: Prisma.EnumChatMessageStatusWithAggregatesFilter<"ChatMessage"> | $Enums.ChatMessageStatus
+  memoryExtractionStatus?: Prisma.EnumUserMemoryExtractionStatusNullableWithAggregatesFilter<"ChatMessage"> | $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: Prisma.StringNullableWithAggregatesFilter<"ChatMessage"> | string | null
+  memoryExtractionStartedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ChatMessage"> | Date | string | null
+  memoryExtractedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ChatMessage"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ChatMessage"> | Date | string
 }
 
@@ -290,6 +338,10 @@ export type ChatMessageCreateInput = {
   role: $Enums.ChatMessageRole
   content: string
   status?: $Enums.ChatMessageStatus
+  memoryExtractionStatus?: $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: string | null
+  memoryExtractionStartedAt?: Date | string | null
+  memoryExtractedAt?: Date | string | null
   createdAt?: Date | string
   room: Prisma.ChatRoomCreateNestedOneWithoutMessagesInput
   ragCitations?: Prisma.ChatMessageRagCitationCreateNestedManyWithoutChatMessageInput
@@ -302,6 +354,10 @@ export type ChatMessageUncheckedCreateInput = {
   role: $Enums.ChatMessageRole
   content: string
   status?: $Enums.ChatMessageStatus
+  memoryExtractionStatus?: $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: string | null
+  memoryExtractionStartedAt?: Date | string | null
+  memoryExtractedAt?: Date | string | null
   createdAt?: Date | string
   ragCitations?: Prisma.ChatMessageRagCitationUncheckedCreateNestedManyWithoutChatMessageInput
   sourcedUserMemories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutSourceMessageInput
@@ -311,6 +367,10 @@ export type ChatMessageUpdateInput = {
   role?: Prisma.EnumChatMessageRoleFieldUpdateOperationsInput | $Enums.ChatMessageRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
+  memoryExtractionStatus?: Prisma.NullableEnumUserMemoryExtractionStatusFieldUpdateOperationsInput | $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  memoryExtractionStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  memoryExtractedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   room?: Prisma.ChatRoomUpdateOneRequiredWithoutMessagesNestedInput
   ragCitations?: Prisma.ChatMessageRagCitationUpdateManyWithoutChatMessageNestedInput
@@ -323,6 +383,10 @@ export type ChatMessageUncheckedUpdateInput = {
   role?: Prisma.EnumChatMessageRoleFieldUpdateOperationsInput | $Enums.ChatMessageRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
+  memoryExtractionStatus?: Prisma.NullableEnumUserMemoryExtractionStatusFieldUpdateOperationsInput | $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  memoryExtractionStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  memoryExtractedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ragCitations?: Prisma.ChatMessageRagCitationUncheckedUpdateManyWithoutChatMessageNestedInput
   sourcedUserMemories?: Prisma.UserMemoryUncheckedUpdateManyWithoutSourceMessageNestedInput
@@ -334,6 +398,10 @@ export type ChatMessageCreateManyInput = {
   role: $Enums.ChatMessageRole
   content: string
   status?: $Enums.ChatMessageStatus
+  memoryExtractionStatus?: $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: string | null
+  memoryExtractionStartedAt?: Date | string | null
+  memoryExtractedAt?: Date | string | null
   createdAt?: Date | string
 }
 
@@ -341,6 +409,10 @@ export type ChatMessageUpdateManyMutationInput = {
   role?: Prisma.EnumChatMessageRoleFieldUpdateOperationsInput | $Enums.ChatMessageRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
+  memoryExtractionStatus?: Prisma.NullableEnumUserMemoryExtractionStatusFieldUpdateOperationsInput | $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  memoryExtractionStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  memoryExtractedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -350,6 +422,10 @@ export type ChatMessageUncheckedUpdateManyInput = {
   role?: Prisma.EnumChatMessageRoleFieldUpdateOperationsInput | $Enums.ChatMessageRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
+  memoryExtractionStatus?: Prisma.NullableEnumUserMemoryExtractionStatusFieldUpdateOperationsInput | $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  memoryExtractionStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  memoryExtractedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -369,6 +445,10 @@ export type ChatMessageCountOrderByAggregateInput = {
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  memoryExtractionStatus?: Prisma.SortOrder
+  memoryExtractionError?: Prisma.SortOrder
+  memoryExtractionStartedAt?: Prisma.SortOrder
+  memoryExtractedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -383,6 +463,10 @@ export type ChatMessageMaxOrderByAggregateInput = {
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  memoryExtractionStatus?: Prisma.SortOrder
+  memoryExtractionError?: Prisma.SortOrder
+  memoryExtractionStartedAt?: Prisma.SortOrder
+  memoryExtractedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -392,6 +476,10 @@ export type ChatMessageMinOrderByAggregateInput = {
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  memoryExtractionStatus?: Prisma.SortOrder
+  memoryExtractionError?: Prisma.SortOrder
+  memoryExtractionStartedAt?: Prisma.SortOrder
+  memoryExtractedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -460,6 +548,10 @@ export type EnumChatMessageStatusFieldUpdateOperationsInput = {
   set?: $Enums.ChatMessageStatus
 }
 
+export type NullableEnumUserMemoryExtractionStatusFieldUpdateOperationsInput = {
+  set?: $Enums.UserMemoryExtractionStatus | null
+}
+
 export type ChatMessageCreateNestedOneWithoutRagCitationsInput = {
   create?: Prisma.XOR<Prisma.ChatMessageCreateWithoutRagCitationsInput, Prisma.ChatMessageUncheckedCreateWithoutRagCitationsInput>
   connectOrCreate?: Prisma.ChatMessageCreateOrConnectWithoutRagCitationsInput
@@ -494,6 +586,10 @@ export type ChatMessageCreateWithoutRoomInput = {
   role: $Enums.ChatMessageRole
   content: string
   status?: $Enums.ChatMessageStatus
+  memoryExtractionStatus?: $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: string | null
+  memoryExtractionStartedAt?: Date | string | null
+  memoryExtractedAt?: Date | string | null
   createdAt?: Date | string
   ragCitations?: Prisma.ChatMessageRagCitationCreateNestedManyWithoutChatMessageInput
   sourcedUserMemories?: Prisma.UserMemoryCreateNestedManyWithoutSourceMessageInput
@@ -504,6 +600,10 @@ export type ChatMessageUncheckedCreateWithoutRoomInput = {
   role: $Enums.ChatMessageRole
   content: string
   status?: $Enums.ChatMessageStatus
+  memoryExtractionStatus?: $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: string | null
+  memoryExtractionStartedAt?: Date | string | null
+  memoryExtractedAt?: Date | string | null
   createdAt?: Date | string
   ragCitations?: Prisma.ChatMessageRagCitationUncheckedCreateNestedManyWithoutChatMessageInput
   sourcedUserMemories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutSourceMessageInput
@@ -544,6 +644,10 @@ export type ChatMessageScalarWhereInput = {
   role?: Prisma.EnumChatMessageRoleFilter<"ChatMessage"> | $Enums.ChatMessageRole
   content?: Prisma.StringFilter<"ChatMessage"> | string
   status?: Prisma.EnumChatMessageStatusFilter<"ChatMessage"> | $Enums.ChatMessageStatus
+  memoryExtractionStatus?: Prisma.EnumUserMemoryExtractionStatusNullableFilter<"ChatMessage"> | $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: Prisma.StringNullableFilter<"ChatMessage"> | string | null
+  memoryExtractionStartedAt?: Prisma.DateTimeNullableFilter<"ChatMessage"> | Date | string | null
+  memoryExtractedAt?: Prisma.DateTimeNullableFilter<"ChatMessage"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ChatMessage"> | Date | string
 }
 
@@ -551,6 +655,10 @@ export type ChatMessageCreateWithoutRagCitationsInput = {
   role: $Enums.ChatMessageRole
   content: string
   status?: $Enums.ChatMessageStatus
+  memoryExtractionStatus?: $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: string | null
+  memoryExtractionStartedAt?: Date | string | null
+  memoryExtractedAt?: Date | string | null
   createdAt?: Date | string
   room: Prisma.ChatRoomCreateNestedOneWithoutMessagesInput
   sourcedUserMemories?: Prisma.UserMemoryCreateNestedManyWithoutSourceMessageInput
@@ -562,6 +670,10 @@ export type ChatMessageUncheckedCreateWithoutRagCitationsInput = {
   role: $Enums.ChatMessageRole
   content: string
   status?: $Enums.ChatMessageStatus
+  memoryExtractionStatus?: $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: string | null
+  memoryExtractionStartedAt?: Date | string | null
+  memoryExtractedAt?: Date | string | null
   createdAt?: Date | string
   sourcedUserMemories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutSourceMessageInput
 }
@@ -586,6 +698,10 @@ export type ChatMessageUpdateWithoutRagCitationsInput = {
   role?: Prisma.EnumChatMessageRoleFieldUpdateOperationsInput | $Enums.ChatMessageRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
+  memoryExtractionStatus?: Prisma.NullableEnumUserMemoryExtractionStatusFieldUpdateOperationsInput | $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  memoryExtractionStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  memoryExtractedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   room?: Prisma.ChatRoomUpdateOneRequiredWithoutMessagesNestedInput
   sourcedUserMemories?: Prisma.UserMemoryUpdateManyWithoutSourceMessageNestedInput
@@ -597,6 +713,10 @@ export type ChatMessageUncheckedUpdateWithoutRagCitationsInput = {
   role?: Prisma.EnumChatMessageRoleFieldUpdateOperationsInput | $Enums.ChatMessageRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
+  memoryExtractionStatus?: Prisma.NullableEnumUserMemoryExtractionStatusFieldUpdateOperationsInput | $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  memoryExtractionStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  memoryExtractedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sourcedUserMemories?: Prisma.UserMemoryUncheckedUpdateManyWithoutSourceMessageNestedInput
 }
@@ -605,6 +725,10 @@ export type ChatMessageCreateWithoutSourcedUserMemoriesInput = {
   role: $Enums.ChatMessageRole
   content: string
   status?: $Enums.ChatMessageStatus
+  memoryExtractionStatus?: $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: string | null
+  memoryExtractionStartedAt?: Date | string | null
+  memoryExtractedAt?: Date | string | null
   createdAt?: Date | string
   room: Prisma.ChatRoomCreateNestedOneWithoutMessagesInput
   ragCitations?: Prisma.ChatMessageRagCitationCreateNestedManyWithoutChatMessageInput
@@ -616,6 +740,10 @@ export type ChatMessageUncheckedCreateWithoutSourcedUserMemoriesInput = {
   role: $Enums.ChatMessageRole
   content: string
   status?: $Enums.ChatMessageStatus
+  memoryExtractionStatus?: $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: string | null
+  memoryExtractionStartedAt?: Date | string | null
+  memoryExtractedAt?: Date | string | null
   createdAt?: Date | string
   ragCitations?: Prisma.ChatMessageRagCitationUncheckedCreateNestedManyWithoutChatMessageInput
 }
@@ -640,6 +768,10 @@ export type ChatMessageUpdateWithoutSourcedUserMemoriesInput = {
   role?: Prisma.EnumChatMessageRoleFieldUpdateOperationsInput | $Enums.ChatMessageRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
+  memoryExtractionStatus?: Prisma.NullableEnumUserMemoryExtractionStatusFieldUpdateOperationsInput | $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  memoryExtractionStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  memoryExtractedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   room?: Prisma.ChatRoomUpdateOneRequiredWithoutMessagesNestedInput
   ragCitations?: Prisma.ChatMessageRagCitationUpdateManyWithoutChatMessageNestedInput
@@ -651,6 +783,10 @@ export type ChatMessageUncheckedUpdateWithoutSourcedUserMemoriesInput = {
   role?: Prisma.EnumChatMessageRoleFieldUpdateOperationsInput | $Enums.ChatMessageRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
+  memoryExtractionStatus?: Prisma.NullableEnumUserMemoryExtractionStatusFieldUpdateOperationsInput | $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  memoryExtractionStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  memoryExtractedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ragCitations?: Prisma.ChatMessageRagCitationUncheckedUpdateManyWithoutChatMessageNestedInput
 }
@@ -660,6 +796,10 @@ export type ChatMessageCreateManyRoomInput = {
   role: $Enums.ChatMessageRole
   content: string
   status?: $Enums.ChatMessageStatus
+  memoryExtractionStatus?: $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: string | null
+  memoryExtractionStartedAt?: Date | string | null
+  memoryExtractedAt?: Date | string | null
   createdAt?: Date | string
 }
 
@@ -667,6 +807,10 @@ export type ChatMessageUpdateWithoutRoomInput = {
   role?: Prisma.EnumChatMessageRoleFieldUpdateOperationsInput | $Enums.ChatMessageRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
+  memoryExtractionStatus?: Prisma.NullableEnumUserMemoryExtractionStatusFieldUpdateOperationsInput | $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  memoryExtractionStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  memoryExtractedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ragCitations?: Prisma.ChatMessageRagCitationUpdateManyWithoutChatMessageNestedInput
   sourcedUserMemories?: Prisma.UserMemoryUpdateManyWithoutSourceMessageNestedInput
@@ -677,6 +821,10 @@ export type ChatMessageUncheckedUpdateWithoutRoomInput = {
   role?: Prisma.EnumChatMessageRoleFieldUpdateOperationsInput | $Enums.ChatMessageRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
+  memoryExtractionStatus?: Prisma.NullableEnumUserMemoryExtractionStatusFieldUpdateOperationsInput | $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  memoryExtractionStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  memoryExtractedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ragCitations?: Prisma.ChatMessageRagCitationUncheckedUpdateManyWithoutChatMessageNestedInput
   sourcedUserMemories?: Prisma.UserMemoryUncheckedUpdateManyWithoutSourceMessageNestedInput
@@ -687,6 +835,10 @@ export type ChatMessageUncheckedUpdateManyWithoutRoomInput = {
   role?: Prisma.EnumChatMessageRoleFieldUpdateOperationsInput | $Enums.ChatMessageRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumChatMessageStatusFieldUpdateOperationsInput | $Enums.ChatMessageStatus
+  memoryExtractionStatus?: Prisma.NullableEnumUserMemoryExtractionStatusFieldUpdateOperationsInput | $Enums.UserMemoryExtractionStatus | null
+  memoryExtractionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  memoryExtractionStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  memoryExtractedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -736,6 +888,10 @@ export type ChatMessageSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   role?: boolean
   content?: boolean
   status?: boolean
+  memoryExtractionStatus?: boolean
+  memoryExtractionError?: boolean
+  memoryExtractionStartedAt?: boolean
+  memoryExtractedAt?: boolean
   createdAt?: boolean
   room?: boolean | Prisma.ChatRoomDefaultArgs<ExtArgs>
   ragCitations?: boolean | Prisma.ChatMessage$ragCitationsArgs<ExtArgs>
@@ -749,6 +905,10 @@ export type ChatMessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   role?: boolean
   content?: boolean
   status?: boolean
+  memoryExtractionStatus?: boolean
+  memoryExtractionError?: boolean
+  memoryExtractionStartedAt?: boolean
+  memoryExtractedAt?: boolean
   createdAt?: boolean
   room?: boolean | Prisma.ChatRoomDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["chatMessage"]>
@@ -759,6 +919,10 @@ export type ChatMessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   role?: boolean
   content?: boolean
   status?: boolean
+  memoryExtractionStatus?: boolean
+  memoryExtractionError?: boolean
+  memoryExtractionStartedAt?: boolean
+  memoryExtractedAt?: boolean
   createdAt?: boolean
   room?: boolean | Prisma.ChatRoomDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["chatMessage"]>
@@ -769,10 +933,14 @@ export type ChatMessageSelectScalar = {
   role?: boolean
   content?: boolean
   status?: boolean
+  memoryExtractionStatus?: boolean
+  memoryExtractionError?: boolean
+  memoryExtractionStartedAt?: boolean
+  memoryExtractedAt?: boolean
   createdAt?: boolean
 }
 
-export type ChatMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "roomId" | "role" | "content" | "status" | "createdAt", ExtArgs["result"]["chatMessage"]>
+export type ChatMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "roomId" | "role" | "content" | "status" | "memoryExtractionStatus" | "memoryExtractionError" | "memoryExtractionStartedAt" | "memoryExtractedAt" | "createdAt", ExtArgs["result"]["chatMessage"]>
 export type ChatMessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   room?: boolean | Prisma.ChatRoomDefaultArgs<ExtArgs>
   ragCitations?: boolean | Prisma.ChatMessage$ragCitationsArgs<ExtArgs>
@@ -799,6 +967,10 @@ export type $ChatMessagePayload<ExtArgs extends runtime.Types.Extensions.Interna
     role: $Enums.ChatMessageRole
     content: string
     status: $Enums.ChatMessageStatus
+    memoryExtractionStatus: $Enums.UserMemoryExtractionStatus | null
+    memoryExtractionError: string | null
+    memoryExtractionStartedAt: Date | null
+    memoryExtractedAt: Date | null
     createdAt: Date
   }, ExtArgs["result"]["chatMessage"]>
   composites: {}
@@ -1231,6 +1403,10 @@ export interface ChatMessageFieldRefs {
   readonly role: Prisma.FieldRef<"ChatMessage", 'ChatMessageRole'>
   readonly content: Prisma.FieldRef<"ChatMessage", 'String'>
   readonly status: Prisma.FieldRef<"ChatMessage", 'ChatMessageStatus'>
+  readonly memoryExtractionStatus: Prisma.FieldRef<"ChatMessage", 'UserMemoryExtractionStatus'>
+  readonly memoryExtractionError: Prisma.FieldRef<"ChatMessage", 'String'>
+  readonly memoryExtractionStartedAt: Prisma.FieldRef<"ChatMessage", 'DateTime'>
+  readonly memoryExtractedAt: Prisma.FieldRef<"ChatMessage", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"ChatMessage", 'DateTime'>
 }
     

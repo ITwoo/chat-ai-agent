@@ -61,3 +61,13 @@ export const UserMemoryStatus = {
 } as const
 
 export type UserMemoryStatus = (typeof UserMemoryStatus)[keyof typeof UserMemoryStatus]
+
+
+export const UserMemoryExtractionStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED'
+} as const
+
+export type UserMemoryExtractionStatus = (typeof UserMemoryExtractionStatus)[keyof typeof UserMemoryExtractionStatus]

@@ -1311,6 +1311,10 @@ export const ChatMessageScalarFieldEnum = {
   role: 'role',
   content: 'content',
   status: 'status',
+  memoryExtractionStatus: 'memoryExtractionStatus',
+  memoryExtractionError: 'memoryExtractionError',
+  memoryExtractionStartedAt: 'memoryExtractionStartedAt',
+  memoryExtractedAt: 'memoryExtractedAt',
   createdAt: 'createdAt'
 } as const
 
@@ -1546,6 +1550,20 @@ export type EnumChatMessageStatusFieldRefInput<$PrismaModel> = FieldRefInputType
  * Reference to a field of type 'ChatMessageStatus[]'
  */
 export type ListEnumChatMessageStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ChatMessageStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'UserMemoryExtractionStatus'
+ */
+export type EnumUserMemoryExtractionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserMemoryExtractionStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'UserMemoryExtractionStatus[]'
+ */
+export type ListEnumUserMemoryExtractionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserMemoryExtractionStatus[]'>
     
 
 

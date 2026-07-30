@@ -44,6 +44,13 @@ enum UserMemoryStatus {
     ARCHIVED
 }
 
+enum UserMemoryExtractionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model User {
     id       Int    @id @default(autoincrement())
     username String @unique @db.VarChar(50)
@@ -106,6 +113,10 @@ model ChatMessage {
     role    ChatMessageRole
     content String          @db.Text
     status  ChatMessageStatus @default(COMPLETED)
+    memoryExtractionStatus    UserMemoryExtractionStatus?
+    memoryExtractionError     String?                    @db.Text
+    memoryExtractionStartedAt DateTime?
+    memoryExtractedAt         DateTime?
     ragCitations ChatMessageRagCitation[]
     sourcedUserMemories UserMemory[] @relation("UserMemorySourceMessage")
     createdAt DateTime @default(now())
@@ -114,6 +125,7 @@ model ChatMessage {
     @@index([roomId, createdAt])
     @@index([createdAt])
     @@index([status])
+    @@index([memoryExtractionStatus, memoryExtractionStartedAt])
 }
 
 model Expense {
@@ -246,3 +258,4 @@ model UserMemory {
     @@index([userId, type, status])
     @@index([sourceMessageId])
 }
+

@@ -5,6 +5,7 @@ import { UserMemoryService } from "./user-memory.service";
 import { UserMemory } from "../generated/prisma/client";
 import { USER_MEMORY_CONFIDENCE_THRESHOLD, UserMemoryCandidate, UserMemoryExtraction, userMemoryExtractionSchema } from "./user-memory-extraction.schema";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { PrismaService } from "../prisma/prisma.service";
 
 const USER_MEMORY_EXTRACTION_SYSTEM_PROMPT = `
 너는 사용자 메시지에서 장기적으로 재사용할 가치가 있는 정보를 추출하는 전용 분류기다.
@@ -64,6 +65,7 @@ export class UserMemoryExtractionService {
 
     constructor(
         configService: ConfigService,
+        private readonly prisma: PrismaService,
         private readonly userMemoryService: UserMemoryService,
     ) {
         this.model = new ChatOpenAI({
@@ -216,6 +218,24 @@ export class UserMemoryExtractionService {
                 extraction.memories.length -
                 candidates.length,
         };
+    }
+
+    async getSourceMessage(
+        userId: number,
+        messageId: number,
+    ): Promise<{ content: string } | null> {
+        return this.prisma.chatMessage.findFirst({
+            where: {
+                id: messageId,
+                role: 'USER',
+                room: {
+                    userId,
+                },
+            },
+            select: {
+                content: true,
+            },
+        });
     }
 
 }

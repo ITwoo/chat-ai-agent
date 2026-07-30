@@ -28,6 +28,7 @@ import { RagCitation } from '../rag/schemas/rag-citation.schema';
 import { ChatSummaryService } from './chat-summary.service';
 import { UserMemoryExtractionService } from '../user-memory/user-memory-extraction.service';
 import { QueueProducerService } from '../queue/queue-producer.service';
+import { UserMemoryJobStateService } from '../user-memory/user-memory-job-state.service';
 
 type AuthenticatedSocket = Socket & {
     data: {
@@ -93,6 +94,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         private readonly chatService: ChatService,
         private readonly chatSummaryService: ChatSummaryService,
         private readonly queueProducerService: QueueProducerService,
+        private readonly userMemoryJobStateService: UserMemoryJobStateService,
         private readonly agentService: AgentService,
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService,
@@ -1163,6 +1165,19 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         messageId: number,
     ): Promise<void> {
         try {
+            const preparation =
+                await this.userMemoryJobStateService.prepareForEnqueue(
+                    userId,
+                    messageId,
+                );
+
+            if (preparation !== 'ENQUEUE') {
+                this.logger.debug(
+                    `사용자 장기 메모리 추출 Job 등록 건너뜀: userId=${userId}, messageId=${messageId}, reason=${preparation}`,
+                );
+                return;
+            }
+
             const job =
                 await this.queueProducerService.enqueueUserMemoryExtraction(
                     {

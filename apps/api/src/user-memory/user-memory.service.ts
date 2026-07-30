@@ -354,6 +354,17 @@ export class UserMemoryService {
         });
     }
 
+    async archiveActiveMemoryByKey(userId: number, memoryKey: string): Promise<boolean> {
+        const normalizedKey = this.normalizeMemoryKey(memoryKey);
+
+        const result = await this.prisma.userMemory.updateMany({
+            where: { userId, memoryKey: normalizedKey, status: 'ACTIVE' },
+            data: { status: 'ARCHIVED' },
+        });
+
+        return result.count === 1;
+    }
+
     async archiveMemory(
         userId: number,
         memoryId: number,

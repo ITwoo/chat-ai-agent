@@ -42,6 +42,7 @@ export type UserMemoryExtractionJobData = {
 export type UserMemoryExtractionJobResult = {
     extractedCount: number;
     savedCount: number;
+    archivedCount: number;
     skippedCount: number;
 };
 

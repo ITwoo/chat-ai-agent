@@ -37,6 +37,12 @@ const USER_MEMORY_EXTRACTION_SYSTEM_PROMPT = `
 - 다른 사람에 관한 개인정보
 - 정보를 잊거나 삭제해달라는 요청 자체
 
+action 규칙:
+- UPSERT: 새로운 메모리를 저장하거나 기존 메모리 내용을 갱신한다.
+- ARCHIVE: 기존 메모리가 더 이상 유효하지 않다고 사용자가 명확히 말한 경우 사용한다.
+- ARCHIVE는 현재 활성 메모리에 표시된 memoryKey를 정확히 사용한다.
+- 단순히 메모리를 잊거나 삭제해달라는 요청에는 ARCHIVE를 반환하지 않는다.
+
 memoryKey 규칙:
 - 영문과 숫자, 점, 밑줄, 하이픈만 사용한다.
 - 같은 의미에는 가능한 한 같은 key를 사용한다.
@@ -59,6 +65,7 @@ confidence 규칙:
 export type UserMemoryExtractionRunResult = {
     extractedCount: number;
     savedCount: number;
+    archivedCount: number;
     skippedCount: number;
 };
 
@@ -190,6 +197,7 @@ export class UserMemoryExtractionService {
             return {
                 extractedCount: 0,
                 savedCount: 0,
+                archivedCount: 0,
                 skippedCount: 0,
             };
         }
@@ -203,24 +211,35 @@ export class UserMemoryExtractionService {
         const candidates =
             this.selectCandidates(extraction.memories);
 
+        let savedCount = 0;
+        let archivedCount = 0;
+
         for (const candidate of candidates) {
-            await this.userMemoryService.upsertMemory(
-                userId,
-                {
-                    type: candidate.type,
-                    memoryKey: candidate.memoryKey,
-                    content: candidate.content,
-                    sourceMessageId,
-                },
-            );
+            if (candidate.action === 'ARCHIVE') {
+                const archived = await this.userMemoryService.archiveActiveMemoryByKey(
+                    userId,
+                    candidate.memoryKey,
+                );
+
+                if (archived) archivedCount++;
+                continue;
+            }
+
+            await this.userMemoryService.upsertMemory(userId, {
+                type: candidate.type,
+                memoryKey: candidate.memoryKey,
+                content: candidate.content,
+                sourceMessageId,
+            });
+
+            savedCount++;
         }
 
         return {
             extractedCount: extraction.memories.length,
-            savedCount: candidates.length,
-            skippedCount:
-                extraction.memories.length -
-                candidates.length,
+            savedCount,
+            archivedCount,
+            skippedCount: extraction.memories.length - savedCount - archivedCount,
         };
     }
 

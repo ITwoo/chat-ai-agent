@@ -18,6 +18,7 @@ import { UserMemoryJobStateService } from './user-memory-job-state.service';
 const EMPTY_EXTRACTION_RESULT: UserMemoryExtractionJobResult = {
     extractedCount: 0,
     savedCount: 0,
+    archivedCount: 0,
     skippedCount: 0,
 };
 

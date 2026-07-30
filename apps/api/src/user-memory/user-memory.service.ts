@@ -522,8 +522,15 @@ export class UserMemoryService {
             AND "status" = 'ACTIVE'::"UserMemoryStatus"
         `;
 
-        if (updated !== 1) {
-            throw new NotFoundException('삭제할 활성 사용자 메모리를 찾을 수 없습니다.');
-        }
+        if (updated === 1) return;
+
+        const memory = await this.prisma.userMemory.findFirst({
+            where: { id: memoryId, userId },
+            select: { status: true },
+        });
+
+        if (memory?.status === 'DELETED') return;
+
+        throw new NotFoundException('삭제할 활성 사용자 메모리를 찾을 수 없습니다.');
     }
 }

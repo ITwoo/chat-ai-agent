@@ -345,6 +345,7 @@ export class UserMemoryService {
                     status: 'ACTIVE',
                     sourceMessageId: input.sourceMessageId,
                     lastConfirmedAt: confirmedAt,
+                    deletedAt: null,
                 },
                 update: {
                     type: input.type,
@@ -352,6 +353,7 @@ export class UserMemoryService {
                     status: 'ACTIVE',
                     sourceMessageId: input.sourceMessageId,
                     lastConfirmedAt: confirmedAt,
+                    deletedAt: null,
                 },
             });
 
@@ -476,24 +478,6 @@ export class UserMemoryService {
             },
             data: {
                 status: 'ARCHIVED',
-            },
-        });
-
-        if (result.count !== 1) {
-            throw new NotFoundException(
-                '사용자 메모리를 찾을 수 없습니다.',
-            );
-        }
-    }
-
-    async deleteMemory(
-        userId: number,
-        memoryId: number,
-    ): Promise<void> {
-        const result = await this.prisma.userMemory.deleteMany({
-            where: {
-                id: memoryId,
-                userId,
             },
         });
 

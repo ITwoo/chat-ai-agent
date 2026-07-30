@@ -19,7 +19,7 @@ enum ChatMessageRole {
     SYSTEM
 }
 
-enum  ChatMessageStatus {
+enum ChatMessageStatus {
     COMPLETED
     CANCELLED
     FAILED
@@ -42,6 +42,7 @@ enum UserMemoryType {
 enum UserMemoryStatus {
     ACTIVE
     ARCHIVED
+    DELETED
 }
 
 enum UserMemoryExtractionStatus {
@@ -249,7 +250,7 @@ model UserMemory {
     lastConfirmedAt DateTime         @default(now())
     createdAt       DateTime         @default(now())
     updatedAt       DateTime         @updatedAt
-
+    deletedAt       DateTime?
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     sourceMessage ChatMessage? @relation("UserMemorySourceMessage", fields: [sourceMessageId], references: [id], onDelete: SetNull)

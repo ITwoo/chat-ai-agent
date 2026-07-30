@@ -386,6 +386,7 @@ export class UserMemoryService {
                 "lastConfirmedAt",
                 "createdAt",
                 "updatedAt",
+                "deletedAt",
                 "embedding"
             )
             VALUES (
@@ -398,6 +399,7 @@ export class UserMemoryService {
                 ${now},
                 ${now},
                 ${now},
+                NULL,
                 ${vector}::vector
             )
             ON CONFLICT ("userId", "memoryKey")
@@ -408,9 +410,24 @@ export class UserMemoryService {
                 "sourceMessageId" = EXCLUDED."sourceMessageId",
                 "lastConfirmedAt" = EXCLUDED."lastConfirmedAt",
                 "updatedAt" = EXCLUDED."updatedAt",
+                "deletedAt" = NULL,
                 "embedding" = EXCLUDED."embedding"
-            WHERE "UserMemory"."sourceMessageId" IS NULL
-            OR "UserMemory"."sourceMessageId" < EXCLUDED."sourceMessageId"
+            WHERE (
+                "UserMemory"."status" <> 'DELETED'::"UserMemoryStatus"
+                AND (
+                    "UserMemory"."sourceMessageId" IS NULL
+                    OR "UserMemory"."sourceMessageId" < EXCLUDED."sourceMessageId"
+                )
+            )
+            OR (
+                "UserMemory"."status" = 'DELETED'::"UserMemoryStatus"
+                AND "UserMemory"."deletedAt" IS NOT NULL
+                AND (
+                    SELECT message."createdAt"
+                    FROM "ChatMessage" AS message
+                    WHERE message."id" = EXCLUDED."sourceMessageId"
+                ) > "UserMemory"."deletedAt"
+            )
             RETURNING "id"
         `;
 
@@ -485,22 +502,26 @@ export class UserMemoryService {
         }
     }
 
-    async deleteActiveMemory(
-        userId: number,
-        memoryId: number,
-    ): Promise<void> {
-        const result = await this.prisma.userMemory.deleteMany({
-            where: {
-                id: memoryId,
-                userId,
-                status: 'ACTIVE',
-            },
-        });
+    async deleteActiveMemory(userId: number, memoryId: number): Promise<void> {
+        const deletedAt = new Date();
 
-        if (result.count !== 1) {
-            throw new NotFoundException(
-                '삭제할 활성 사용자 메모리를 찾을 수 없습니다.',
-            );
+        const updated = await this.prisma.$executeRaw`
+            UPDATE "UserMemory"
+            SET
+                "content" = '',
+                "status" = 'DELETED'::"UserMemoryStatus",
+                "sourceMessageId" = NULL,
+                "lastConfirmedAt" = ${deletedAt},
+                "updatedAt" = ${deletedAt},
+                "deletedAt" = ${deletedAt},
+                "embedding" = NULL
+            WHERE "id" = ${memoryId}
+            AND "userId" = ${userId}
+            AND "status" = 'ACTIVE'::"UserMemoryStatus"
+        `;
+
+        if (updated !== 1) {
+            throw new NotFoundException('삭제할 활성 사용자 메모리를 찾을 수 없습니다.');
         }
     }
 }

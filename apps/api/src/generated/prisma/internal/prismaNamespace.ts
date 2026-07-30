@@ -1417,7 +1417,8 @@ export const UserMemoryScalarFieldEnum = {
   sourceMessageId: 'sourceMessageId',
   lastConfirmedAt: 'lastConfirmedAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
 } as const
 
 export type UserMemoryScalarFieldEnum = (typeof UserMemoryScalarFieldEnum)[keyof typeof UserMemoryScalarFieldEnum]

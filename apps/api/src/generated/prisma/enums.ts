@@ -57,7 +57,8 @@ export type UserMemoryType = (typeof UserMemoryType)[keyof typeof UserMemoryType
 
 export const UserMemoryStatus = {
   ACTIVE: 'ACTIVE',
-  ARCHIVED: 'ARCHIVED'
+  ARCHIVED: 'ARCHIVED',
+  DELETED: 'DELETED'
 } as const
 
 export type UserMemoryStatus = (typeof UserMemoryStatus)[keyof typeof UserMemoryStatus]

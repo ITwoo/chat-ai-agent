@@ -49,6 +49,7 @@ export type UserMemoryMinAggregateOutputType = {
   lastConfirmedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  deletedAt: Date | null
 }
 
 export type UserMemoryMaxAggregateOutputType = {
@@ -62,6 +63,7 @@ export type UserMemoryMaxAggregateOutputType = {
   lastConfirmedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  deletedAt: Date | null
 }
 
 export type UserMemoryCountAggregateOutputType = {
@@ -75,6 +77,7 @@ export type UserMemoryCountAggregateOutputType = {
   lastConfirmedAt: number
   createdAt: number
   updatedAt: number
+  deletedAt: number
   _all: number
 }
 
@@ -102,6 +105,7 @@ export type UserMemoryMinAggregateInputType = {
   lastConfirmedAt?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
 }
 
 export type UserMemoryMaxAggregateInputType = {
@@ -115,6 +119,7 @@ export type UserMemoryMaxAggregateInputType = {
   lastConfirmedAt?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
 }
 
 export type UserMemoryCountAggregateInputType = {
@@ -128,6 +133,7 @@ export type UserMemoryCountAggregateInputType = {
   lastConfirmedAt?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
   _all?: true
 }
 
@@ -228,6 +234,7 @@ export type UserMemoryGroupByOutputType = {
   lastConfirmedAt: Date
   createdAt: Date
   updatedAt: Date
+  deletedAt: Date | null
   _count: UserMemoryCountAggregateOutputType | null
   _avg: UserMemoryAvgAggregateOutputType | null
   _sum: UserMemorySumAggregateOutputType | null
@@ -264,6 +271,7 @@ export type UserMemoryWhereInput = {
   lastConfirmedAt?: Prisma.DateTimeFilter<"UserMemory"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"UserMemory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"UserMemory"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableFilter<"UserMemory"> | Date | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   sourceMessage?: Prisma.XOR<Prisma.ChatMessageNullableScalarRelationFilter, Prisma.ChatMessageWhereInput> | null
 }
@@ -279,6 +287,7 @@ export type UserMemoryOrderByWithRelationInput = {
   lastConfirmedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   sourceMessage?: Prisma.ChatMessageOrderByWithRelationInput
 }
@@ -298,6 +307,7 @@ export type UserMemoryWhereUniqueInput = Prisma.AtLeast<{
   lastConfirmedAt?: Prisma.DateTimeFilter<"UserMemory"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"UserMemory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"UserMemory"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableFilter<"UserMemory"> | Date | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   sourceMessage?: Prisma.XOR<Prisma.ChatMessageNullableScalarRelationFilter, Prisma.ChatMessageWhereInput> | null
 }, "id" | "userId_memoryKey">
@@ -313,6 +323,7 @@ export type UserMemoryOrderByWithAggregationInput = {
   lastConfirmedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.UserMemoryCountOrderByAggregateInput
   _avg?: Prisma.UserMemoryAvgOrderByAggregateInput
   _max?: Prisma.UserMemoryMaxOrderByAggregateInput
@@ -334,6 +345,7 @@ export type UserMemoryScalarWhereWithAggregatesInput = {
   lastConfirmedAt?: Prisma.DateTimeWithAggregatesFilter<"UserMemory"> | Date | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"UserMemory"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"UserMemory"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"UserMemory"> | Date | string | null
 }
 
 export type UserMemoryCreateInput = {
@@ -344,6 +356,7 @@ export type UserMemoryCreateInput = {
   lastConfirmedAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutMemoriesInput
   sourceMessage?: Prisma.ChatMessageCreateNestedOneWithoutSourcedUserMemoriesInput
 }
@@ -359,6 +372,7 @@ export type UserMemoryUncheckedCreateInput = {
   lastConfirmedAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
 }
 
 export type UserMemoryUpdateInput = {
@@ -369,6 +383,7 @@ export type UserMemoryUpdateInput = {
   lastConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutMemoriesNestedInput
   sourceMessage?: Prisma.ChatMessageUpdateOneWithoutSourcedUserMemoriesNestedInput
 }
@@ -384,6 +399,7 @@ export type UserMemoryUncheckedUpdateInput = {
   lastConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserMemoryCreateManyInput = {
@@ -397,6 +413,7 @@ export type UserMemoryCreateManyInput = {
   lastConfirmedAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
 }
 
 export type UserMemoryUpdateManyMutationInput = {
@@ -407,6 +424,7 @@ export type UserMemoryUpdateManyMutationInput = {
   lastConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserMemoryUncheckedUpdateManyInput = {
@@ -420,6 +438,7 @@ export type UserMemoryUncheckedUpdateManyInput = {
   lastConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserMemoryListRelationFilter = {
@@ -448,6 +467,7 @@ export type UserMemoryCountOrderByAggregateInput = {
   lastConfirmedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type UserMemoryAvgOrderByAggregateInput = {
@@ -467,6 +487,7 @@ export type UserMemoryMaxOrderByAggregateInput = {
   lastConfirmedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type UserMemoryMinOrderByAggregateInput = {
@@ -480,6 +501,7 @@ export type UserMemoryMinOrderByAggregateInput = {
   lastConfirmedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type UserMemorySumOrderByAggregateInput = {
@@ -588,6 +610,7 @@ export type UserMemoryCreateWithoutUserInput = {
   lastConfirmedAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
   sourceMessage?: Prisma.ChatMessageCreateNestedOneWithoutSourcedUserMemoriesInput
 }
 
@@ -601,6 +624,7 @@ export type UserMemoryUncheckedCreateWithoutUserInput = {
   lastConfirmedAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
 }
 
 export type UserMemoryCreateOrConnectWithoutUserInput = {
@@ -643,6 +667,7 @@ export type UserMemoryScalarWhereInput = {
   lastConfirmedAt?: Prisma.DateTimeFilter<"UserMemory"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"UserMemory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"UserMemory"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableFilter<"UserMemory"> | Date | string | null
 }
 
 export type UserMemoryCreateWithoutSourceMessageInput = {
@@ -653,6 +678,7 @@ export type UserMemoryCreateWithoutSourceMessageInput = {
   lastConfirmedAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutMemoriesInput
 }
 
@@ -666,6 +692,7 @@ export type UserMemoryUncheckedCreateWithoutSourceMessageInput = {
   lastConfirmedAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
 }
 
 export type UserMemoryCreateOrConnectWithoutSourceMessageInput = {
@@ -704,6 +731,7 @@ export type UserMemoryCreateManyUserInput = {
   lastConfirmedAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
 }
 
 export type UserMemoryUpdateWithoutUserInput = {
@@ -714,6 +742,7 @@ export type UserMemoryUpdateWithoutUserInput = {
   lastConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sourceMessage?: Prisma.ChatMessageUpdateOneWithoutSourcedUserMemoriesNestedInput
 }
 
@@ -727,6 +756,7 @@ export type UserMemoryUncheckedUpdateWithoutUserInput = {
   lastConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserMemoryUncheckedUpdateManyWithoutUserInput = {
@@ -739,6 +769,7 @@ export type UserMemoryUncheckedUpdateManyWithoutUserInput = {
   lastConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserMemoryCreateManySourceMessageInput = {
@@ -751,6 +782,7 @@ export type UserMemoryCreateManySourceMessageInput = {
   lastConfirmedAt?: Date | string
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
 }
 
 export type UserMemoryUpdateWithoutSourceMessageInput = {
@@ -761,6 +793,7 @@ export type UserMemoryUpdateWithoutSourceMessageInput = {
   lastConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutMemoriesNestedInput
 }
 
@@ -774,6 +807,7 @@ export type UserMemoryUncheckedUpdateWithoutSourceMessageInput = {
   lastConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserMemoryUncheckedUpdateManyWithoutSourceMessageInput = {
@@ -786,6 +820,7 @@ export type UserMemoryUncheckedUpdateManyWithoutSourceMessageInput = {
   lastConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 
@@ -801,6 +836,7 @@ export type UserMemorySelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   lastConfirmedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   sourceMessage?: boolean | Prisma.UserMemory$sourceMessageArgs<ExtArgs>
 }, ExtArgs["result"]["userMemory"]>
@@ -816,6 +852,7 @@ export type UserMemorySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   lastConfirmedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   sourceMessage?: boolean | Prisma.UserMemory$sourceMessageArgs<ExtArgs>
 }, ExtArgs["result"]["userMemory"]>
@@ -831,6 +868,7 @@ export type UserMemorySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   lastConfirmedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   sourceMessage?: boolean | Prisma.UserMemory$sourceMessageArgs<ExtArgs>
 }, ExtArgs["result"]["userMemory"]>
@@ -846,9 +884,10 @@ export type UserMemorySelectScalar = {
   lastConfirmedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
 }
 
-export type UserMemoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "type" | "memoryKey" | "content" | "status" | "sourceMessageId" | "lastConfirmedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["userMemory"]>
+export type UserMemoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "type" | "memoryKey" | "content" | "status" | "sourceMessageId" | "lastConfirmedAt" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["userMemory"]>
 export type UserMemoryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   sourceMessage?: boolean | Prisma.UserMemory$sourceMessageArgs<ExtArgs>
@@ -879,6 +918,7 @@ export type $UserMemoryPayload<ExtArgs extends runtime.Types.Extensions.Internal
     lastConfirmedAt: Date
     createdAt: Date
     updatedAt: Date
+    deletedAt: Date | null
   }, ExtArgs["result"]["userMemory"]>
   composites: {}
 }
@@ -1314,6 +1354,7 @@ export interface UserMemoryFieldRefs {
   readonly lastConfirmedAt: Prisma.FieldRef<"UserMemory", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"UserMemory", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"UserMemory", 'DateTime'>
+  readonly deletedAt: Prisma.FieldRef<"UserMemory", 'DateTime'>
 }
     
 

@@ -21,11 +21,16 @@ export type RecoverUserMemoryExtractionsResult = {
     activeCount: number;
 };
 
-export type RelevantUserMemory = {
+export type UserMemorySearchResult = {
     id: number;
     type: UserMemoryType;
     memoryKey: string;
     content: string;
+    updatedAt: Date;
+    similarity: number | null;
+};
+
+export type RelevantUserMemory = Omit<UserMemorySearchResult, 'similarity'> & {
     similarity: number;
 };
 

@@ -163,7 +163,7 @@ export class UserMemoryExtractionService {
             ),
             new HumanMessage(
                 [
-                    '현재 활성 메모리:',
+                    '현재 메시지와 관련된 기존 메모리:',
                     '<existing_memories>',
                     this.formatExistingMemories(
                         existingMemories,

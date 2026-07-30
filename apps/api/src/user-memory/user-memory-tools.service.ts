@@ -48,7 +48,7 @@ export class UserMemoryToolsService {
                 );
 
                 const memories =
-                    await this.userMemoryService.searchActiveMemories(
+                    await this.userMemoryService.searchMemoriesForTool(
                         context.userId,
                         {
                             query,
@@ -72,7 +72,7 @@ export class UserMemoryToolsService {
             {
                 name: 'search_user_memories',
                 description:
-                    '사용자가 저장된 장기 메모리를 확인하거나 특정 기억을 찾으려 할 때 활성 메모리를 검색한다. 메모리 삭제 전에 삭제할 후보 ID를 확인할 때도 사용한다.',
+                    '저장된 장기 메모리를 조회한다. query가 있으면 의미가 관련된 메모리를 검색하고, query가 없으면 최근 활성 메모리를 조회한다.',
                 schema: z.object({
                     query: z
                         .string()

@@ -8,7 +8,7 @@ import type {
     UserMemoryType,
 } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service';
-import type { RelevantUserMemory, SearchUserMemoriesInput, UpsertUserMemoryInput, UserMemoryEmbeddingBackfillBatchResult } from './user-memory.types';
+import type { RelevantUserMemory, SearchUserMemoriesInput, UpsertUserMemoryInput, UserMemoryEmbeddingBackfillBatchResult, UserMemorySearchResult } from './user-memory.types';
 import { RagEmbeddingService } from '../rag/rag-embedding.service.js';
 import { serializeVector } from '../rag/utils/rag-vector.util.js';
 
@@ -160,47 +160,42 @@ export class UserMemoryService {
         });
     }
 
-    async searchActiveMemories(
+    async searchMemoriesForTool(
         userId: number,
         input: SearchUserMemoriesInput,
-    ): Promise<UserMemory[]> {
+    ): Promise<UserMemorySearchResult[]> {
         const query = input.query?.trim();
+        const limit = this.normalizeSearchLimit(input.limit);
 
-        return this.prisma.userMemory.findMany({
+        if (query) {
+            return this.searchRelevantMemories(userId, query, limit, input.type);
+        }
+
+        const memories = await this.prisma.userMemory.findMany({
             where: {
                 userId,
                 status: 'ACTIVE',
                 ...(input.type ? { type: input.type } : {}),
-                ...(query
-                    ? {
-                        OR: [
-                            {
-                                memoryKey: {
-                                    contains: query,
-                                    mode: 'insensitive',
-                                },
-                            },
-                            {
-                                content: {
-                                    contains: query,
-                                    mode: 'insensitive',
-                                },
-                            },
-                        ],
-                    }
-                    : {}),
             },
-            orderBy: {
-                updatedAt: 'desc',
+            select: {
+                id: true,
+                type: true,
+                memoryKey: true,
+                content: true,
+                updatedAt: true,
             },
-            take: this.normalizeSearchLimit(input.limit),
+            orderBy: { updatedAt: 'desc' },
+            take: limit,
         });
+
+        return memories.map((memory) => ({ ...memory, similarity: null }));
     }
 
     async searchRelevantMemories(
         userId: number,
         query: string,
         limit = DEFAULT_RELEVANT_MEMORY_LIMIT,
+        type?: UserMemoryType,
     ): Promise<RelevantUserMemory[]> {
         const normalizedQuery = query.trim();
         if (!normalizedQuery) return [];
@@ -209,6 +204,7 @@ export class UserMemoryService {
         const candidateLimit = searchLimit * RELEVANT_MEMORY_CANDIDATE_MULTIPLIER;
         const { embedding } = await this.ragEmbeddingService.embedText(normalizedQuery);
         const vector = serializeVector(embedding);
+        const normalizedType = type ?? null;
 
         const candidates = await this.prisma.$transaction(async (tx) => {
             await tx.$executeRaw`SET LOCAL hnsw.iterative_scan = 'strict_order'`;
@@ -228,6 +224,10 @@ export class UserMemoryService {
                 WHERE memory."userId" = ${userId}
                 AND memory."status" = 'ACTIVE'
                 AND memory."embedding" IS NOT NULL
+                AND (
+                    ${normalizedType}::text IS NULL
+                    OR memory."type"::text = ${normalizedType}::text
+                )
                 ORDER BY memory."embedding" <=> ${vector}::vector
                 LIMIT ${candidateLimit}
             `;

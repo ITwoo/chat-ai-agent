@@ -28,3 +28,10 @@ export type RelevantUserMemory = {
     content: string;
     similarity: number;
 };
+
+export type UserMemoryEmbeddingBackfillBatchResult = {
+    selectedCount: number;
+    updatedCount: number;
+    failedMemoryIds: number[];
+    nextCursor: number | null;
+};

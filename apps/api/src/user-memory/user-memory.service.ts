@@ -5,9 +5,10 @@ import {
 } from '@nestjs/common';
 import type {
     UserMemory,
+    UserMemoryType,
 } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service';
-import type { RelevantUserMemory, SearchUserMemoriesInput, UpsertUserMemoryInput } from './user-memory.types';
+import type { RelevantUserMemory, SearchUserMemoriesInput, UpsertUserMemoryInput, UserMemoryEmbeddingBackfillBatchResult } from './user-memory.types';
 import { RagEmbeddingService } from '../rag/rag-embedding.service.js';
 import { serializeVector } from '../rag/utils/rag-vector.util.js';
 
@@ -23,6 +24,16 @@ const DEFAULT_RELEVANT_MEMORY_LIMIT = 8;
 const MAX_RELEVANT_MEMORY_LIMIT = 20;
 const RELEVANT_MEMORY_CANDIDATE_MULTIPLIER = 3;
 const USER_MEMORY_MIN_SIMILARITY = 0.45;
+
+const DEFAULT_EMBEDDING_BACKFILL_LIMIT = 25;
+const MAX_EMBEDDING_BACKFILL_LIMIT = 100;
+
+type UserMemoryEmbeddingBackfillRow = {
+    id: number;
+    type: UserMemoryType;
+    memoryKey: string;
+    content: string;
+};
 
 @Injectable()
 export class UserMemoryService {
@@ -97,6 +108,12 @@ export class UserMemoryService {
         if (!Number.isInteger(limit) || limit < 1) return DEFAULT_RELEVANT_MEMORY_LIMIT;
 
         return Math.min(limit, MAX_RELEVANT_MEMORY_LIMIT);
+    }
+
+    private normalizeEmbeddingBackfillLimit(limit: number): number {
+        if (!Number.isInteger(limit) || limit < 1) return DEFAULT_EMBEDDING_BACKFILL_LIMIT;
+
+        return Math.min(limit, MAX_EMBEDDING_BACKFILL_LIMIT);
     }
 
     private async assertSourceMessageOwner(
@@ -219,6 +236,56 @@ export class UserMemoryService {
         return candidates
             .filter((memory) => memory.similarity >= USER_MEMORY_MIN_SIMILARITY)
             .slice(0, searchLimit);
+    }
+
+    async backfillMissingEmbeddings(
+        afterId = 0,
+        limit = DEFAULT_EMBEDDING_BACKFILL_LIMIT,
+    ): Promise<UserMemoryEmbeddingBackfillBatchResult> {
+        const take = this.normalizeEmbeddingBackfillLimit(limit);
+
+        const memories = await this.prisma.$queryRaw<UserMemoryEmbeddingBackfillRow[]>`
+            SELECT "id", "type", "memoryKey", "content"
+            FROM "UserMemory"
+            WHERE "embedding" IS NULL
+            AND "id" > ${afterId}
+            ORDER BY "id" ASC
+            LIMIT ${take}
+        `;
+
+        let updatedCount = 0;
+        const failedMemoryIds: number[] = [];
+
+        for (const memory of memories) {
+            try {
+                const text = this.createEmbeddingText(
+                    memory.type,
+                    memory.memoryKey,
+                    memory.content,
+                );
+
+                const { embedding } = await this.ragEmbeddingService.embedText(text);
+                const vector = serializeVector(embedding);
+
+                const updated = await this.prisma.$executeRaw`
+                    UPDATE "UserMemory"
+                    SET "embedding" = ${vector}::vector
+                    WHERE "id" = ${memory.id}
+                    AND "embedding" IS NULL
+                `;
+
+                updatedCount += updated;
+            } catch {
+                failedMemoryIds.push(memory.id);
+            }
+        }
+
+        return {
+            selectedCount: memories.length,
+            updatedCount,
+            failedMemoryIds,
+            nextCursor: memories.at(-1)?.id ?? null,
+        };
     }
 
     async getActiveMemoryById(

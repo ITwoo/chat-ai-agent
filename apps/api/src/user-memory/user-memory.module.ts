@@ -9,6 +9,7 @@ import { UserMemoryJobStateService } from './user-memory-job-state.service';
 import { RedisModule } from '../redis/redis.module';
 import { UserMemoryRecoveryService } from './user-memory-recovery.service';
 import { RagModule } from '../rag/rag.module';
+import { UserMemoryEmbeddingBackfillService } from './user-memory-embedding-backfill.service';
 
 @Module({
     imports: [
@@ -24,6 +25,7 @@ import { RagModule } from '../rag/rag.module';
         UserMemoryJobStateService,
         UserMemoryJobProcessor,
         UserMemoryRecoveryService,
+        UserMemoryEmbeddingBackfillService,
     ],
     exports: [
         UserMemoryService,

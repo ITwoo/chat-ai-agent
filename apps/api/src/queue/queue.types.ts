@@ -35,3 +35,16 @@ export type UserMemoryExtractionJobResult = {
     savedCount: number;
     skippedCount: number;
 };
+
+export type UserMemoryExtractionJobSnapshot =
+    | { state: 'NOT_FOUND' }
+    | {
+          state:
+              | 'WAITING'
+              | 'DELAYED'
+              | 'ACTIVE'
+              | 'COMPLETED'
+              | 'FAILED'
+              | 'UNKNOWN';
+          failedReason: string | null;
+      };

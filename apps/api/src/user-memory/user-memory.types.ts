@@ -12,3 +12,11 @@ export type SearchUserMemoriesInput = {
     type?: UserMemoryType;
     limit?: number;
 };
+
+export type RecoverUserMemoryExtractionsResult = {
+    checkedCount: number;
+    requeuedCount: number;
+    resetToPendingCount: number;
+    markedFailedCount: number;
+    activeCount: number;
+};

@@ -6,11 +6,14 @@ import { UserMemoryToolsService } from './user-memory-tools.service';
 import { QueueModule } from '../queue/queue.module';
 import { UserMemoryJobProcessor } from './user-memory-job.processor';
 import { UserMemoryJobStateService } from './user-memory-job-state.service';
+import { RedisModule } from '../redis/redis.module';
+import { UserMemoryRecoveryService } from './user-memory-recovery.service';
 
 @Module({
     imports: [
         PrismaModule,
-        QueueModule
+        QueueModule,
+        RedisModule,
     ],
     providers: [
         UserMemoryService,
@@ -18,6 +21,7 @@ import { UserMemoryJobStateService } from './user-memory-job-state.service';
         UserMemoryToolsService,
         UserMemoryJobStateService,
         UserMemoryJobProcessor,
+        UserMemoryRecoveryService,
     ],
     exports: [
         UserMemoryService,

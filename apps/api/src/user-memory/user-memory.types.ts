@@ -20,3 +20,11 @@ export type RecoverUserMemoryExtractionsResult = {
     markedFailedCount: number;
     activeCount: number;
 };
+
+export type RelevantUserMemory = {
+    id: number;
+    type: UserMemoryType;
+    memoryKey: string;
+    content: string;
+    similarity: number;
+};

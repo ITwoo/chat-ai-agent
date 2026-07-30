@@ -7,7 +7,7 @@ import type {
     UserMemory,
 } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service';
-import type { SearchUserMemoriesInput, UpsertUserMemoryInput } from './user-memory.types';
+import type { RelevantUserMemory, SearchUserMemoriesInput, UpsertUserMemoryInput } from './user-memory.types';
 import { RagEmbeddingService } from '../rag/rag-embedding.service.js';
 import { serializeVector } from '../rag/utils/rag-vector.util.js';
 
@@ -18,6 +18,11 @@ const MEMORY_KEY_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
 
 const DEFAULT_MEMORY_SEARCH_LIMIT = 10;
 const MAX_MEMORY_SEARCH_LIMIT = 20;
+
+const DEFAULT_RELEVANT_MEMORY_LIMIT = 8;
+const MAX_RELEVANT_MEMORY_LIMIT = 20;
+const RELEVANT_MEMORY_CANDIDATE_MULTIPLIER = 3;
+const USER_MEMORY_MIN_SIMILARITY = 0.45;
 
 @Injectable()
 export class UserMemoryService {
@@ -86,6 +91,12 @@ export class UserMemoryService {
         }
 
         return Math.min(limit, MAX_MEMORY_SEARCH_LIMIT);
+    }
+
+    private normalizeRelevantLimit(limit: number): number {
+        if (!Number.isInteger(limit) || limit < 1) return DEFAULT_RELEVANT_MEMORY_LIMIT;
+
+        return Math.min(limit, MAX_RELEVANT_MEMORY_LIMIT);
     }
 
     private async assertSourceMessageOwner(
@@ -167,6 +178,47 @@ export class UserMemoryService {
             },
             take: this.normalizeSearchLimit(input.limit),
         });
+    }
+
+    async searchRelevantMemories(
+        userId: number,
+        query: string,
+        limit = DEFAULT_RELEVANT_MEMORY_LIMIT,
+    ): Promise<RelevantUserMemory[]> {
+        const normalizedQuery = query.trim();
+        if (!normalizedQuery) return [];
+
+        const searchLimit = this.normalizeRelevantLimit(limit);
+        const candidateLimit = searchLimit * RELEVANT_MEMORY_CANDIDATE_MULTIPLIER;
+        const { embedding } = await this.ragEmbeddingService.embedText(normalizedQuery);
+        const vector = serializeVector(embedding);
+
+        const candidates = await this.prisma.$transaction(async (tx) => {
+            await tx.$executeRaw`SET LOCAL hnsw.iterative_scan = 'strict_order'`;
+
+            return tx.$queryRaw<RelevantUserMemory[]>`
+                SELECT
+                    memory."id",
+                    memory."type",
+                    memory."memoryKey",
+                    memory."content",
+                    (
+                        1 - (
+                            memory."embedding" <=> ${vector}::vector
+                        )
+                    )::double precision AS "similarity"
+                FROM "UserMemory" AS memory
+                WHERE memory."userId" = ${userId}
+                AND memory."status" = 'ACTIVE'
+                AND memory."embedding" IS NOT NULL
+                ORDER BY memory."embedding" <=> ${vector}::vector
+                LIMIT ${candidateLimit}
+            `;
+        });
+
+        return candidates
+            .filter((memory) => memory.similarity >= USER_MEMORY_MIN_SIMILARITY)
+            .slice(0, searchLimit);
     }
 
     async getActiveMemoryById(

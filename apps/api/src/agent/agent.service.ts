@@ -11,6 +11,7 @@ import { Command } from '@langchain/langgraph';
 import { RagCitation, ragCitationSchema } from '../rag/schemas/rag-citation.schema';
 import { ChatAgentContext } from '../chat/chat.service';
 import { UserMemoryService } from '../user-memory/user-memory.service';
+import { RelevantUserMemory } from '../user-memory/user-memory.types';
 
 export type AgentStreamEvent =
     | {
@@ -137,7 +138,7 @@ export class AgentService {
         threadId: string,
     ): Promise<string> {
         const graph = this.createGraphForUser(userId)
-        const userMemories = await this.userMemoryService.getActiveMemories(userId);
+        const userMemories = await this.getUserMemoriesSafely(userId, context);
         const langchainMessages = this.toLangChainMessages(context, userMemories);
 
         const result = await graph.invoke(
@@ -166,7 +167,7 @@ export class AgentService {
         threadId: string,
         signal?: AbortSignal,
     ): AsyncGenerator<AgentStreamEvent> {        
-        const userMemories = await this.getUserMemoriesSafely(userId);
+        const userMemories = await this.getUserMemoriesSafely(userId, context);
         const langchainMessages = this.toLangChainMessages(context, userMemories);
 
         yield* this.streamGraph(
@@ -252,7 +253,7 @@ export class AgentService {
 
     private toLangChainMessages(
         context: ChatAgentContext,
-        userMemories: UserMemory[],
+        userMemories: RelevantUserMemory[],
     ): BaseMessage[] {
         const recentMessages = context.messages.map((message) => {
             if (message.role === ChatMessageRole.USER) {
@@ -321,7 +322,7 @@ export class AgentService {
             .join('');
     }
 
-    private formatUserMemories(memories: UserMemory[]): string {
+    private formatUserMemories(memories: RelevantUserMemory[]): string {
         return memories
             .map(
                 (memory) =>
@@ -331,7 +332,7 @@ export class AgentService {
     }
 
     private createUserMemoryMessage(
-        memories: UserMemory[],
+        memories: RelevantUserMemory[],
     ): SystemMessage | null {
         if (memories.length === 0) return null;
 
@@ -347,17 +348,31 @@ export class AgentService {
 
     private async getUserMemoriesSafely(
         userId: number,
-    ): Promise<UserMemory[]> {
+        context: ChatAgentContext,
+    ): Promise<RelevantUserMemory[]> {
+        const query = this.getLatestUserMessageContent(context);
+        if (!query) return [];
+
         try {
-            return await this.userMemoryService.getActiveMemories(userId);
+            return await this.userMemoryService.searchRelevantMemories(userId, query);
         } catch (error) {
             this.logger.error(
-                `사용자 장기 메모리 조회 실패: userId=${userId}`,
+                `관련 사용자 장기 메모리 조회 실패: userId=${userId}`,
                 error instanceof Error ? error.stack : String(error),
             );
 
             return [];
         }
+    }
+
+    private getLatestUserMessageContent(context: ChatAgentContext): string {
+        for (let index = context.messages.length - 1; index >= 0; index--) {
+            const message = context.messages[index];
+
+            if (message?.role === ChatMessageRole.USER) return message.content.trim();
+        }
+
+        return '';
     }
 
 }

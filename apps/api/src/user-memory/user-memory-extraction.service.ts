@@ -6,6 +6,9 @@ import { UserMemory } from "../generated/prisma/client";
 import { USER_MEMORY_CONFIDENCE_THRESHOLD, UserMemoryCandidate, UserMemoryExtraction, userMemoryExtractionSchema } from "./user-memory-extraction.schema";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { PrismaService } from "../prisma/prisma.service";
+import { RelevantUserMemory } from "./user-memory.types";
+
+const EXTRACTION_EXISTING_MEMORY_LIMIT = 20;
 
 const USER_MEMORY_EXTRACTION_SYSTEM_PROMPT = `
 너는 사용자 메시지에서 장기적으로 재사용할 가치가 있는 정보를 추출하는 전용 분류기다.
@@ -81,7 +84,7 @@ export class UserMemoryExtractionService {
     }
 
     private formatExistingMemories(
-        memories: UserMemory[],
+        memories: RelevantUserMemory[],
     ): string {
         if (memories.length === 0) {
             return '(기존 메모리 없음)';
@@ -140,9 +143,10 @@ export class UserMemoryExtractionService {
         content: string,
     ): Promise<UserMemoryExtraction> {
         const existingMemories =
-            await this.userMemoryService.getActiveMemories(
+            await this.userMemoryService.searchRelevantMemories(
                 userId,
-                100,
+                content,
+                EXTRACTION_EXISTING_MEMORY_LIMIT,
             );
 
         const extractor =

@@ -219,20 +219,22 @@ export class UserMemoryExtractionService {
                 const archived = await this.userMemoryService.archiveActiveMemoryByKey(
                     userId,
                     candidate.memoryKey,
+                    sourceMessageId,
                 );
 
                 if (archived) archivedCount++;
+
                 continue;
             }
 
-            await this.userMemoryService.upsertMemory(userId, {
+            const result = await this.userMemoryService.upsertExtractedMemory(userId, {
                 type: candidate.type,
                 memoryKey: candidate.memoryKey,
                 content: candidate.content,
                 sourceMessageId,
             });
 
-            savedCount++;
+            if (result === 'APPLIED') savedCount++;
         }
 
         return {

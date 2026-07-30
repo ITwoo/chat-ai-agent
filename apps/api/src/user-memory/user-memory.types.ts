@@ -7,6 +7,15 @@ export type UpsertUserMemoryInput = {
     sourceMessageId: number | null;
 };
 
+export type UpsertExtractedUserMemoryInput = Omit<
+    UpsertUserMemoryInput,
+    'sourceMessageId'
+> & {
+    sourceMessageId: number;
+};
+
+export type UserMemoryWriteResult = 'APPLIED' | 'STALE';
+
 export type SearchUserMemoriesInput = {
     query?: string;
     type?: UserMemoryType;

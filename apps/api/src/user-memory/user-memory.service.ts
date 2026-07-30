@@ -8,7 +8,7 @@ import type {
     UserMemoryType,
 } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service';
-import type { RelevantUserMemory, SearchUserMemoriesInput, UpsertUserMemoryInput, UserMemoryEmbeddingBackfillBatchResult, UserMemorySearchResult } from './user-memory.types';
+import type { RelevantUserMemory, SearchUserMemoriesInput, UpsertExtractedUserMemoryInput, UpsertUserMemoryInput, UserMemoryEmbeddingBackfillBatchResult, UserMemorySearchResult, UserMemoryWriteResult } from './user-memory.types';
 import { RagEmbeddingService } from '../rag/rag-embedding.service.js';
 import { serializeVector } from '../rag/utils/rag-vector.util.js';
 
@@ -84,6 +84,17 @@ export class UserMemoryService {
         content: string,
     ): string {
         return `[${type}] ${memoryKey}\n${content}`;
+    }
+
+    private async createEmbeddingVector(
+        type: UserMemoryType,
+        memoryKey: string,
+        content: string,
+    ): Promise<string> {
+        const text = this.createEmbeddingText(type, memoryKey, content);
+        const { embedding } = await this.ragEmbeddingService.embedText(text);
+
+        return serializeVector(embedding);
     }
 
     private normalizeLimit(limit: number): number {
@@ -318,9 +329,7 @@ export class UserMemoryService {
 
         await this.assertSourceMessageOwner(userId, input.sourceMessageId);
 
-        const embeddingText = this.createEmbeddingText(input.type, memoryKey, content);
-        const { embedding } = await this.ragEmbeddingService.embedText(embeddingText);
-        const vector = serializeVector(embedding);
+        const vector = await this.createEmbeddingVector(input.type, memoryKey, content);
         const confirmedAt = new Date();
 
         return this.prisma.$transaction(async (tx) => {
@@ -354,15 +363,87 @@ export class UserMemoryService {
         });
     }
 
-    async archiveActiveMemoryByKey(userId: number, memoryKey: string): Promise<boolean> {
+    async upsertExtractedMemory(
+        userId: number,
+        input: UpsertExtractedUserMemoryInput,
+    ): Promise<UserMemoryWriteResult> {
+        const memoryKey = this.normalizeMemoryKey(input.memoryKey);
+        const content = this.normalizeContent(input.content);
+
+        await this.assertSourceMessageOwner(userId, input.sourceMessageId);
+
+        const vector = await this.createEmbeddingVector(input.type, memoryKey, content);
+        const now = new Date();
+
+        const rows = await this.prisma.$queryRaw<Array<{ id: number }>>`
+            INSERT INTO "UserMemory" (
+                "userId",
+                "type",
+                "memoryKey",
+                "content",
+                "status",
+                "sourceMessageId",
+                "lastConfirmedAt",
+                "createdAt",
+                "updatedAt",
+                "embedding"
+            )
+            VALUES (
+                ${userId},
+                ${input.type}::"UserMemoryType",
+                ${memoryKey},
+                ${content},
+                'ACTIVE'::"UserMemoryStatus",
+                ${input.sourceMessageId},
+                ${now},
+                ${now},
+                ${now},
+                ${vector}::vector
+            )
+            ON CONFLICT ("userId", "memoryKey")
+            DO UPDATE SET
+                "type" = EXCLUDED."type",
+                "content" = EXCLUDED."content",
+                "status" = EXCLUDED."status",
+                "sourceMessageId" = EXCLUDED."sourceMessageId",
+                "lastConfirmedAt" = EXCLUDED."lastConfirmedAt",
+                "updatedAt" = EXCLUDED."updatedAt",
+                "embedding" = EXCLUDED."embedding"
+            WHERE "UserMemory"."sourceMessageId" IS NULL
+            OR "UserMemory"."sourceMessageId" < EXCLUDED."sourceMessageId"
+            RETURNING "id"
+        `;
+
+        return rows.length === 1 ? 'APPLIED' : 'STALE';
+    }
+
+    async archiveActiveMemoryByKey(
+        userId: number,
+        memoryKey: string,
+        sourceMessageId: number,
+    ): Promise<UserMemoryWriteResult> {
         const normalizedKey = this.normalizeMemoryKey(memoryKey);
 
+        await this.assertSourceMessageOwner(userId, sourceMessageId);
+
         const result = await this.prisma.userMemory.updateMany({
-            where: { userId, memoryKey: normalizedKey, status: 'ACTIVE' },
-            data: { status: 'ARCHIVED' },
+            where: {
+                userId,
+                memoryKey: normalizedKey,
+                status: 'ACTIVE',
+                OR: [
+                    { sourceMessageId: null },
+                    { sourceMessageId: { lt: sourceMessageId } },
+                ],
+            },
+            data: {
+                status: 'ARCHIVED',
+                sourceMessageId,
+                lastConfirmedAt: new Date(),
+            },
         });
 
-        return result.count === 1;
+        return result.count === 1 ? 'APPLIED' : 'STALE';
     }
 
     async archiveMemory(

@@ -23,7 +23,16 @@ export type RemoveDocumentIngestionJobResult = 'NOT_FOUND' | 'REMOVED' | 'ACTIVE
 
 export type DocumentIngestionJobSnapshot =
     | { state: 'NOT_FOUND' }
-    | { state: 'WAITING' | 'DELAYED' | 'ACTIVE' | 'COMPLETED' | 'FAILED' | 'UNKNOWN'; failedReason: string | null };
+    | {
+        state:
+        | 'WAITING'
+        | 'DELAYED'
+        | 'ACTIVE'
+        | 'COMPLETED'
+        | 'FAILED'
+        | 'UNKNOWN';
+        failedReason: string | null
+    };
 
 export type UserMemoryExtractionJobData = {
     userId: number;
@@ -39,12 +48,12 @@ export type UserMemoryExtractionJobResult = {
 export type UserMemoryExtractionJobSnapshot =
     | { state: 'NOT_FOUND' }
     | {
-          state:
-              | 'WAITING'
-              | 'DELAYED'
-              | 'ACTIVE'
-              | 'COMPLETED'
-              | 'FAILED'
-              | 'UNKNOWN';
-          failedReason: string | null;
-      };
+        state:
+        | 'WAITING'
+        | 'DELAYED'
+        | 'ACTIVE'
+        | 'COMPLETED'
+        | 'FAILED'
+        | 'UNKNOWN';
+        failedReason: string | null;
+    };

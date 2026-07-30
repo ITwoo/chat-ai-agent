@@ -13,23 +13,15 @@ const RECOVERY_LOCK_KEY =
     'lock:chat-ai-agent:user-memory-recovery';
 
 @Injectable()
-export class UserMemoryRecoveryService
-    implements
-        OnApplicationBootstrap,
-        OnApplicationShutdown
-{
-    private readonly logger = new Logger(
-        UserMemoryRecoveryService.name,
-    );
+export class UserMemoryRecoveryService implements OnApplicationBootstrap, OnApplicationShutdown {
+    private readonly logger = new Logger(UserMemoryRecoveryService.name);
 
     private intervalId?: NodeJS.Timeout;
     private isRunning = false;
 
     constructor(
-        private readonly jobStateService:
-            UserMemoryJobStateService,
-        private readonly redisLockService:
-            RedisLockService,
+        private readonly jobStateService: UserMemoryJobStateService,
+        private readonly redisLockService: RedisLockService,
     ) {}
 
     onApplicationBootstrap(): void {

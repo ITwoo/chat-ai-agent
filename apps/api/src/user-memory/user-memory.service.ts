@@ -258,7 +258,8 @@ export class UserMemoryService {
         const memories = await this.prisma.$queryRaw<UserMemoryEmbeddingBackfillRow[]>`
             SELECT "id", "type", "memoryKey", "content"
             FROM "UserMemory"
-            WHERE "embedding" IS NULL
+            WHERE "status" = 'ACTIVE'::"UserMemoryStatus"
+            AND "embedding" IS NULL
             AND "id" > ${afterId}
             ORDER BY "id" ASC
             LIMIT ${take}
@@ -282,6 +283,7 @@ export class UserMemoryService {
                     UPDATE "UserMemory"
                     SET "embedding" = ${vector}::vector
                     WHERE "id" = ${memory.id}
+                    AND "status" = 'ACTIVE'::"UserMemoryStatus"
                     AND "embedding" IS NULL
                 `;
 

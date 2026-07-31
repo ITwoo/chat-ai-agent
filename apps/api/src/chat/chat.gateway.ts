@@ -17,7 +17,7 @@ import type { User } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { AgentService, AgentStreamEvent } from '../agent/agent.service';
+import { AgentRunContext, AgentService, AgentStreamEvent } from '../agent/agent.service';
 import { AgentApprovalDecision, AgentApprovalRequest, agentApprovalResponseSchema, ExpenseUpdateApprovalRequest } from '../agent/agent-interrupt.schema';
 import { randomUUID } from 'node:crypto';
 import { PendingAgentApproval } from './types/pending-agent-approval.type';
@@ -286,7 +286,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 userMessage.id,
             );
 
-            const agentThreadId = this.getAgentThreadId(user.id, payload.roomId, userMessage.id);
+            const agentRunContext = this.createAgentRunContext(
+                user.id,
+                payload.roomId,
+                userMessage.id,
+            );
 
             this.server.to(roomName).emit('message_created', { ...userMessage, ragCitations: []});
 
@@ -318,7 +322,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             for await (const event of this.agentService.streamReply(
                 user.id,
                 agentContext,
-                agentThreadId,
+                agentRunContext,
                 abortController.signal,
             )) {
                 if (this.cancelledRooms.has(processingKey)) {
@@ -620,6 +624,17 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         return `chat:${userId}:${roomId}:${userMessageId}`;
     }
 
+    private createAgentRunContext(
+        userId: number,
+        roomId: number,
+        userMessageId: number,
+    ): AgentRunContext {
+        return {
+            agentThreadId: this.getAgentThreadId(userId, roomId, userMessageId),
+            conversationThreadId: `chat-room:${userId}:${roomId}`,
+        };
+    }
+
     private getUserRoomKey(
         userId: number,
         roomId: number,
@@ -914,9 +929,14 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             let isCancelled = false;
             let isWaitingForApproval = false;
 
+            const agentRunContext: AgentRunContext = {
+                agentThreadId: pendingApproval.threadId,
+                conversationThreadId: `chat-room:${user.id}:${roomId}`,
+            };
+
             for await (const event of this.agentService.resumeReply(
                 user.id,
-                pendingApproval.threadId,
+                agentRunContext,
                 decision,
                 abortController.signal,
             )) {

@@ -30,6 +30,11 @@ type AgentGraphStreamInput = Parameters<AgentGraph['streamEvents']>[0];
 
 type AgentRunKind = 'generate' | 'stream' | 'resume';
 
+export type AgentRunContext = {
+    agentThreadId: string;
+    conversationThreadId: string;
+};
+
 const AGENT_TRACE_TAG = 'chat-agent';
 
 const APPROVAL_INTENT_SYSTEM_PROMPT = `
@@ -127,19 +132,20 @@ export class AgentService {
 
     private createRunConfig(
         userId: number,
-        threadId: string,
+        runContext: AgentRunContext,
         runKind: AgentRunKind,
     ): RunnableConfig {
         return {
             runName: `chat_agent_${runKind}`,
             tags: [AGENT_TRACE_TAG, runKind],
             metadata: {
-                thread_id: threadId,
+                thread_id: runContext.conversationThreadId,
+                agent_thread_id: runContext.agentThreadId,
                 user_id: String(userId),
                 run_kind: runKind,
             },
             configurable: {
-                thread_id: threadId,
+                thread_id: runContext.agentThreadId,
             },
         };
     }
@@ -159,7 +165,7 @@ export class AgentService {
     async generateReply(
         userId: number,
         context: ChatAgentContext,
-        threadId: string,
+        runContext: AgentRunContext,
     ): Promise<string> {
         const graph = this.createGraphForUser(userId)
         const userMemories = await this.getUserMemoriesSafely(userId, context);
@@ -169,7 +175,7 @@ export class AgentService {
             {
                 messages: langchainMessages,
             },
-            this.createRunConfig(userId, threadId, 'generate'),
+            this.createRunConfig(userId, runContext, 'generate'),
         );
 
         const lastMessage = result.messages.at(-1);
@@ -184,7 +190,7 @@ export class AgentService {
     async *streamReply(
         userId: number,
         context: ChatAgentContext,
-        threadId: string,
+        runContext: AgentRunContext,
         signal?: AbortSignal,
     ): AsyncGenerator<AgentStreamEvent> {        
         const userMemories = await this.getUserMemoriesSafely(userId, context);
@@ -195,7 +201,7 @@ export class AgentService {
             {
                 messages: langchainMessages,
             },
-            threadId,
+            runContext,
             'stream',
             signal,
         );
@@ -203,7 +209,7 @@ export class AgentService {
 
     async *resumeReply(
         userId: number,
-        threadId: string,
+        runContext: AgentRunContext,
         decision: AgentApprovalDecision,
         signal?: AbortSignal,
     ): AsyncGenerator<AgentStreamEvent> {
@@ -212,7 +218,7 @@ export class AgentService {
             new Command({
                 resume: decision,
             }),
-            threadId,
+            runContext,
             'resume',
             signal,
         );
@@ -221,7 +227,7 @@ export class AgentService {
     private async *streamGraph(
         userId: number,
         input: AgentGraphStreamInput,
-        threadId: string,
+        runContext: AgentRunContext,
         runKind: AgentRunKind,
         signal?: AbortSignal,
     ) : AsyncGenerator<AgentStreamEvent> {
@@ -230,7 +236,7 @@ export class AgentService {
         const stream = await graph.streamEvents(
             input,
             {
-                ...this.createRunConfig(userId, threadId, runKind),
+                ...this.createRunConfig(userId, runContext, runKind),
                 version: 'v3',                
                 signal,
             },
@@ -260,7 +266,7 @@ export class AgentService {
                 throw new Error('지원하지 않는 승인 요청 형식입니다.');
             }
 
-            yield { type: 'approval_required', threadId, request: result.data };
+            yield { type: 'approval_required', threadId: runContext.agentThreadId, request: result.data };
             return;
         }
 

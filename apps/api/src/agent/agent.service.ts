@@ -16,15 +16,15 @@ import { RunnableConfig } from '@langchain/core/runnables';
 
 export type AgentStreamEvent =
     | {
-          type: 'text_delta';
-          delta: string;
-      }
+        type: 'text_delta';
+        delta: string;
+    }
     | { type: 'completed'; ragCitations: RagCitation[] }
     | {
-          type: 'approval_required';
-          threadId: string;
-          request: AgentApprovalRequest;
-      };
+        type: 'approval_required';
+        threadId: string;
+        request: AgentApprovalRequest;
+    };
 
 type AgentGraphStreamInput = Parameters<AgentGraph['streamEvents']>[0];
 
@@ -33,6 +33,16 @@ type AgentRunKind = 'generate' | 'stream' | 'resume';
 export type AgentRunContext = {
     agentThreadId: string;
     conversationThreadId: string;
+};
+
+export type ApprovalIntentTraceContext = {
+    userId: number;
+    roomId: number;
+    approvalId: string;
+    agentThreadId: string;
+    conversationThreadId: string;
+    originUserMessageId: number;
+    responseMessageId: number;
 };
 
 const AGENT_TRACE_TAG = 'chat-agent';
@@ -93,7 +103,7 @@ export class AgentService {
         private readonly agentToolsService: AgentToolsService,
         private readonly agentGraphFactory: AgentGraphFactory,
         private readonly userMemoryService: UserMemoryService,
-    ) {}
+    ) { }
 
     private createModel(): ChatOpenAI {
         return new ChatOpenAI({
@@ -105,10 +115,11 @@ export class AgentService {
     async classifyApprovalIntent(
         request: AgentApprovalRequest,
         content: string,
+        traceContext: ApprovalIntentTraceContext,
     ): Promise<ApprovalIntent> {
         const normalizedContent = content.trim();
 
-        if(!normalizedContent){
+        if (!normalizedContent) {
             return {
                 intent: 'unclear',
             };
@@ -127,7 +138,9 @@ export class AgentService {
                 approvalRequest: request,
                 userResponse: normalizedContent,
             })),
-        ]);
+        ],
+            this.createApprovalIntentTraceConfig(traceContext),
+        );
     }
 
     private createRunConfig(
@@ -146,6 +159,24 @@ export class AgentService {
             },
             configurable: {
                 thread_id: runContext.agentThreadId,
+            },
+        };
+    }
+
+    private createApprovalIntentTraceConfig(
+        context: ApprovalIntentTraceContext,
+    ): RunnableConfig {
+        return {
+            runName: 'approval_intent_classification',
+            tags: [AGENT_TRACE_TAG, 'approval-classifier'],
+            metadata: {
+                thread_id: context.conversationThreadId,
+                agent_thread_id: context.agentThreadId,
+                user_id: String(context.userId),
+                room_id: String(context.roomId),
+                approval_id: context.approvalId,
+                origin_user_message_id: String(context.originUserMessageId),
+                response_message_id: String(context.responseMessageId),
             },
         };
     }
@@ -180,7 +211,7 @@ export class AgentService {
 
         const lastMessage = result.messages.at(-1);
 
-        if(!lastMessage || !AIMessage.isInstance(lastMessage)) {
+        if (!lastMessage || !AIMessage.isInstance(lastMessage)) {
             throw new Error('AI 응답을 생성하지 못했습니다.')
         }
 
@@ -192,7 +223,7 @@ export class AgentService {
         context: ChatAgentContext,
         runContext: AgentRunContext,
         signal?: AbortSignal,
-    ): AsyncGenerator<AgentStreamEvent> {        
+    ): AsyncGenerator<AgentStreamEvent> {
         const userMemories = await this.getUserMemoriesSafely(userId, context);
         const langchainMessages = this.toLangChainMessages(context, userMemories);
 
@@ -230,21 +261,21 @@ export class AgentService {
         runContext: AgentRunContext,
         runKind: AgentRunKind,
         signal?: AbortSignal,
-    ) : AsyncGenerator<AgentStreamEvent> {
+    ): AsyncGenerator<AgentStreamEvent> {
         const graph = this.createGraphForUser(userId);
 
         const stream = await graph.streamEvents(
             input,
             {
                 ...this.createRunConfig(userId, runContext, runKind),
-                version: 'v3',                
+                version: 'v3',
                 signal,
             },
         );
 
         for await (const message of stream.messages) {
             for await (const delta of message.text) {
-                if(!delta) {
+                if (!delta) {
                     continue;
                 }
 
@@ -317,7 +348,7 @@ export class AgentService {
                 ),
             );
         }
-        
+
         return [
             ...contextMessages,
             ...recentMessages,

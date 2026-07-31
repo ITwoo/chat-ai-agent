@@ -17,7 +17,7 @@ import type { User } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { AgentRunContext, AgentService, AgentStreamEvent } from '../agent/agent.service';
+import { AgentRunContext, AgentService, AgentStreamEvent, ApprovalIntentTraceContext } from '../agent/agent.service';
 import { AgentApprovalDecision, AgentApprovalRequest, agentApprovalResponseSchema, ExpenseUpdateApprovalRequest } from '../agent/agent-interrupt.schema';
 import { randomUUID } from 'node:crypto';
 import { PendingAgentApproval } from './types/pending-agent-approval.type';
@@ -888,10 +888,21 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 );
             }
 
+            const traceContext: ApprovalIntentTraceContext = {
+                userId: user.id,
+                roomId,
+                approvalId: pendingApproval.approvalId,
+                agentThreadId: pendingApproval.threadId,
+                conversationThreadId: `chat-room:${user.id}:${roomId}`,
+                originUserMessageId: pendingApproval.originUserMessageId,
+                responseMessageId: statusUserMessageId,
+            };
+
             const decision =
                 await this.resolveApprovalDecision(
                     pendingApproval.request,
                     source,
+                    traceContext,
                 );
 
             if (!decision) {
@@ -1096,6 +1107,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     private async resolveApprovalDecision(
         request: AgentApprovalRequest,
         source: AgentApprovalSource,
+        traceContext: ApprovalIntentTraceContext,
     ): Promise<AgentApprovalDecision | null> {
         if (source.type === 'button') {
             return {
@@ -1115,6 +1127,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             await this.agentService.classifyApprovalIntent(
                 request,
                 content,
+                traceContext,
             );
 
         switch (result.intent) {

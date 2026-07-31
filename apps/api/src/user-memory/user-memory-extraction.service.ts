@@ -7,6 +7,7 @@ import { USER_MEMORY_CONFIDENCE_THRESHOLD, UserMemoryCandidate, UserMemoryExtrac
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { PrismaService } from "../prisma/prisma.service";
 import { RelevantUserMemory } from "./user-memory.types";
+import { RunnableConfig } from "@langchain/core/runnables";
 
 const EXTRACTION_EXISTING_MEMORY_LIMIT = 20;
 
@@ -90,6 +91,20 @@ export class UserMemoryExtractionService {
         });
     }
 
+    private createTraceConfig(
+        userId: number,
+        sourceMessageId: number,
+    ): RunnableConfig {
+        return {
+            runName: 'user_memory_extraction',
+            tags: ['background-ai', 'user-memory'],
+            metadata: {
+                user_id: String(userId),
+                source_message_id: String(sourceMessageId),
+            },
+        };
+    }
+
     private formatExistingMemories(
         memories: RelevantUserMemory[],
     ): string {
@@ -133,7 +148,7 @@ export class UserMemoryExtractionService {
             if (
                 !existingCandidate ||
                 existingCandidate.confidence <
-                    normalizedCandidate.confidence
+                normalizedCandidate.confidence
             ) {
                 candidatesByKey.set(
                     memoryKey,
@@ -147,6 +162,7 @@ export class UserMemoryExtractionService {
 
     private async extractCandidates(
         userId: number,
+        sourceMessageId: number,
         content: string,
     ): Promise<UserMemoryExtraction> {
         const existingMemories =
@@ -183,7 +199,9 @@ export class UserMemoryExtractionService {
                     '</user_message>',
                 ].join('\n'),
             ),
-        ]);
+        ],
+            this.createTraceConfig(userId, sourceMessageId),
+        );
     }
 
     async extractAndSave(
@@ -205,6 +223,7 @@ export class UserMemoryExtractionService {
         const extraction =
             await this.extractCandidates(
                 userId,
+                sourceMessageId,
                 normalizedContent,
             );
 

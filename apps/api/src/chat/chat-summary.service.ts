@@ -12,6 +12,7 @@ import {
     type ChatSummaryTarget,
     type SaveChatSummaryResult,
 } from './chat.service';
+import { RunnableConfig } from '@langchain/core/runnables';
 
 const CHAT_SUMMARY_SYSTEM_PROMPT = `
 너는 채팅 대화 기록을 압축하는 요약기다.
@@ -57,6 +58,22 @@ export class ChatSummaryService {
         });
     }
 
+    private createTraceConfig(
+        roomId: number,
+        userId: number,
+        target: ChatSummaryTarget,
+    ): RunnableConfig {
+        return {
+            runName: 'chat_summary',
+            tags: ['background-ai', 'chat-summary'],
+            metadata: {
+                room_id: String(roomId),
+                user_id: String(userId),
+                through_message_id: String(target.throughMessageId),
+            },
+        };
+    }
+
     private formatMessages(target: ChatSummaryTarget): string {
         return target.messages
             .map((message) => {
@@ -64,8 +81,8 @@ export class ChatSummaryService {
                     message.role === ChatMessageRole.USER
                         ? '사용자'
                         : message.role === ChatMessageRole.ASSISTANT
-                        ? '어시스턴트'
-                        : '시스템';
+                            ? '어시스턴트'
+                            : '시스템';
 
                 return `[${role} 메시지 ${message.id}]\n${message.content}`;
             })
@@ -96,7 +113,11 @@ export class ChatSummaryService {
             .trim();
     }
 
-    private async generateSummary(target: ChatSummaryTarget): Promise<string> {
+    private async generateSummary(
+        roomId: number,
+        userId: number,
+        target: ChatSummaryTarget,
+    ): Promise<string> {
         const previousSummary =
             target.currentSummary?.trim() || '(기존 요약 없음)';
 
@@ -111,7 +132,9 @@ export class ChatSummaryService {
                     this.formatMessages(target),
                 ].join('\n'),
             ),
-        ]);
+        ],
+            this.createTraceConfig(roomId, userId, target),
+        );
 
         const summary = this.messageContentToString(response.content);
 
@@ -131,7 +154,7 @@ export class ChatSummaryService {
 
         if (!target) return 'NO_TARGET';
 
-        const summary = await this.generateSummary(target);
+        const summary = await this.generateSummary(roomId, userId, target);
 
         return this.chatService.saveSummary(roomId, userId, {
             summary,

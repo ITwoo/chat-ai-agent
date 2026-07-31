@@ -12,6 +12,7 @@ import { RagCitation, ragCitationSchema } from '../rag/schemas/rag-citation.sche
 import { ChatAgentContext } from '../chat/chat.service';
 import { UserMemoryService } from '../user-memory/user-memory.service';
 import { RelevantUserMemory } from '../user-memory/user-memory.types';
+import { RunnableConfig } from '@langchain/core/runnables';
 
 export type AgentStreamEvent =
     | {
@@ -26,6 +27,10 @@ export type AgentStreamEvent =
       };
 
 type AgentGraphStreamInput = Parameters<AgentGraph['streamEvents']>[0];
+
+type AgentRunKind = 'generate' | 'stream' | 'resume';
+
+const AGENT_TRACE_TAG = 'chat-agent';
 
 const APPROVAL_INTENT_SYSTEM_PROMPT = `
 너는 AI Agent의 승인 요청에 대한 사용자 응답을 분류하는 전용 분류기다.
@@ -120,6 +125,25 @@ export class AgentService {
         ]);
     }
 
+    private createRunConfig(
+        userId: number,
+        threadId: string,
+        runKind: AgentRunKind,
+    ): RunnableConfig {
+        return {
+            runName: `chat_agent_${runKind}`,
+            tags: [AGENT_TRACE_TAG, runKind],
+            metadata: {
+                thread_id: threadId,
+                user_id: String(userId),
+                run_kind: runKind,
+            },
+            configurable: {
+                thread_id: threadId,
+            },
+        };
+    }
+
     private createGraphForUser(userId: number): AgentGraph {
         const context = {
             userId,
@@ -145,11 +169,7 @@ export class AgentService {
             {
                 messages: langchainMessages,
             },
-            {
-                configurable: {
-                    thread_id: threadId,
-                },
-            },
+            this.createRunConfig(userId, threadId, 'generate'),
         );
 
         const lastMessage = result.messages.at(-1);
@@ -176,6 +196,7 @@ export class AgentService {
                 messages: langchainMessages,
             },
             threadId,
+            'stream',
             signal,
         );
     }
@@ -192,6 +213,7 @@ export class AgentService {
                 resume: decision,
             }),
             threadId,
+            'resume',
             signal,
         );
     }
@@ -200,6 +222,7 @@ export class AgentService {
         userId: number,
         input: AgentGraphStreamInput,
         threadId: string,
+        runKind: AgentRunKind,
         signal?: AbortSignal,
     ) : AsyncGenerator<AgentStreamEvent> {
         const graph = this.createGraphForUser(userId);
@@ -207,10 +230,8 @@ export class AgentService {
         const stream = await graph.streamEvents(
             input,
             {
-                version: 'v3',
-                configurable: {
-                    thread_id: threadId,
-                },
+                ...this.createRunConfig(userId, threadId, runKind),
+                version: 'v3',                
                 signal,
             },
         );

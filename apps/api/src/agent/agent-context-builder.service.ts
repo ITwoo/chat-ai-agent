@@ -12,10 +12,13 @@ import type { RelevantUserMemory } from '../user-memory/user-memory.types';
 import { ChatOpenAI } from '@langchain/openai';
 import { ConfigService } from '@nestjs/config';
 
-export const AGENT_CONTEXT_VERSION = 'context-v3';
+export const AGENT_CONTEXT_VERSION = 'context-v4';
 
+const CHAT_SUMMARY_TOKEN_BUDGET = 2_000;
 const USER_MEMORY_TOKEN_BUDGET = 1_500;
 const RECENT_MESSAGE_TOKEN_BUDGET = 6_000;
+
+const CHAT_SUMMARY_OMISSION_MARKER = '[이전 요약 앞부분 생략]';
 
 const CONTEXT_PRIORITY_INSTRUCTION = `
 다음 우선순위에 따라 대화 문맥을 해석한다.
@@ -67,7 +70,7 @@ export class AgentContextBuilderService {
         const memoryMessage = await this.createUserMemoryMessage(memories);
         if (memoryMessage) messages.push(memoryMessage);
 
-        const summaryMessage = this.createSummaryMessage(context.summary);
+        const summaryMessage = await this.createSummaryMessage(context.summary);
         if (summaryMessage) messages.push(summaryMessage);
 
         const recentMessages = this.toRecentMessages(context);
@@ -121,18 +124,31 @@ export class AgentContextBuilderService {
         return new SystemMessage(this.createUserMemoryContent(selectedMemories));
     }
 
-    private createSummaryMessage(summary: string | null): SystemMessage | null {
+    private createSummaryContent(summary: string): string {
+        return [
+            CHAT_SUMMARY_CONTEXT_INSTRUCTION,
+            '<conversation_summary>',
+            summary,
+            '</conversation_summary>',
+        ].join('\n');
+    }
+
+    private async getMessageTokenCount(message: BaseMessage): Promise<number> {
+        const tokenInfo = await this.tokenCounter.getNumTokensFromMessages([message]);
+
+        return tokenInfo.totalCount;
+    }
+
+    private async createSummaryMessage(
+        summary: string | null,
+    ): Promise<SystemMessage | null> {
         const normalizedSummary = summary?.trim();
         if (!normalizedSummary) return null;
 
-        return new SystemMessage(
-            [
-                CHAT_SUMMARY_CONTEXT_INSTRUCTION,
-                '<conversation_summary>',
-                normalizedSummary,
-                '</conversation_summary>',
-            ].join('\n'),
-        );
+        const trimmedSummary = await this.trimSummaryToBudget(normalizedSummary);
+        if (!trimmedSummary) return null;
+
+        return new SystemMessage(this.createSummaryContent(trimmedSummary));
     }
 
     private async trimRecentMessages(
@@ -185,4 +201,41 @@ export class AgentContextBuilderService {
             return new SystemMessage(message.content);
         });
     }
+
+    private async trimSummaryToBudget(summary: string): Promise<string | null> {
+        let candidate = summary;
+        let isTrimmed = false;
+
+        while (candidate) {
+            const displayedSummary = isTrimmed
+                ? `${CHAT_SUMMARY_OMISSION_MARKER}\n${candidate}`
+                : candidate;
+
+            const message = new SystemMessage(
+                this.createSummaryContent(displayedSummary),
+            );
+
+            const tokenCount = await this.getMessageTokenCount(message);
+
+            if (tokenCount <= CHAT_SUMMARY_TOKEN_BUDGET) {
+                return displayedSummary;
+            }
+
+            const keepRatio = CHAT_SUMMARY_TOKEN_BUDGET / tokenCount;
+            const nextLength = Math.max(
+                1,
+                Math.floor(candidate.length * keepRatio * 0.85),
+            );
+
+            candidate =
+                nextLength >= candidate.length
+                    ? candidate.slice(1).trimStart()
+                    : candidate.slice(-nextLength).trimStart();
+
+            isTrimmed = true;
+        }
+
+        return null;
+    }
+
 }

@@ -3,13 +3,18 @@ import {
     AIMessage,
     HumanMessage,
     SystemMessage,
+    trimMessages,
     type BaseMessage,
 } from '@langchain/core/messages';
 import { ChatMessageRole } from '@repo/shared';
 import type { ChatAgentContext } from '../chat/chat.service';
 import type { RelevantUserMemory } from '../user-memory/user-memory.types';
+import { ChatOpenAI } from '@langchain/openai';
+import { ConfigService } from '@nestjs/config';
 
-export const AGENT_CONTEXT_VERSION = 'context-v1';
+export const AGENT_CONTEXT_VERSION = 'context-v2';
+
+const RECENT_MESSAGE_TOKEN_BUDGET = 6_000;
 
 const CONTEXT_PRIORITY_INSTRUCTION = `
 다음 우선순위에 따라 대화 문맥을 해석한다.
@@ -41,10 +46,19 @@ const USER_MEMORY_CONTEXT_INSTRUCTION = `
 
 @Injectable()
 export class AgentContextBuilderService {
-    build(
+    private readonly tokenCounter: ChatOpenAI;
+
+    constructor(configService: ConfigService) {
+        this.tokenCounter = new ChatOpenAI({
+            apiKey: configService.getOrThrow<string>('OPENAI_API_KEY'),
+            model: configService.getOrThrow<string>('OPENAI_MODEL'),
+        });
+    }
+
+    async build(
         context: ChatAgentContext,
         memories: RelevantUserMemory[],
-    ): BaseMessage[] {
+    ): Promise<BaseMessage[]> {
         const messages: BaseMessage[] = [
             new SystemMessage(CONTEXT_PRIORITY_INSTRUCTION),
         ];
@@ -55,7 +69,10 @@ export class AgentContextBuilderService {
         const summaryMessage = this.createSummaryMessage(context.summary);
         if (summaryMessage) messages.push(summaryMessage);
 
-        messages.push(...this.toRecentMessages(context));
+        const recentMessages = this.toRecentMessages(context);
+        const trimmedRecentMessages = await this.trimRecentMessages(recentMessages);
+
+        messages.push(...trimmedRecentMessages);
 
         return messages;
     }
@@ -93,6 +110,43 @@ export class AgentContextBuilderService {
                 '</conversation_summary>',
             ].join('\n'),
         );
+    }
+
+    private async trimRecentMessages(
+        messages: BaseMessage[],
+    ): Promise<BaseMessage[]> {
+        if (messages.length <= 1) return messages;
+
+        const latestMessage = messages.at(-1);
+        if (!latestMessage) return [];
+
+        const latestTokenInfo =
+            await this.tokenCounter.getNumTokensFromMessages([latestMessage]);
+
+        const remainingTokens = Math.max(
+            0,
+            RECENT_MESSAGE_TOKEN_BUDGET - latestTokenInfo.totalCount,
+        );
+
+        if (remainingTokens === 0) return [latestMessage];
+
+        const trimmer = trimMessages({
+            maxTokens: remainingTokens,
+            strategy: 'last',
+            startOn: 'human',
+            includeSystem: false,
+            allowPartial: false,
+            tokenCounter: async (targetMessages) => {
+                const tokenInfo =
+                    await this.tokenCounter.getNumTokensFromMessages(targetMessages);
+
+                return tokenInfo.totalCount;
+            },
+        });
+
+        const previousMessages = await trimmer.invoke(messages.slice(0, -1));
+
+        return [...previousMessages, latestMessage];
     }
 
     private toRecentMessages(context: ChatAgentContext): BaseMessage[] {

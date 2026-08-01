@@ -185,7 +185,7 @@ export class AgentService {
     ): Promise<string> {
         const graph = this.createGraphForUser(userId)
         const userMemories = await this.getUserMemoriesSafely(userId, context);
-        const langchainMessages = this.agentContextBuilderService.build(
+        const langchainMessages = await this.agentContextBuilderService.build(
             context,
             userMemories,
         );
@@ -213,7 +213,7 @@ export class AgentService {
         signal?: AbortSignal,
     ): AsyncGenerator<AgentStreamEvent> {
         const userMemories = await this.getUserMemoriesSafely(userId, context);
-        const langchainMessages = this.agentContextBuilderService.build(
+        const langchainMessages = await this.agentContextBuilderService.build(
             context,
             userMemories,
         );

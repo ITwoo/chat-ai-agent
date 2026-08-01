@@ -12,8 +12,9 @@ import type { RelevantUserMemory } from '../user-memory/user-memory.types';
 import { ChatOpenAI } from '@langchain/openai';
 import { ConfigService } from '@nestjs/config';
 
-export const AGENT_CONTEXT_VERSION = 'context-v2';
+export const AGENT_CONTEXT_VERSION = 'context-v3';
 
+const USER_MEMORY_TOKEN_BUDGET = 1_500;
 const RECENT_MESSAGE_TOKEN_BUDGET = 6_000;
 
 const CONTEXT_PRIORITY_INSTRUCTION = `
@@ -63,7 +64,7 @@ export class AgentContextBuilderService {
             new SystemMessage(CONTEXT_PRIORITY_INSTRUCTION),
         ];
 
-        const memoryMessage = this.createUserMemoryMessage(memories);
+        const memoryMessage = await this.createUserMemoryMessage(memories);
         if (memoryMessage) messages.push(memoryMessage);
 
         const summaryMessage = this.createSummaryMessage(context.summary);
@@ -77,25 +78,47 @@ export class AgentContextBuilderService {
         return messages;
     }
 
-    private createUserMemoryMessage(
+    private formatUserMemory(memory: RelevantUserMemory): string {
+        return `[${memory.type}] ${memory.memoryKey}\n${memory.content}`;
+    }
+
+    private createUserMemoryContent(memories: RelevantUserMemory[]): string {
+        return [
+            USER_MEMORY_CONTEXT_INSTRUCTION,
+            '<user_memories>',
+            memories.map((memory) => this.formatUserMemory(memory)).join('\n\n'),
+            '</user_memories>',
+        ].join('\n');
+    }
+
+    private async createUserMemoryMessage(
         memories: RelevantUserMemory[],
-    ): SystemMessage | null {
+    ): Promise<SystemMessage | null> {
         if (memories.length === 0) return null;
 
-        const content = memories
-            .map((memory) => {
-                return `[${memory.type}] ${memory.memoryKey}\n${memory.content}`;
-            })
-            .join('\n\n');
-
-        return new SystemMessage(
-            [
-                USER_MEMORY_CONTEXT_INSTRUCTION,
-                '<user_memories>',
-                content,
-                '</user_memories>',
-            ].join('\n'),
+        const orderedMemories = [...memories].sort(
+            (left, right) => right.similarity - left.similarity,
         );
+
+        const selectedMemories: RelevantUserMemory[] = [];
+
+        for (const memory of orderedMemories) {
+            const candidateMemories = [...selectedMemories, memory];
+            const candidateMessage = new SystemMessage(
+                this.createUserMemoryContent(candidateMemories),
+            );
+
+            const tokenInfo =
+                await this.tokenCounter.getNumTokensFromMessages([candidateMessage]);
+
+            if (tokenInfo.totalCount > USER_MEMORY_TOKEN_BUDGET) continue;
+
+            selectedMemories.push(memory);
+        }
+
+        if (selectedMemories.length === 0) return null;
+
+        return new SystemMessage(this.createUserMemoryContent(selectedMemories));
     }
 
     private createSummaryMessage(summary: string | null): SystemMessage | null {

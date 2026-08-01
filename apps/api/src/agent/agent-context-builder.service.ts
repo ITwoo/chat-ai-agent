@@ -12,7 +12,7 @@ import type { RelevantUserMemory } from '../user-memory/user-memory.types';
 import { ChatOpenAI } from '@langchain/openai';
 import { ConfigService } from '@nestjs/config';
 
-export const AGENT_CONTEXT_VERSION = 'context-v4';
+export const AGENT_CONTEXT_VERSION = 'context-v5';
 
 const CHAT_SUMMARY_TOKEN_BUDGET = 2_000;
 const USER_MEMORY_TOKEN_BUDGET = 1_500;
@@ -81,8 +81,18 @@ export class AgentContextBuilderService {
         return messages;
     }
 
+    private escapeContextData(value: string): string {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
     private formatUserMemory(memory: RelevantUserMemory): string {
-        return `[${memory.type}] ${memory.memoryKey}\n${memory.content}`;
+        const memoryKey = this.escapeContextData(memory.memoryKey);
+        const content = this.escapeContextData(memory.content);
+
+        return `[${memory.type}] ${memoryKey}\n${content}`;
     }
 
     private createUserMemoryContent(memories: RelevantUserMemory[]): string {
@@ -125,10 +135,12 @@ export class AgentContextBuilderService {
     }
 
     private createSummaryContent(summary: string): string {
+        const escapedSummary = this.escapeContextData(summary);
+
         return [
             CHAT_SUMMARY_CONTEXT_INSTRUCTION,
             '<conversation_summary>',
-            summary,
+            escapedSummary,
             '</conversation_summary>',
         ].join('\n');
     }

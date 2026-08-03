@@ -21,6 +21,9 @@ import { ragSearchToolInputSchema } from '../rag/schemas/rag-search-tool.schema'
 import { z } from 'zod';
 import { ragCitationSchema } from '../rag/schemas/rag-citation.schema';
 import { createRagCitations } from '../rag/utils/rag-citation.util';
+import { RunnableConfig } from '@langchain/core/runnables';
+
+const AGENT_MODEL_TIMEOUT_MS = 60_000;
 
 const SYSTEM_PROMPT = `
 너는 1인 가구용 개인 생활 관리 AI Agent다.
@@ -117,11 +120,19 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
         tools: AgentTools,
         context: AgentToolContext,
     ) {
-        const callModel: GraphNode<typeof AgentState> = async (state) => {
-            const response = await model.invoke([
-                new SystemMessage(SYSTEM_PROMPT),
-                ...state.messages,
-            ]);
+        const callModel: GraphNode<typeof AgentState> = async (state, config) => {
+            const response = await model.invoke(
+                [
+                    new SystemMessage(SYSTEM_PROMPT),
+                    ...state.messages,
+                ],
+                {
+                    ...config,
+                    runName: 'agent_model_decision',
+                    tags: [...(config.tags ?? []), 'agent-model'],
+                    timeout: AGENT_MODEL_TIMEOUT_MS,
+                }
+            );
 
             return {
                 messages: [response],
@@ -170,6 +181,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
     ) {
         return async (
             state: typeof AgentState.State,
+            config: RunnableConfig,
         ) => {
             const lastMessage = state.messages.at(-1);
 
@@ -234,6 +246,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             const answer = await this.ragAnswerService.answer(
                 question,
                 contextResults,
+                config,
             );
 
             const toolMessage = new ToolMessage({

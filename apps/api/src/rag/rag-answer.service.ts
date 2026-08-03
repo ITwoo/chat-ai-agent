@@ -7,9 +7,12 @@ import {
 import { ChatOpenAI } from '@langchain/openai';
 import type { RagSearchResult } from './rag.types';
 import { createRagAnswerMessages } from './security/rag-answer-messages.factory';
+import { RunnableConfig } from '@langchain/core/runnables';
 
 const RAG_ANSWER_CONTEXT_TOKEN_BUDGET = 3_000;
 const UNKNOWN_CHUNK_TOKEN_COST = 1_000;
+
+const RAG_ANSWER_TIMEOUT_MS = 45_000;
 
 @Injectable()
 export class RagAnswerService {
@@ -51,6 +54,7 @@ export class RagAnswerService {
     async answer(
         question: string,
         results: RagSearchResult[],
+        config?: RunnableConfig,
     ): Promise<BaseMessage> {
         if (results.length === 0) {
             return new AIMessage(
@@ -63,6 +67,11 @@ export class RagAnswerService {
             results,
         );
 
-        return this.model.invoke(messages);
+        return this.model.invoke(messages, {
+            ...config,
+            runName: 'rag_answer_generation',
+            tags: [...(config?.tags ?? []), 'rag-answer'],
+            timeout: RAG_ANSWER_TIMEOUT_MS,
+        });
     }
 }

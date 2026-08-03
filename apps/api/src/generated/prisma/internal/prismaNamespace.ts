@@ -394,7 +394,8 @@ export const ModelName = {
   RagDocument: 'RagDocument',
   RagDocumentChunk: 'RagDocumentChunk',
   ChatMessageRagCitation: 'ChatMessageRagCitation',
-  UserMemory: 'UserMemory'
+  UserMemory: 'UserMemory',
+  ExpenseUpdateOperation: 'ExpenseUpdateOperation'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -410,7 +411,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "board" | "chatRoom" | "chatMessage" | "expense" | "refreshTokenSession" | "agentPendingApproval" | "ragDocument" | "ragDocumentChunk" | "chatMessageRagCitation" | "userMemory"
+    modelProps: "user" | "board" | "chatRoom" | "chatMessage" | "expense" | "refreshTokenSession" | "agentPendingApproval" | "ragDocument" | "ragDocumentChunk" | "chatMessageRagCitation" | "userMemory" | "expenseUpdateOperation"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1228,6 +1229,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ExpenseUpdateOperation: {
+      payload: Prisma.$ExpenseUpdateOperationPayload<ExtArgs>
+      fields: Prisma.ExpenseUpdateOperationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ExpenseUpdateOperationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExpenseUpdateOperationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ExpenseUpdateOperationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExpenseUpdateOperationPayload>
+        }
+        findFirst: {
+          args: Prisma.ExpenseUpdateOperationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExpenseUpdateOperationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ExpenseUpdateOperationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExpenseUpdateOperationPayload>
+        }
+        findMany: {
+          args: Prisma.ExpenseUpdateOperationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExpenseUpdateOperationPayload>[]
+        }
+        create: {
+          args: Prisma.ExpenseUpdateOperationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExpenseUpdateOperationPayload>
+        }
+        createMany: {
+          args: Prisma.ExpenseUpdateOperationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ExpenseUpdateOperationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExpenseUpdateOperationPayload>[]
+        }
+        delete: {
+          args: Prisma.ExpenseUpdateOperationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExpenseUpdateOperationPayload>
+        }
+        update: {
+          args: Prisma.ExpenseUpdateOperationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExpenseUpdateOperationPayload>
+        }
+        deleteMany: {
+          args: Prisma.ExpenseUpdateOperationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ExpenseUpdateOperationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ExpenseUpdateOperationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExpenseUpdateOperationPayload>[]
+        }
+        upsert: {
+          args: Prisma.ExpenseUpdateOperationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExpenseUpdateOperationPayload>
+        }
+        aggregate: {
+          args: Prisma.ExpenseUpdateOperationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateExpenseUpdateOperation>
+        }
+        groupBy: {
+          args: Prisma.ExpenseUpdateOperationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ExpenseUpdateOperationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ExpenseUpdateOperationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ExpenseUpdateOperationCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1424,6 +1499,19 @@ export const UserMemoryScalarFieldEnum = {
 } as const
 
 export type UserMemoryScalarFieldEnum = (typeof UserMemoryScalarFieldEnum)[keyof typeof UserMemoryScalarFieldEnum]
+
+
+export const ExpenseUpdateOperationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  expenseId: 'expenseId',
+  operationKey: 'operationKey',
+  expectedVersion: 'expectedVersion',
+  appliedVersion: 'appliedVersion',
+  createdAt: 'createdAt'
+} as const
+
+export type ExpenseUpdateOperationScalarFieldEnum = (typeof ExpenseUpdateOperationScalarFieldEnum)[keyof typeof ExpenseUpdateOperationScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1760,6 +1848,7 @@ export type GlobalOmitConfig = {
   ragDocumentChunk?: Prisma.RagDocumentChunkOmit
   chatMessageRagCitation?: Prisma.ChatMessageRagCitationOmit
   userMemory?: Prisma.UserMemoryOmit
+  expenseUpdateOperation?: Prisma.ExpenseUpdateOperationOmit
 }
 
 /* Types for Logging */

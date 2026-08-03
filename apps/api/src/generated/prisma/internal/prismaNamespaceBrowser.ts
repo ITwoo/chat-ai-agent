@@ -61,7 +61,8 @@ export const ModelName = {
   RagDocument: 'RagDocument',
   RagDocumentChunk: 'RagDocumentChunk',
   ChatMessageRagCitation: 'ChatMessageRagCitation',
-  UserMemory: 'UserMemory'
+  UserMemory: 'UserMemory',
+  ExpenseUpdateOperation: 'ExpenseUpdateOperation'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -237,6 +238,19 @@ export const UserMemoryScalarFieldEnum = {
 } as const
 
 export type UserMemoryScalarFieldEnum = (typeof UserMemoryScalarFieldEnum)[keyof typeof UserMemoryScalarFieldEnum]
+
+
+export const ExpenseUpdateOperationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  expenseId: 'expenseId',
+  operationKey: 'operationKey',
+  expectedVersion: 'expectedVersion',
+  appliedVersion: 'appliedVersion',
+  createdAt: 'createdAt'
+} as const
+
+export type ExpenseUpdateOperationScalarFieldEnum = (typeof ExpenseUpdateOperationScalarFieldEnum)[keyof typeof ExpenseUpdateOperationScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -76,15 +76,18 @@ export class AgentToolsService {
         );
     }
 
-    private createExpenseOperationKey(runtime: ToolRuntime): string {
+    private createToolOperationKey(
+        toolName: string,
+        runtime: ToolRuntime,
+    ): string {
         const threadId = runtime.config.configurable?.thread_id;
 
         if (typeof threadId !== 'string' || !threadId) {
-            throw new Error('create_expense 실행에 thread_id가 존재하지 않습니다.');
+            throw new Error(`${toolName} 실행에 thread_id가 존재하지 않습니다.`);
         }
 
         return createHash('sha256')
-            .update(`create_expense:${threadId}:${runtime.toolCallId}`)
+            .update(`${toolName}:${threadId}:${runtime.toolCallId}`)
             .digest('hex');
     }
 
@@ -102,7 +105,7 @@ export class AgentToolsService {
                     return '지출 날짜 형식이 올바르지 않습니다. spentAt은 ISO 날짜 문자열이어야 합니다.';
                 }
 
-                const operationKey = this.createExpenseOperationKey(runtime);
+                const operationKey = this.createToolOperationKey('create_expense', runtime);
 
                 const result = await this.prisma.$transaction(async (tx) => {
                     const createdResult = await tx.expense.createMany({
@@ -540,14 +543,17 @@ export class AgentToolsService {
 
     private createUpdateExpenseTool(context: AgentToolContext) {
         return tool(
-            async ({
-                expenseId,
-                amount,
-                category,
-                title,
-                memo,
-                spentAt,
-            }) => {
+            async (
+                {
+                    expenseId,
+                    amount,
+                    category,
+                    title,
+                    memo,
+                    spentAt,
+                },
+                runtime: ToolRuntime,
+            ) => {
                 this.logger.log('[tool] update_expense');
 
                 const updateData: {
@@ -695,8 +701,54 @@ export class AgentToolsService {
                     });
                 }
 
-                const updateResult =
-                    await this.prisma.expense.updateMany({
+                const operationKey = this.createToolOperationKey(
+                    'update_expense',
+                    runtime,
+                );
+
+                const result = await this.prisma.$transaction(async (tx) => {
+                    const claim = await tx.expenseUpdateOperation.createMany({
+                        data: {
+                            userId: context.userId,
+                            expenseId,
+                            operationKey,
+                            expectedVersion,
+                            appliedVersion: expectedVersion + 1,
+                        },
+                        skipDuplicates: true,
+                    });
+
+                    if (claim.count === 0) {
+                        const existingOperation =
+                            await tx.expenseUpdateOperation.findUniqueOrThrow({
+                                where: {
+                                    userId_operationKey: {
+                                        userId: context.userId,
+                                        operationKey,
+                                    },
+                                },
+                                select: {
+                                    expenseId: true,
+                                    expectedVersion: true,
+                                    appliedVersion: true,
+                                },
+                            });
+
+                        const isSameOperation =
+                            existingOperation.expenseId === expenseId &&
+                            existingOperation.expectedVersion === expectedVersion;
+
+                        if (!isSameOperation) {
+                            throw new Error('지출 수정 작업 키가 기존 작업과 충돌했습니다.');
+                        }
+
+                        return {
+                            status: 'ALREADY_APPLIED',
+                            appliedVersion: existingOperation.appliedVersion,
+                        } as const;
+                    }
+
+                    const updateResult = await tx.expense.updateMany({
                         where: {
                             id: expenseId,
                             userId: context.userId,
@@ -706,39 +758,43 @@ export class AgentToolsService {
                             ...updateData,
                             version: {
                                 increment: 1,
-                            }
+                            },
+                        },
+                    });
+
+                    if (updateResult.count === 0) {
+                        await tx.expenseUpdateOperation.delete({
+                            where: {
+                                userId_operationKey: {
+                                    userId: context.userId,
+                                    operationKey,
+                                },
+                            },
+                        });
+
+                        const currentExpense = await tx.expense.findFirst({
+                            where: {
+                                id: expenseId,
+                                userId: context.userId,
+                            },
+                            select: {
+                                version: true,
+                            },
+                        });
+
+                        if (!currentExpense) {
+                            return {
+                                status: 'NOT_FOUND',
+                            } as const;
                         }
-                    });
 
-                if (updateResult.count === 0) {
-                    const currentExpense = await this.prisma.expense.findFirst({
-                        where: {
-                            id: expenseId,
-                            userId: context.userId,
-                        },
-                        select: {
-                            version: true,
-                        },
-                    });
-
-                    if (!currentExpense) {
-                        return '수정할 지출 기록을 찾을 수 없습니다.';
+                        return {
+                            status: 'STALE',
+                            currentVersion: currentExpense.version,
+                        } as const;
                     }
 
-                    return JSON.stringify({
-                        updated: false,
-                        status: 'stale_approval',
-                        expenseId,
-                        expectedVersion,
-                        currentVersion: currentExpense.version,
-                        message:
-                            '승인 대기 중 지출 내용이 변경되었습니다. ' +
-                            '현재 지출을 다시 조회한 뒤 수정해 주세요.',
-                    });
-                }
-
-                const updatedExpense =
-                    await this.prisma.expense.findFirst({
+                    const updatedExpense = await tx.expense.findFirstOrThrow({
                         where: {
                             id: expenseId,
                             userId: context.userId,
@@ -750,23 +806,58 @@ export class AgentToolsService {
                             title: true,
                             memo: true,
                             spentAt: true,
+                            version: true,
                         },
                     });
 
-                if (!updatedExpense) {
-                    return '수정된 지출 기록을 조회하지 못했습니다.';
+                    return {
+                        status: 'UPDATED',
+                        expense: updatedExpense,
+                    } as const;
+                });
+
+                if (result.status === 'ALREADY_APPLIED') {
+                    return JSON.stringify({
+                        updated: true,
+                        duplicated: true,
+                        expenseId,
+                        appliedVersion: result.appliedVersion,
+                        message:
+                            '이미 처리된 지출 수정 승인입니다. ' +
+                            '같은 수정을 다시 실행하지 않았습니다.',
+                    });
                 }
+
+                if (result.status === 'NOT_FOUND') {
+                    return '수정할 지출 기록을 찾을 수 없습니다.';
+                }
+
+                if (result.status === 'STALE') {
+                    return JSON.stringify({
+                        updated: false,
+                        status: 'stale_approval',
+                        expenseId,
+                        expectedVersion,
+                        currentVersion: result.currentVersion,
+                        message:
+                            '승인 대기 중 지출 내용이 변경되었습니다. ' +
+                            '현재 지출을 다시 조회한 뒤 수정해 주세요.',
+                    });
+                }
+
+                const updatedExpense = result.expense;
 
                 return JSON.stringify({
                     updated: true,
+                    duplicated: false,
                     expense: {
                         id: updatedExpense.id,
                         amount: updatedExpense.amount,
                         category: updatedExpense.category,
                         title: updatedExpense.title,
                         memo: updatedExpense.memo,
-                        spentAt:
-                            updatedExpense.spentAt.toISOString(),
+                        spentAt: updatedExpense.spentAt.toISOString(),
+                        version: updatedExpense.version,
                     },
                     message: '지출 기록을 수정했습니다.',
                 });

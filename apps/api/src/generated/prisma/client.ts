@@ -94,3 +94,8 @@ export type ChatMessageRagCitation = Prisma.ChatMessageRagCitationModel
  * 
  */
 export type UserMemory = Prisma.UserMemoryModel
+/**
+ * Model ExpenseUpdateOperation
+ * 
+ */
+export type ExpenseUpdateOperation = Prisma.ExpenseUpdateOperationModel

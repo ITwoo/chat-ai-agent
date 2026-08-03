@@ -1054,6 +1054,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                     statusUserMessageId,
                 );
 
+                await this.pendingApprovalStore.deleteByRoomId(roomId);
+                this.pendingApprovals.delete(processingKey);
+
                 this.server.to(roomName).emit(
                     'message_updated',
                     { ...userMessage, ragCitations: []},

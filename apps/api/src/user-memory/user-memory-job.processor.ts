@@ -114,6 +114,7 @@ export class UserMemoryJobProcessor extends WorkerHost {
 
             return result;
         } catch (error) {
+            this.logger.error(error)
             const normalizedError =
                 error instanceof Error
                     ? error

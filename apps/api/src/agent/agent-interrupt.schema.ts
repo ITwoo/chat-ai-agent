@@ -11,6 +11,7 @@ export const expenseUpdateApprovalRequestSchema = z.object({
         title: z.string(),
         memo: z.string().nullable(),
         spentAt: z.string(),
+        version: z.number().int().nonnegative().nullable().default(null),
     }),
     changes: z.object({
         amount: z.number().int().positive().optional(),
@@ -29,6 +30,7 @@ export const updateExpenseDecisionSchema =
     z.discriminatedUnion('action', [
         z.object({
             action: z.literal('approve'),
+            expectedVersion: z.number().int().nonnegative().nullable().optional(),
         }),
 
         z.object({

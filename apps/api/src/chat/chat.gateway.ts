@@ -18,7 +18,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AgentRunContext, AgentService, AgentStreamEvent, ApprovalIntentTraceContext } from '../agent/agent.service';
-import { AgentApprovalDecision, AgentApprovalRequest, agentApprovalResponseSchema, ExpenseUpdateApprovalRequest } from '../agent/agent-interrupt.schema';
+import { AgentApprovalDecision, AgentApprovalRequest, agentApprovalResponseSchema, ExpenseUpdateApprovalRequest, UpdateExpenseDecision } from '../agent/agent-interrupt.schema';
 import { randomUUID } from 'node:crypto';
 import { PendingAgentApproval } from './types/pending-agent-approval.type';
 import { PendingAgentApprovalStoreService } from './pending-agent-approval-store.service';
@@ -1110,9 +1110,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         traceContext: ApprovalIntentTraceContext,
     ): Promise<AgentApprovalDecision | null> {
         if (source.type === 'button') {
-            return {
+            return this.attachExpenseApprovalVersion(request, {
                 action: source.action,
-            };
+            });
         }
 
         const content = source.content.trim();
@@ -1120,7 +1120,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         const parsedDecision = this.parseApprovalDecision(content);
 
         if (parsedDecision) {
-            return parsedDecision;
+            return this.attachExpenseApprovalVersion(request, parsedDecision);
         }
 
         const result =
@@ -1132,9 +1132,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
         switch (result.intent) {
             case 'approve':
-                return {
+                return this.attachExpenseApprovalVersion(request, {
                     action: 'approve',
-                };
+                });
 
             case 'cancel':
                 return {
@@ -1231,4 +1231,22 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             );
         }
     }
+
+    private attachExpenseApprovalVersion(
+        request: AgentApprovalRequest,
+        decision: UpdateExpenseDecision,
+    ): UpdateExpenseDecision {
+        if (
+            decision.action !== 'approve' ||
+            request.type !== 'expense_update_approval'
+        ) {
+            return decision;
+        }
+
+        return {
+            ...decision,
+            expectedVersion: request.expense.version,
+        };
+    }
+
 }

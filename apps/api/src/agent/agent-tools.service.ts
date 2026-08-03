@@ -601,6 +601,7 @@ export class AgentToolsService {
                             title: true,
                             memo: true,
                             spentAt: true,
+                            version: true,
                         },
                     });
 
@@ -634,6 +635,7 @@ export class AgentToolsService {
                         title: expense.title,
                         memo: expense.memo,
                         spentAt: expense.spentAt.toISOString(),
+                        version: expense.version,
                     },
                     changes,
                 } satisfies ExpenseUpdateApprovalRequest;
@@ -682,17 +684,57 @@ export class AgentToolsService {
                     });
                 }
 
+                const expectedVersion = decision.expectedVersion;
+
+                if (expectedVersion === undefined || expectedVersion === null) {
+                    return JSON.stringify({
+                        updated: false,
+                        status: 'expired_approval',
+                        expenseId,
+                        message: '기존 승인 요청의 버전 정보가 없어 다시 요청해야 합니다.',
+                    });
+                }
+
                 const updateResult =
                     await this.prisma.expense.updateMany({
                         where: {
                             id: expenseId,
                             userId: context.userId,
+                            version: expectedVersion,
                         },
-                        data: updateData,
+                        data: {
+                            ...updateData,
+                            version: {
+                                increment: 1,
+                            }
+                        }
                     });
 
                 if (updateResult.count === 0) {
-                    return '수정할 지출 기록을 찾을 수 없습니다.';
+                    const currentExpense = await this.prisma.expense.findFirst({
+                        where: {
+                            id: expenseId,
+                            userId: context.userId,
+                        },
+                        select: {
+                            version: true,
+                        },
+                    });
+
+                    if (!currentExpense) {
+                        return '수정할 지출 기록을 찾을 수 없습니다.';
+                    }
+
+                    return JSON.stringify({
+                        updated: false,
+                        status: 'stale_approval',
+                        expenseId,
+                        expectedVersion,
+                        currentVersion: currentExpense.version,
+                        message:
+                            '승인 대기 중 지출 내용이 변경되었습니다. ' +
+                            '현재 지출을 다시 조회한 뒤 수정해 주세요.',
+                    });
                 }
 
                 const updatedExpense =

@@ -1330,6 +1330,7 @@ export const ExpenseScalarFieldEnum = {
   title: 'title',
   memo: 'memo',
   spentAt: 'spentAt',
+  version: 'version',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

@@ -26,6 +26,14 @@ import { RunnableConfig } from '@langchain/core/runnables';
 const AGENT_MODEL_TIMEOUT_MS = 60_000;
 const MAX_ACTION_TOOL_ROUNDS = 5;
 
+const MUTATING_ACTION_TOOL_NAMES = new Set([
+    'create_expense',
+    'update_expense',
+    'delete_user_memory',
+]);
+
+type AgentToolCall = NonNullable<AIMessage['tool_calls']>[number];
+
 const SYSTEM_PROMPT = `
 너는 1인 가구용 개인 생활 관리 AI Agent다.
 
@@ -84,6 +92,7 @@ const AgentState = new StateSchema({
     messages: MessagesValue,
     ragCitations: z.array(ragCitationSchema).default(() => []),
     actionToolRoundCount: z.number().int().nonnegative().default(0),
+    executedMutationSignatures: z.array(z.string()).default(() => []),
 });
 
 type AgentModel = ReturnType<ChatOpenAI['bindTools']>;
@@ -96,6 +105,7 @@ type AgentRoute =
     | 'ragAnswer'
     | 'rejectRagCombination'
     | 'rejectToolLimit'
+    | 'rejectDuplicateMutation'
     | typeof END;
 
 @Injectable()
@@ -160,6 +170,16 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             state,
             config,
         ) => {
+            const lastMessage = state.messages.at(-1);
+
+            if (!lastMessage || !AIMessage.isInstance(lastMessage)) {
+                throw new Error('Tool 실행 노드는 AIMessage 뒤에서만 실행할 수 있습니다.');
+            }
+
+            const mutationSignatures = this.getMutationSignatures(
+                lastMessage.tool_calls ?? [],
+            );
+
             const result = await actionToolNode.invoke(state, config);
 
             const toolMessages = result.messages ?? [];
@@ -178,6 +198,12 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             return {
                 ...result,
                 actionToolRoundCount: state.actionToolRoundCount + 1,
+                executedMutationSignatures: [
+                    ...new Set([
+                        ...state.executedMutationSignatures,
+                        ...mutationSignatures,
+                    ]),
+                ],
             };
         };
 
@@ -304,6 +330,37 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 ragCitations: citations,
             };
         };
+    }
+
+    private serializeToolArgs(value: unknown): string {
+        if (value === null || typeof value !== 'object') {
+            return JSON.stringify(value) ?? String(value);
+        }
+
+        if (Array.isArray(value)) {
+            return `[${value.map((item) => this.serializeToolArgs(item)).join(',')}]`;
+        }
+
+        const record = value as Record<string, unknown>;
+        const entries = Object.keys(record)
+            .sort()
+            .map((key) => {
+                return `${JSON.stringify(key)}:${this.serializeToolArgs(record[key])}`;
+            });
+
+        return `{${entries.join(',')}}`;
+    }
+
+    private createMutationSignature(toolCall: AgentToolCall): string | null {
+        if (!MUTATING_ACTION_TOOL_NAMES.has(toolCall.name)) return null;
+
+        return `${toolCall.name}:${this.serializeToolArgs(toolCall.args)}`;
+    }
+
+    private getMutationSignatures(toolCalls: AgentToolCall[]): string[] {
+        return toolCalls
+            .map((toolCall) => this.createMutationSignature(toolCall))
+            .filter((signature): signature is string => signature !== null);
     }
 
     private routeAfterModel(
@@ -446,4 +503,51 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             };
         };
     }
+
+    private createRejectDuplicateMutationNode() {
+        return async (state: typeof AgentState.State) => {
+            const lastMessage = state.messages.at(-1);
+
+            if (!lastMessage || !AIMessage.isInstance(lastMessage)) {
+                throw new Error(
+                    '중복 Tool 거부 노드는 AIMessage 뒤에서만 실행할 수 있습니다.',
+                );
+            }
+
+            const toolCalls = lastMessage.tool_calls ?? [];
+
+            if (toolCalls.length === 0) {
+                throw new Error('거부할 Tool 호출이 존재하지 않습니다.');
+            }
+
+            const toolMessages = toolCalls.map((toolCall) => {
+                if (!toolCall.id) {
+                    throw new Error(
+                        `Tool 호출 ID가 존재하지 않습니다: ${toolCall.name}`,
+                    );
+                }
+
+                return new ToolMessage({
+                    name: toolCall.name,
+                    tool_call_id: toolCall.id,
+                    status: 'error',
+                    content: JSON.stringify({
+                        error: 'DUPLICATE_MUTATION_TOOL_CALL',
+                        message: '동일한 상태 변경 작업의 반복 실행을 차단했습니다.',
+                    }),
+                });
+            });
+
+            return {
+                messages: [
+                    ...toolMessages,
+                    new AIMessage(
+                        '동일한 변경 작업이 반복될 가능성이 있어 처리를 중단했습니다. ' +
+                            '현재 저장 상태를 확인한 뒤 다시 요청해 주세요.',
+                    ),
+                ],
+            };
+        };
+    }
+
 }

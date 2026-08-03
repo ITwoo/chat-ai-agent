@@ -162,6 +162,19 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
         ) => {
             const result = await actionToolNode.invoke(state, config);
 
+            const toolMessages = result.messages ?? [];
+
+            for (const message of toolMessages) {
+                if (!ToolMessage.isInstance(message) || message.status !== 'error') {
+                    continue;
+                }
+
+                this.logger.warn(
+                    `[agent:tool_error] tool=${message.name ?? 'unknown'} ` +
+                        `toolCallId=${message.tool_call_id}`,
+                );
+            }
+            
             return {
                 ...result,
                 actionToolRoundCount: state.actionToolRoundCount + 1,

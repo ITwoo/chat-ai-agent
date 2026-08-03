@@ -161,10 +161,9 @@ export class AgentToolsService {
                         .int()
                         .positive()
                         .describe('지출 금액. 원화 기준 숫자만 입력한다. 예: 8500'),
-                    category: z
-                        .string()
-                        .min(1)
-                        .describe('지출 카테고리. 반드시 정해진 카테고리 중 하나를 선택한다.'),
+                    category: expenseCategorySchema.describe(
+                            '지출 카테고리. 반드시 정해진 카테고리 중 하나를 선택한다.',
+                        ),
                     title: z
                         .string()
                         .min(1)

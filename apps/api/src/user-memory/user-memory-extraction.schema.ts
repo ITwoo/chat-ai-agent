@@ -29,7 +29,7 @@ const userMemoryArchiveCandidateSchema = z.object({
     confidence: confidenceSchema,
 });
 
-export const userMemoryCandidateSchema = z.discriminatedUnion('action', [
+export const userMemoryCandidateSchema = z.union([
     userMemoryUpsertCandidateSchema,
     userMemoryArchiveCandidateSchema,
 ]);

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { StructuredToolInterface, tool } from '@langchain/core/tools';
+import { StructuredToolInterface, tool, ToolRuntime } from '@langchain/core/tools';
 import { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service';
 import { interrupt } from '@langchain/langgraph';
@@ -8,6 +8,7 @@ import { RAG_SEARCH_TOOL_NAME } from '../rag/rag.constants';
 import { ragSearchToolInputSchema } from '../rag/schemas/rag-search-tool.schema';
 import { AgentToolContext } from './types/agent-tool-context.type';
 import { UserMemoryToolsService } from '../user-memory/user-memory-tools.service';
+import { createHash } from 'crypto';
 
 const EXPENSE_CATEGORIES = [
     '식비',
@@ -75,9 +76,24 @@ export class AgentToolsService {
         );
     }
 
+    private createExpenseOperationKey(runtime: ToolRuntime): string {
+        const threadId = runtime.config.configurable?.thread_id;
+
+        if (typeof threadId !== 'string' || !threadId) {
+            throw new Error('create_expense 실행에 thread_id가 존재하지 않습니다.');
+        }
+
+        return createHash('sha256')
+            .update(`create_expense:${threadId}:${runtime.toolCallId}`)
+            .digest('hex');
+    }
+
     private createExpenseTool(context: AgentToolContext) {
         return tool(
-            async ({ amount, category, title, memo, spentAt }) => {
+            async (
+                { amount, category, title, memo, spentAt },
+                runtime: ToolRuntime,
+            ) => {
                 this.logger.log('[tool] create_expense');
 
                 const parsedSpentAt = new Date(spentAt);
@@ -86,16 +102,38 @@ export class AgentToolsService {
                     return '지출 날짜 형식이 올바르지 않습니다. spentAt은 ISO 날짜 문자열이어야 합니다.';
                 }
 
-                const expense = await this.prisma.expense.create({
-                    data: {
-                        userId: context.userId,
-                        amount,
-                        category,
-                        title,
-                        memo,
-                        spentAt: parsedSpentAt,
-                    },
+                const operationKey = this.createExpenseOperationKey(runtime);
+
+                const result = await this.prisma.$transaction(async (tx) => {
+                    const createdResult = await tx.expense.createMany({
+                        data: {
+                            userId: context.userId,
+                            operationKey,
+                            amount,
+                            category,
+                            title,
+                            memo,
+                            spentAt: parsedSpentAt,
+                        },
+                        skipDuplicates: true,
+                    });
+
+                    const expense = await tx.expense.findUniqueOrThrow({
+                        where: {
+                            userId_operationKey: {
+                                userId: context.userId,
+                                operationKey,
+                            },
+                        },
+                    });
+
+                    return {
+                        expense,
+                        created: createdResult.count === 1,
+                    };
                 });
+
+                const { expense, created } = result;
 
                 return JSON.stringify({
                     id: expense.id,
@@ -104,7 +142,10 @@ export class AgentToolsService {
                     title: expense.title,
                     memo: expense.memo,
                     spentAt: expense.spentAt.toISOString(),
-                    message: '지출 기록을 저장했습니다.',
+                    duplicated: !created,
+                    message: created
+                        ? '지출 기록을 저장했습니다.'
+                        : '이미 처리된 지출 저장 요청입니다.',
                 });
             },
             {

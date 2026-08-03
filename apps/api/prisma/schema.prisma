@@ -132,6 +132,7 @@ model ChatMessage {
 model Expense {
     id Int @id @default(autoincrement())
     userId Int
+    operationKey String   @db.VarChar(64)
     amount Int
     category String
     title String
@@ -142,6 +143,7 @@ model Expense {
 
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+    @@unique([userId, operationKey])
     @@index([userId, spentAt])
     @@index([userId, category])
 }

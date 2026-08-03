@@ -137,6 +137,7 @@ export type ChatMessageScalarFieldEnum = (typeof ChatMessageScalarFieldEnum)[key
 export const ExpenseScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  operationKey: 'operationKey',
   amount: 'amount',
   category: 'category',
   title: 'title',

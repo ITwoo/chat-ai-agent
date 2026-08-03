@@ -41,6 +41,7 @@ export type ExpenseSumAggregateOutputType = {
 export type ExpenseMinAggregateOutputType = {
   id: number | null
   userId: number | null
+  operationKey: string | null
   amount: number | null
   category: string | null
   title: string | null
@@ -53,6 +54,7 @@ export type ExpenseMinAggregateOutputType = {
 export type ExpenseMaxAggregateOutputType = {
   id: number | null
   userId: number | null
+  operationKey: string | null
   amount: number | null
   category: string | null
   title: string | null
@@ -65,6 +67,7 @@ export type ExpenseMaxAggregateOutputType = {
 export type ExpenseCountAggregateOutputType = {
   id: number
   userId: number
+  operationKey: number
   amount: number
   category: number
   title: number
@@ -91,6 +94,7 @@ export type ExpenseSumAggregateInputType = {
 export type ExpenseMinAggregateInputType = {
   id?: true
   userId?: true
+  operationKey?: true
   amount?: true
   category?: true
   title?: true
@@ -103,6 +107,7 @@ export type ExpenseMinAggregateInputType = {
 export type ExpenseMaxAggregateInputType = {
   id?: true
   userId?: true
+  operationKey?: true
   amount?: true
   category?: true
   title?: true
@@ -115,6 +120,7 @@ export type ExpenseMaxAggregateInputType = {
 export type ExpenseCountAggregateInputType = {
   id?: true
   userId?: true
+  operationKey?: true
   amount?: true
   category?: true
   title?: true
@@ -214,6 +220,7 @@ export type ExpenseGroupByArgs<ExtArgs extends runtime.Types.Extensions.Internal
 export type ExpenseGroupByOutputType = {
   id: number
   userId: number
+  operationKey: string
   amount: number
   category: string
   title: string
@@ -249,6 +256,7 @@ export type ExpenseWhereInput = {
   NOT?: Prisma.ExpenseWhereInput | Prisma.ExpenseWhereInput[]
   id?: Prisma.IntFilter<"Expense"> | number
   userId?: Prisma.IntFilter<"Expense"> | number
+  operationKey?: Prisma.StringFilter<"Expense"> | string
   amount?: Prisma.IntFilter<"Expense"> | number
   category?: Prisma.StringFilter<"Expense"> | string
   title?: Prisma.StringFilter<"Expense"> | string
@@ -262,6 +270,7 @@ export type ExpenseWhereInput = {
 export type ExpenseOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  operationKey?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   category?: Prisma.SortOrder
   title?: Prisma.SortOrder
@@ -274,10 +283,12 @@ export type ExpenseOrderByWithRelationInput = {
 
 export type ExpenseWhereUniqueInput = Prisma.AtLeast<{
   id?: number
+  userId_operationKey?: Prisma.ExpenseUserIdOperationKeyCompoundUniqueInput
   AND?: Prisma.ExpenseWhereInput | Prisma.ExpenseWhereInput[]
   OR?: Prisma.ExpenseWhereInput[]
   NOT?: Prisma.ExpenseWhereInput | Prisma.ExpenseWhereInput[]
   userId?: Prisma.IntFilter<"Expense"> | number
+  operationKey?: Prisma.StringFilter<"Expense"> | string
   amount?: Prisma.IntFilter<"Expense"> | number
   category?: Prisma.StringFilter<"Expense"> | string
   title?: Prisma.StringFilter<"Expense"> | string
@@ -286,11 +297,12 @@ export type ExpenseWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Expense"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Expense"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-}, "id">
+}, "id" | "userId_operationKey">
 
 export type ExpenseOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  operationKey?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   category?: Prisma.SortOrder
   title?: Prisma.SortOrder
@@ -311,6 +323,7 @@ export type ExpenseScalarWhereWithAggregatesInput = {
   NOT?: Prisma.ExpenseScalarWhereWithAggregatesInput | Prisma.ExpenseScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"Expense"> | number
   userId?: Prisma.IntWithAggregatesFilter<"Expense"> | number
+  operationKey?: Prisma.StringWithAggregatesFilter<"Expense"> | string
   amount?: Prisma.IntWithAggregatesFilter<"Expense"> | number
   category?: Prisma.StringWithAggregatesFilter<"Expense"> | string
   title?: Prisma.StringWithAggregatesFilter<"Expense"> | string
@@ -321,6 +334,7 @@ export type ExpenseScalarWhereWithAggregatesInput = {
 }
 
 export type ExpenseCreateInput = {
+  operationKey: string
   amount: number
   category: string
   title: string
@@ -334,6 +348,7 @@ export type ExpenseCreateInput = {
 export type ExpenseUncheckedCreateInput = {
   id?: number
   userId: number
+  operationKey: string
   amount: number
   category: string
   title: string
@@ -344,6 +359,7 @@ export type ExpenseUncheckedCreateInput = {
 }
 
 export type ExpenseUpdateInput = {
+  operationKey?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   category?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
@@ -357,6 +373,7 @@ export type ExpenseUpdateInput = {
 export type ExpenseUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
+  operationKey?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   category?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
@@ -369,6 +386,7 @@ export type ExpenseUncheckedUpdateInput = {
 export type ExpenseCreateManyInput = {
   id?: number
   userId: number
+  operationKey: string
   amount: number
   category: string
   title: string
@@ -379,6 +397,7 @@ export type ExpenseCreateManyInput = {
 }
 
 export type ExpenseUpdateManyMutationInput = {
+  operationKey?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   category?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
@@ -391,6 +410,7 @@ export type ExpenseUpdateManyMutationInput = {
 export type ExpenseUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
+  operationKey?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   category?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
@@ -410,9 +430,15 @@ export type ExpenseOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
+export type ExpenseUserIdOperationKeyCompoundUniqueInput = {
+  userId: number
+  operationKey: string
+}
+
 export type ExpenseCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  operationKey?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   category?: Prisma.SortOrder
   title?: Prisma.SortOrder
@@ -431,6 +457,7 @@ export type ExpenseAvgOrderByAggregateInput = {
 export type ExpenseMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  operationKey?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   category?: Prisma.SortOrder
   title?: Prisma.SortOrder
@@ -443,6 +470,7 @@ export type ExpenseMaxOrderByAggregateInput = {
 export type ExpenseMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  operationKey?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   category?: Prisma.SortOrder
   title?: Prisma.SortOrder
@@ -501,6 +529,7 @@ export type ExpenseUncheckedUpdateManyWithoutUserNestedInput = {
 }
 
 export type ExpenseCreateWithoutUserInput = {
+  operationKey: string
   amount: number
   category: string
   title: string
@@ -512,6 +541,7 @@ export type ExpenseCreateWithoutUserInput = {
 
 export type ExpenseUncheckedCreateWithoutUserInput = {
   id?: number
+  operationKey: string
   amount: number
   category: string
   title: string
@@ -553,6 +583,7 @@ export type ExpenseScalarWhereInput = {
   NOT?: Prisma.ExpenseScalarWhereInput | Prisma.ExpenseScalarWhereInput[]
   id?: Prisma.IntFilter<"Expense"> | number
   userId?: Prisma.IntFilter<"Expense"> | number
+  operationKey?: Prisma.StringFilter<"Expense"> | string
   amount?: Prisma.IntFilter<"Expense"> | number
   category?: Prisma.StringFilter<"Expense"> | string
   title?: Prisma.StringFilter<"Expense"> | string
@@ -564,6 +595,7 @@ export type ExpenseScalarWhereInput = {
 
 export type ExpenseCreateManyUserInput = {
   id?: number
+  operationKey: string
   amount: number
   category: string
   title: string
@@ -574,6 +606,7 @@ export type ExpenseCreateManyUserInput = {
 }
 
 export type ExpenseUpdateWithoutUserInput = {
+  operationKey?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   category?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
@@ -585,6 +618,7 @@ export type ExpenseUpdateWithoutUserInput = {
 
 export type ExpenseUncheckedUpdateWithoutUserInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  operationKey?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   category?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
@@ -596,6 +630,7 @@ export type ExpenseUncheckedUpdateWithoutUserInput = {
 
 export type ExpenseUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  operationKey?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   category?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
@@ -610,6 +645,7 @@ export type ExpenseUncheckedUpdateManyWithoutUserInput = {
 export type ExpenseSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
+  operationKey?: boolean
   amount?: boolean
   category?: boolean
   title?: boolean
@@ -623,6 +659,7 @@ export type ExpenseSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
 export type ExpenseSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
+  operationKey?: boolean
   amount?: boolean
   category?: boolean
   title?: boolean
@@ -636,6 +673,7 @@ export type ExpenseSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
 export type ExpenseSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
+  operationKey?: boolean
   amount?: boolean
   category?: boolean
   title?: boolean
@@ -649,6 +687,7 @@ export type ExpenseSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
 export type ExpenseSelectScalar = {
   id?: boolean
   userId?: boolean
+  operationKey?: boolean
   amount?: boolean
   category?: boolean
   title?: boolean
@@ -658,7 +697,7 @@ export type ExpenseSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ExpenseOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "amount" | "category" | "title" | "memo" | "spentAt" | "createdAt" | "updatedAt", ExtArgs["result"]["expense"]>
+export type ExpenseOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "operationKey" | "amount" | "category" | "title" | "memo" | "spentAt" | "createdAt" | "updatedAt", ExtArgs["result"]["expense"]>
 export type ExpenseInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -677,6 +716,7 @@ export type $ExpensePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
     userId: number
+    operationKey: string
     amount: number
     category: string
     title: string
@@ -1110,6 +1150,7 @@ export interface Prisma__ExpenseClient<T, Null = never, ExtArgs extends runtime.
 export interface ExpenseFieldRefs {
   readonly id: Prisma.FieldRef<"Expense", 'Int'>
   readonly userId: Prisma.FieldRef<"Expense", 'Int'>
+  readonly operationKey: Prisma.FieldRef<"Expense", 'String'>
   readonly amount: Prisma.FieldRef<"Expense", 'Int'>
   readonly category: Prisma.FieldRef<"Expense", 'String'>
   readonly title: Prisma.FieldRef<"Expense", 'String'>

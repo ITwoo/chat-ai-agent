@@ -34,6 +34,12 @@ const MUTATING_ACTION_TOOL_NAMES = new Set([
 
 type AgentToolCall = NonNullable<AIMessage['tool_calls']>[number];
 
+const READ_ACTION_TOOL_TIMEOUT_MS = 15_000;
+const MUTATION_ACTION_TOOL_TIMEOUT_MS = 30_000;
+
+const ACTION_TOOL_ERROR_MESSAGE =
+    'Tool 실행 중 오류가 발생했습니다. 입력을 수정하거나 작업 실패를 안내하세요.';
+
 const SYSTEM_PROMPT = `
 너는 1인 가구용 개인 생활 관리 AI Agent다.
 
@@ -176,27 +182,44 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 throw new Error('Tool 실행 노드는 AIMessage 뒤에서만 실행할 수 있습니다.');
             }
 
-            const mutationSignatures = this.getMutationSignatures(
-                lastMessage.tool_calls ?? [],
+            const toolCalls = lastMessage.tool_calls ?? [];
+            const mutationSignatures = this.getMutationSignatures(toolCalls);
+            const hasMutation = this.hasMutationToolCall(toolCalls);
+            const timeout = this.getActionToolTimeout(toolCalls);
+            const toolKind = hasMutation ? 'mutation' : 'read';                    
+
+            this.logger.log(
+                `[agent:tools] kind=${toolKind} timeoutMs=${timeout}`,
             );
 
-            const result = await actionToolNode.invoke(state, config);
+            const result = await actionToolNode.invoke(state, {
+                ...config,
+                runName: `action_tools_${toolKind}`,
+                tags: [...(config.tags ?? []), `${toolKind}-tool`],
+                timeout,
+            });
 
-            const toolMessages = result.messages ?? [];
-
-            for (const message of toolMessages) {
+            const toolMessages = (result.messages ?? []).map((message) => {
                 if (!ToolMessage.isInstance(message) || message.status !== 'error') {
-                    continue;
+                    return message;
                 }
 
                 this.logger.warn(
                     `[agent:tool_error] tool=${message.name ?? 'unknown'} ` +
                         `toolCallId=${message.tool_call_id}`,
                 );
-            }
+
+                return new ToolMessage({
+                    name: message.name,
+                    tool_call_id: message.tool_call_id,
+                    status: 'error',
+                    content: ACTION_TOOL_ERROR_MESSAGE,
+                });
+            });
             
             return {
                 ...result,
+                messages: toolMessages,
                 actionToolRoundCount: state.actionToolRoundCount + 1,
                 executedMutationSignatures: [
                     ...new Set([
@@ -353,6 +376,18 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             });
 
         return `{${entries.join(',')}}`;
+    }
+
+    private hasMutationToolCall(toolCalls: AgentToolCall[]): boolean {
+        return toolCalls.some((toolCall) => {
+            return MUTATING_ACTION_TOOL_NAMES.has(toolCall.name);
+        });
+    }
+
+    private getActionToolTimeout(toolCalls: AgentToolCall[]): number {
+        return this.hasMutationToolCall(toolCalls)
+            ? MUTATION_ACTION_TOOL_TIMEOUT_MS
+            : READ_ACTION_TOOL_TIMEOUT_MS;
     }
 
     private createMutationSignature(toolCall: AgentToolCall): string | null {

@@ -521,10 +521,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
 
     @SubscribeMessage('stop_generation')
-    handleStopGeneration(
+    async handleStopGeneration(
         @ConnectedSocket() client: AuthenticatedSocket,
         @MessageBody() payload: JoinRoomDto,
-    ) {
+    ): Promise<void> {
         const user = client.data.user;
 
         if (!user) {
@@ -533,24 +533,53 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             });
             return;
         }
+        try {
+            await this.chatService.assertRoomOwner(
+                payload.roomId,
+                user.id,
+            );
 
-        const processingKey = this.getUserRoomKey(
-            user.id,
-            payload.roomId,
-        );
+            const processingKey = this.getUserRoomKey(
+                user.id,
+                payload.roomId,
+            );
 
-        this.cancelledRooms.add(processingKey);
+            if (!this.processingRooms.has(processingKey)) {
+                client.emit('chat_error', {
+                    message: '현재 중지할 AI 응답이 없습니다.',
+                });
+                return;
+            }
 
-        const abortController = this.abortControllers.get(processingKey);
-        abortController?.abort();
+            this.cancelledRooms.add(processingKey);
 
-        const roomName = this.getRoomName(payload.roomId);
+            const abortController =
+                this.abortControllers.get(processingKey);
 
-        this.server.to(roomName).emit('assistant_message_cancelled', {
-            roomId: payload.roomId,
-        })
+            abortController?.abort();
 
-        this.logger.log(`Generation stop requested. userId ${user.id}, roomId=${payload.roomId}`)
+            const roomName = this.getRoomName(payload.roomId);
+
+            this.server.to(roomName).emit(
+                'assistant_message_cancelled',
+                {
+                    roomId: payload.roomId,
+                },
+            );
+
+            this.logger.log(
+                `Generation stop requested. ` +
+                `userId=${user.id}, roomId=${payload.roomId}`,
+            );
+            
+        } catch (error) {
+            client.emit('chat_error', {
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : 'AI 응답 중지에 실패했습니다.',
+            });
+        }
     }
 
     private getRoomName(roomId: number) {
@@ -897,10 +926,6 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 return;
             }
 
-            await this.pendingApprovalStore.deleteByRoomId(roomId);
-            
-            this.pendingApprovals.delete(processingKey);
-
             this.server.to(roomName).emit(
                 'assistant_approval_resolved',
                 {
@@ -976,6 +1001,9 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                     statusUserMessageId,
                 );
 
+                await this.pendingApprovalStore.deleteByRoomId(roomId);
+                this.pendingApprovals.delete(processingKey);
+    
                 this.server.to(roomName).emit(
                     'message_updated',
                     { ...userMessage, ragCitations: []},
@@ -1006,6 +1034,10 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 assistantContent,
                 ragCitations,
             );
+
+            await this.pendingApprovalStore.deleteByRoomId(roomId);
+            
+            this.pendingApprovals.delete(processingKey);
 
             this.server.to(roomName).emit(
                 'assistant_message_completed',

@@ -32,6 +32,11 @@ const MUTATING_ACTION_TOOL_NAMES = new Set([
     'delete_user_memory',
 ]);
 
+const DUPLICATE_GUARDED_MUTATION_TOOL_NAMES = new Set([
+    'update_expense',
+    'delete_user_memory',
+]);
+
 type AgentToolCall = NonNullable<AIMessage['tool_calls']>[number];
 
 const READ_ACTION_TOOL_TIMEOUT_MS = 15_000;
@@ -391,7 +396,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
     }
 
     private createMutationSignature(toolCall: AgentToolCall): string | null {
-        if (!MUTATING_ACTION_TOOL_NAMES.has(toolCall.name)) return null;
+        if (!DUPLICATE_GUARDED_MUTATION_TOOL_NAMES.has(toolCall.name)) return null;
 
         return `${toolCall.name}:${this.serializeToolArgs(toolCall.args)}`;
     }

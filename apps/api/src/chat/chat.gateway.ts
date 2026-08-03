@@ -553,23 +553,6 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         this.logger.log(`Generation stop requested. userId ${user.id}, roomId=${payload.roomId}`)
     }
 
-
-    private extractToken(client: AuthenticatedSocket): string | null {
-        const authToken = client.handshake.auth.token;
-
-        if (typeof authToken === 'string' && authToken.trim()) {
-            return authToken;
-        }
-
-        const authorization = client.handshake.headers['authorization'];
-
-        if (typeof authorization === 'string' && authorization.startsWith('Bearer ')) {
-            return authorization.replace('Bearer ', '');
-        }
-
-        return null;
-    }
-
     private getRoomName(roomId: number) {
         return `chat_room:${roomId}`;
     }

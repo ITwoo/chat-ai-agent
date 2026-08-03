@@ -39,7 +39,7 @@ export function createRagMulterOptions(
                 file.mimetype === 'application/pdf' &&
                 extension === '.pdf';
 
-            if (!isTextFile && isPdfFile) {
+            if (!isTextFile && !isPdfFile) {
                 callback(
                     new BadRequestException(
                         '현재는 .txt 또는 .pdf 파일만 업로드할 수 있습니다.',

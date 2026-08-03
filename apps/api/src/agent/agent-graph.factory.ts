@@ -71,6 +71,13 @@ search_rag_documents와 지출 조회·생성·수정 Tool을 한 응답에서 �
 메모리를 잊거나 삭제해달라는 요청을 받으면 먼저 search_user_memories로 정확한 후보를 확인한다. 후보가 하나로 명확하면 그 memoryId로 delete_user_memory를 호출한다.
 후보가 여러 개면 사용자가 대상을 선택할 때까지 delete_user_memory를 호출하지 않는다.
 delete_user_memory 내부의 interrupt가 최종 승인을 담당하므로 호출 전에 별도의 승인 질문을 하지 않는다.
+
+Tool 실행 결과가 오류인 경우 다음 규칙을 따른다.
+- 실행에 성공했다고 말하지 않는다.
+- 입력값을 수정해 해결할 수 있을 때만 수정된 인자로 다시 호출한다.
+- 동일한 인자로 같은 Tool을 반복 호출하지 않는다.
+- 데이터베이스, 서버, 내부 구현 오류는 사용자에게 원문 그대로 노출하지 않는다.
+- 복구할 수 없으면 작업을 완료하지 못했다고 명확히 안내한다.
 `;
 
 const AgentState = new StateSchema({
@@ -145,7 +152,9 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             (tool) => tool.name !== RAG_SEARCH_TOOL_NAME,
         );
 
-        const actionToolNode = new ToolNode(actionTools);
+        const actionToolNode = new ToolNode(actionTools, {
+            handleToolErrors: true,
+        });
 
         const executeActionTools: GraphNode<typeof AgentState> = async (
             state,

@@ -24,6 +24,7 @@ import { createRagCitations } from '../rag/utils/rag-citation.util';
 import { RunnableConfig } from '@langchain/core/runnables';
 
 const AGENT_MODEL_TIMEOUT_MS = 60_000;
+const MAX_ACTION_TOOL_ROUNDS = 5;
 
 const SYSTEM_PROMPT = `
 너는 1인 가구용 개인 생활 관리 AI Agent다.
@@ -74,9 +75,8 @@ delete_user_memory 내부의 interrupt가 최종 승인을 담당하므로 호�
 
 const AgentState = new StateSchema({
     messages: MessagesValue,
-    ragCitations: z
-        .array(ragCitationSchema)
-        .default(() => []),
+    ragCitations: z.array(ragCitationSchema).default(() => []),
+    actionToolRoundCount: z.number().int().nonnegative().default(0),
 });
 
 type AgentModel = ReturnType<ChatOpenAI['bindTools']>;
@@ -88,6 +88,7 @@ type AgentRoute =
     | 'tools'
     | 'ragAnswer'
     | 'rejectRagCombination'
+    | 'rejectToolLimit'
     | typeof END;
 
 @Injectable()
@@ -144,7 +145,19 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             (tool) => tool.name !== RAG_SEARCH_TOOL_NAME,
         );
 
-        const toolNode = new ToolNode(actionTools);
+        const actionToolNode = new ToolNode(actionTools);
+
+        const executeActionTools: GraphNode<typeof AgentState> = async (
+            state,
+            config,
+        ) => {
+            const result = await actionToolNode.invoke(state, config);
+
+            return {
+                ...result,
+                actionToolRoundCount: state.actionToolRoundCount + 1,
+            };
+        };
 
         const ragAnswerNode =
             this.createRagAnswerNode(context);
@@ -152,14 +165,17 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
         const rejectRagCombinationNode =
             this.createRejectRagCombinationNode();
 
+        const rejectToolLimitNode = this.createRejectToolLimitNode();
+
         return new StateGraph(AgentState)
             .addNode('callModel', callModel)
-            .addNode('tools', toolNode)
+            .addNode('tools', executeActionTools)
             .addNode('ragAnswer', ragAnswerNode)
             .addNode(
                 'rejectRagCombination',
                 rejectRagCombinationNode,
             )
+            .addNode('rejectToolLimit', rejectToolLimitNode)
             .addEdge(START, 'callModel')
             .addConditionalEdges(
                 'callModel',
@@ -170,6 +186,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 'rejectRagCombination',
                 'callModel',
             )
+            .addEdge('rejectToolLimit', END)
             .addEdge('ragAnswer', END)
             .compile({
                 checkpointer: this.checkpointer,
@@ -299,6 +316,10 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
         );
 
         if (ragToolCalls.length === 0) {
+            if (state.actionToolRoundCount >= MAX_ACTION_TOOL_ROUNDS) {
+                return 'rejectToolLimit';
+            }
+
             return 'tools';
         }
 
@@ -310,6 +331,50 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
         }
 
         return 'rejectRagCombination';
+    }
+
+    private createRejectToolLimitNode() {
+        return async (state: typeof AgentState.State) => {
+            const lastMessage = state.messages.at(-1);
+
+            if (!lastMessage || !AIMessage.isInstance(lastMessage)) {
+                throw new Error(
+                    'Tool 실행 제한 노드는 AIMessage 뒤에서만 실행할 수 있습니다.',
+                );
+            }
+
+            const toolCalls = lastMessage.tool_calls ?? [];
+
+            if (toolCalls.length === 0) {
+                throw new Error('제한할 Tool 호출이 존재하지 않습니다.');
+            }
+
+            const toolMessages = toolCalls.map((toolCall) => {
+                if (!toolCall.id) {
+                    throw new Error(
+                        `Tool 호출 ID가 존재하지 않습니다: ${toolCall.name}`,
+                    );
+                }
+
+                return new ToolMessage({
+                    tool_call_id: toolCall.id,
+                    content: JSON.stringify({
+                        error: 'TOOL_ROUND_LIMIT_REACHED',
+                        message: '한 요청에서 허용된 Tool 실행 횟수를 초과했습니다.',
+                    }),
+                });
+            });
+
+            return {
+                messages: [
+                    ...toolMessages,
+                    new AIMessage(
+                        '요청 처리 중 Tool 실행 횟수 제한에 도달했습니다. ' +
+                            '작업을 더 구체적으로 나눠 다시 요청해 주세요.',
+                    ),
+                ],
+            };
+        };
     }
 
     private createRejectRagCombinationNode() {

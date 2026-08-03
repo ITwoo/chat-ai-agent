@@ -215,6 +215,8 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
 
         const rejectToolLimitNode = this.createRejectToolLimitNode();
 
+        const rejectDuplicateMutationNode = this.createRejectDuplicateMutationNode();
+
         return new StateGraph(AgentState)
             .addNode('callModel', callModel)
             .addNode('tools', executeActionTools)
@@ -224,6 +226,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 rejectRagCombinationNode,
             )
             .addNode('rejectToolLimit', rejectToolLimitNode)
+            .addNode('rejectDuplicateMutation', rejectDuplicateMutationNode)
             .addEdge(START, 'callModel')
             .addConditionalEdges(
                 'callModel',
@@ -236,6 +239,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             )
             .addEdge('rejectToolLimit', END)
             .addEdge('ragAnswer', END)
+            .addEdge('rejectDuplicateMutation', END)
             .compile({
                 checkpointer: this.checkpointer,
             });
@@ -395,6 +399,14 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
         );
 
         if (ragToolCalls.length === 0) {
+            const mutationSignatures = this.getMutationSignatures(toolCalls);
+
+            const hasDuplicateMutation = mutationSignatures.some((signature) => {
+                return state.executedMutationSignatures.includes(signature);
+            });
+
+            if (hasDuplicateMutation) return 'rejectDuplicateMutation';
+
             if (state.actionToolRoundCount >= MAX_ACTION_TOOL_ROUNDS) {
                 return 'rejectToolLimit';
             }

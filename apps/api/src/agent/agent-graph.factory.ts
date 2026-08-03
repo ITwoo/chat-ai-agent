@@ -227,18 +227,20 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 input.limit,
             );
 
-            const citations = createRagCitations(results);
+            const contextResults = this.ragAnswerService.selectContextResults(results);
+
+            const citations = createRagCitations(contextResults);
 
             const answer = await this.ragAnswerService.answer(
                 question,
-                results,
+                contextResults,
             );
 
             const toolMessage = new ToolMessage({
                 tool_call_id: ragToolCall.id,
                 content: JSON.stringify({
                     handledBy: 'rag_answer_node',
-                    resultCount: results.length,
+                    resultCount: contextResults.length,
                 }),
             });
 

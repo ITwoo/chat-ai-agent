@@ -23,6 +23,10 @@ export type RagSearchResult = {
     fileName: string;
     distance: number;
     similarity: number;
+    vectorRank: number | null;
+    keywordRank: number | null;
+    keywordScore: number | null;
+    hybridScore: number;
 };
 
 export type RagDocumentListItem = {
@@ -59,3 +63,4 @@ export type RecoverStuckRagDocumentsResult = {
     markedFailedCount: number;
     activeCount: number;
 };
+

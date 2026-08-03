@@ -40,6 +40,11 @@ export class RagSearchService {
 
         const results = await this.prisma.$transaction(
             async (tx) => {
+
+                await tx.$executeRaw`
+                    SET LOCAL statement_timeout = '10s'
+                `;
+                
                 await tx.$executeRaw`
                     SET LOCAL hnsw.iterative_scan = 'strict_order'
                 `;

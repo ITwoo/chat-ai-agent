@@ -252,8 +252,7 @@ export class AgentToolsService {
                     endDate: z
                         .string()
                         .describe('조회 종료 날짜. ISO 8601 문자열로 입력한다. 이 날짜는 포함하지 않는다. 예: 2026-08-01T00:00:00+09:00'),
-                    category: z
-                        .string()
+                    category: expenseCategorySchema
                         .optional()
                         .describe('선택 카테고리. 특정 카테고리만 조회할 때 사용한다.'),
                 }),

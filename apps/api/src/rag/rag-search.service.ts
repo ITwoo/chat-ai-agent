@@ -12,7 +12,7 @@ const DEFAULT_SEARCH_LIMIT = 5;
 const MAX_SEARCH_LIMIT = 10;
 const SEARCH_CANDIDATE_MULTIPLIER = 4;
 const MAX_PREFERRED_CHUNKS_PER_DOCUMENT = 2;
-const HYBRID_RRF_K = 60;
+
 @Injectable()
 export class RagSearchService {
     constructor(

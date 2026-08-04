@@ -87,7 +87,7 @@ export function Layout() {
                                     onClick={handleLogout}
                                     className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
                                 >
-                                    Logout
+                                    로그아웃
                                 </button>
                             </>
                         ) : (
@@ -96,13 +96,13 @@ export function Layout() {
                                     to="/login"
                                     className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
                                 >
-                                    Login
+                                    로그인
                                 </Link>
                                 <Link
                                     to="/register"
                                     className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700"
                                 >
-                                    Register
+                                    회원가입
                                 </Link>
                             </>
                         )}

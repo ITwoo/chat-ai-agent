@@ -54,7 +54,7 @@ export function BoardListPage() {
         return (
             <section className="space-y-6">
                 <div>
-                    <p className="text-sm font-medium text-gray-500">Boards</p>
+                    <p className="text-sm font-medium text-gray-500">게시판</p>
                     <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
                         게시글 목록
                     </h1>

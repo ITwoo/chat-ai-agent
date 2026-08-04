@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Layout } from '../components/layout/Layout';
 import { ProtectedRoute } from '../components/route/ProtectedRoute';
 import { LoginPage } from '../features/auth/pages/LoginPage';
@@ -9,10 +9,6 @@ import { BoardCreatePage } from '../features/board/pages/BoardCreatePage';
 import { ChatPage } from '../pages/ChatPage';
 import { RagDocumentsPage } from '../features/rag/pages/RagDocumentsPage';
 
-function HomePage() {
-    return <h1>Home</h1>;
-}
-
 export const router = createBrowserRouter([
     {
         path: '/',
@@ -20,7 +16,7 @@ export const router = createBrowserRouter([
         children: [
             {
                 index: true,
-                element: <HomePage />,
+                element: <Navigate to="/chat" replace />,
             },
             {
                 path: 'login',

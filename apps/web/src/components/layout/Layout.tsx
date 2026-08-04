@@ -50,11 +50,11 @@ export function Layout() {
                 <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
                     <div className="flex items-center gap-8">
                         <Link to="/" className="flex items-center gap-2">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-900 text-sm font-bold text-white">
-                                B
+                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-900 text-xs font-bold text-white">
+                                AI
                             </div>
                             <span className="text-lg font-bold tracking-tight">
-                                Board App
+                                Chat AI Agent
                             </span>
                         </Link>
 

@@ -49,7 +49,7 @@ export function Layout() {
             <header className="shrink-0 border-b border-gray-200 bg-white/80 backdrop-blur">
                 <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
                     <div className="flex items-center gap-8">
-                        <Link to="/" className="flex items-center gap-2">
+                        <Link to="/chat" className="flex items-center gap-2">
                             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-900 text-xs font-bold text-white">
                                 AI
                             </div>
@@ -59,14 +59,11 @@ export function Layout() {
                         </Link>
 
                         <nav className="flex items-center gap-1">
-                            <NavLink to="/" className={navLinkClass}>
-                                Home
-                            </NavLink>
-                            <NavLink to="/boards" className={navLinkClass}>
-                                Boards
-                            </NavLink>
                             <NavLink to="/chat" className={navLinkClass}>
                                 AI 채팅
+                            </NavLink>
+                            <NavLink to="/boards" className={navLinkClass}>
+                                게시판
                             </NavLink>
                             <NavLink to="/rag" className={navLinkClass}>
                                 RAG 문서

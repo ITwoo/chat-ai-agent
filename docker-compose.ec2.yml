@@ -8,6 +8,11 @@ services:
       - redis-server
       - --appendonly
       - "yes"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     restart: unless-stopped
   api:
     image: ghcr.io/itwoo/chat-ai-agent-api:${IMAGE_TAG}
@@ -16,6 +21,11 @@ services:
       - /home/ec2-user/env/chat-ai-agent-api.env
     expose:
       - "3000"
+    volumes:
+      - /home/ec2-user/data/rag:/app/apps/api/uploads/rag
+    depends_on:
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
   web:
@@ -30,3 +40,5 @@ services:
     depends_on:
       - api
     restart: unless-stopped
+volumes:
+  redis-data:

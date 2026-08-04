@@ -24,7 +24,7 @@
     "prisma:migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
-    "@langchain/core": "^1.2.1",
+    "@langchain/core": "^1.2.4",
     "@langchain/langgraph": "^1.4.7",
     "@langchain/langgraph-checkpoint-postgres": "^1.0.4",
     "@langchain/openai": "^1.5.3",

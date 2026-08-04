@@ -36,14 +36,14 @@ export function RegisterPage() {
         <section className="mx-auto max-w-md">
             <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
                 <div className="text-center">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-900 text-lg font-bold text-white">
-                        B
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-900 text-sm font-bold text-white">
+                        AI
                     </div>
                     <h1 className="mt-6 text-2xl font-bold tracking-tight text-gray-900">
                         회원가입
                     </h1>
                     <p className="mt-2 text-sm text-gray-500">
-                        새 계정을 만들고 게시판을 시작하세요.
+                        새 계정을 만들고 개인 관리 AI Agent를 시작하세요.
                     </p>
                 </div>
 

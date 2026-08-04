@@ -1,4 +1,14 @@
 services:
+  redis:
+    image: redis:8-alpine
+    container_name: chat-ai-agent-redis
+    volumes:
+      - redis-data:/data
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+    restart: unless-stopped
   api:
     image: ghcr.io/itwoo/chat-ai-agent-api:${IMAGE_TAG}
     container_name: chat-ai-agent-api

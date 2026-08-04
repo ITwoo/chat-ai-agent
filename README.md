@@ -1,59 +1,218 @@
 # Chat AI Agent
 
 <p align="center">
-  <strong>NestJS + React 기반 AI 채팅 에이전트 웹 애플리케이션</strong>
+  <strong>NestJS · React · LangGraph 기반 개인 관리 AI Agent</strong>
 </p>
 
 <p align="center">
-  <a href="https://woohyuk.dev">https://woohyuk.dev</a> ·
-  <a href="https://www.woohyuk.dev">https://www.woohyuk.dev</a>
+  자연어 지출 관리, 사용자 승인, 중복 실행 방지, 장애 복구,
+  장기 메모리와 RAG를 구현한 풀스택 서비스입니다.
 </p>
 
 <p align="center">
+  <a href="https://woohyuk.dev"><strong>Live Demo</strong></a>
+  ·
+  <a href="https://www.woohyuk.dev">www.woohyuk.dev</a>
+</p>
+
+<p align="center">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" />
   <img alt="NestJS" src="https://img.shields.io/badge/NestJS-E0234E?style=flat-square&logo=nestjs&logoColor=white" />
   <img alt="React" src="https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB" />
-  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" />
-  <img alt="Prisma" src="https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white" />
+  <img alt="LangGraph" src="https://img.shields.io/badge/LangGraph-1C3C3C?style=flat-square" />
   <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white" />
+  <img alt="Redis" src="https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white" />
   <img alt="Docker" src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" />
   <img alt="AWS" src="https://img.shields.io/badge/AWS-232F3E?style=flat-square&logo=amazonaws&logoColor=white" />
-  <img alt="GHCR" src="https://img.shields.io/badge/GHCR-181717?style=flat-square&logo=github&logoColor=white" />
 </p>
-
----
-
-## 목차
-
-- [프로젝트 소개](#프로젝트-소개)
-- [기술 스택](#기술-스택)
-- [아키텍처](#아키텍처)
-- [프로젝트 구조](#프로젝트-구조)
-- [배포 구조](#배포-구조)
-- [환경 변수](#환경-변수)
-- [로컬 개발](#로컬-개발)
-- [운영 배포](#운영-배포)
-- [배포 검증](#배포-검증)
-- [HTTPS / 도메인](#https--도메인)
-- [트러블슈팅](#트러블슈팅)
-- [향후 개선 사항](#향후-개선-사항)
 
 ---
 
 ## 프로젝트 소개
 
-`Chat AI Agent`는 React Web과 NestJS API로 구성된 AI 채팅 에이전트 웹 애플리케이션입니다.
+`Chat AI Agent`는 단순 질의응답 챗봇이 아니라, 대화 문맥을 바탕으로 실제 Tool을 실행하는
+개인 관리 AI Agent입니다.
 
-Monorepo 구조에서 프론트엔드, 백엔드, 공통 패키지를 함께 관리하며, 운영 환경에서는 Docker Compose 기반으로 AWS EC2에 배포됩니다.
+사용자는 자연어로 지출을 등록·조회·수정할 수 있습니다. 데이터 변경처럼 중요한 작업은
+LangGraph의 `interrupt/resume`으로 승인을 받은 뒤 실행하며, 중복 승인과 서버 재시작에도
+안전하게 이어지도록 상태를 PostgreSQL과 Redis에 관리합니다.
 
-주요 목표는 다음과 같습니다.
+업로드한 문서는 `pgvector`로 검색하고 답변에 출처를 함께 표시합니다. 사용자 선호·목표·제약은
+장기 메모리로 추출해 이후 대화에 활용합니다.
 
-- React 기반 웹 클라이언트 제공
-- NestJS 기반 API 서버 제공
-- Prisma를 통한 PostgreSQL 데이터베이스 관리
-- Socket.IO 기반 실시간 통신 경로 지원
-- GitHub Actions 기반 자동 배포
-- GHCR 기반 이미지 태그 배포
-- Cloudflare DNS + Let’s Encrypt 기반 HTTPS 적용
+---
+
+## 핵심 기능
+
+### AI 채팅
+
+- Socket.IO 기반 실시간 스트리밍 응답
+- 채팅방 생성·수정·삭제 및 메시지 페이지네이션
+- 응답 생성 중지, 실패 처리, 재연결 후 채팅방 자동 재입장
+- 대화 요약과 최근 메시지를 결합한 문맥 관리
+
+### 지출 관리 Agent
+
+- 자연어 기반 지출 등록·목록·요약·검색
+- 수정 대상 탐색 후 사용자 승인 요청
+- 승인 버튼과 채팅 입력을 통한 `approve / cancel / revise`
+- 승인 전 데이터가 바뀌었는지 `version`으로 검증
+- `operationKey`와 작업 이력으로 Tool 재실행 및 중복 반영 방지
+
+### 승인과 장애 복구
+
+- LangGraph `interrupt/resume`
+- PostgreSQL Checkpointer를 이용한 실행 상태 저장
+- `AgentPendingApproval`을 이용한 서버 재시작 후 승인 카드 복구
+- Redis Lock을 이용한 승인 중복 처리 방지
+- 처리 완료 후 대기 승인 상태 정리
+
+### RAG
+
+- TXT·PDF 문서 업로드
+- BullMQ 기반 비동기 문서 처리
+- OpenAI Embedding과 PostgreSQL `pgvector` 검색
+- HNSW cosine index
+- 답변에 문서명·청크 출처 표시
+- 컨테이너 재생성 후에도 유지되는 RAG 파일 볼륨
+
+### 사용자 장기 메모리
+
+- 대화에서 선호·프로필·목표·제약 자동 추출
+- 사용자별 메모리 검색·조회·삭제
+- Embedding 기반 관련 메모리 검색
+- BullMQ 재시도와 DB 상태 기반 Job 복구
+
+### 인증과 운영
+
+- Access Token + Refresh Token 인증
+- HTTP와 Socket.IO 인증 연동
+- Docker Compose 기반 운영
+- AWS EC2·RDS 배포
+- GitHub Actions·GHCR 기반 자동 배포
+- Cloudflare DNS·Let’s Encrypt HTTPS
+
+---
+
+## 핵심 설계
+
+### 1. 승인 기반 지출 수정
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant W as React / Socket.IO
+    participant A as NestJS API
+    participant G as LangGraph
+    participant DB as PostgreSQL
+
+    U->>W: 지출 수정 요청
+    W->>A: send_message
+    A->>G: Agent 실행
+    G->>DB: 수정 대상 조회
+    G-->>A: interrupt(승인 요청)
+    A->>DB: Pending Approval 저장
+    A-->>W: 승인 카드 전송
+    U->>W: approve / cancel / revise
+    W->>A: 승인 응답
+    A->>G: Command(resume)
+    G->>DB: version 조건부 수정
+    G-->>A: Tool 결과
+    A-->>W: 최종 응답
+```
+
+승인 대기 중 다른 요청이 같은 지출을 변경하면 `expectedVersion`과 현재 `version`이 달라져
+이전 승인을 거부합니다. 이를 통해 오래된 승인 카드가 최신 데이터를 덮어쓰지 않도록 했습니다.
+
+### 2. 중복 실행 방지
+
+중복 방지는 한 계층에만 의존하지 않습니다.
+
+```txt
+Tool Call
+├─ operationKey 기반 지출 등록 멱등성
+├─ approvalId 검증
+├─ 처리 중인 방 상태 확인
+├─ Redis 승인 Lock
+├─ Expense.version 낙관적 동시성 제어
+└─ ExpenseUpdateOperation 작업 이력
+```
+
+각 장치는 중복 클릭, 동일 Tool 재실행, 승인 대기 중 데이터 변경처럼 서로 다른 실패 상황을
+담당합니다.
+
+### 3. BullMQ 작업 복구
+
+RAG와 사용자 메모리 작업은 Redis Queue 상태만 신뢰하지 않고 PostgreSQL에도 작업 상태를
+저장합니다.
+
+```txt
+요청 저장
+→ DB 상태 PENDING
+→ BullMQ Job 등록
+→ PROCESSING
+→ 완료 시 READY / ACTIVE
+```
+
+서버가 재시작되거나 Redis Job이 사라진 경우 DB 상태와 Queue 상태를 비교해 필요한 Job을
+다시 등록합니다.
+
+### 4. RAG 출처 제공
+
+```txt
+문서 업로드
+→ 텍스트 추출
+→ 청크 분할
+→ Embedding 생성
+→ pgvector 저장
+→ cosine 검색
+→ 답변 생성
+→ 검색 청크를 출처로 저장·표시
+```
+
+문서 내용은 시스템 명령이 아니라 검색 데이터로 전달하며, 답변 근거를 확인할 수 있도록
+인용 정보를 함께 반환합니다.
+
+---
+
+## 아키텍처
+
+```mermaid
+flowchart LR
+    USER[Browser] --> CF[Cloudflare]
+    CF --> WEB[Nginx + React]
+
+    WEB -->|/api| API[NestJS API]
+    WEB -->|/socket.io| API
+
+    API --> OPENAI[OpenAI API]
+    API --> APPDB[(RDS PostgreSQL<br/>Prisma + pgvector)]
+    API --> GRAPHDB[(RDS PostgreSQL<br/>LangGraph Checkpoint)]
+    API --> REDIS[(Redis<br/>BullMQ · Lock · Socket Adapter)]
+    API --> FILES[(EC2 Host Volume<br/>RAG Files)]
+
+    subgraph EC2[AWS EC2]
+        WEB
+        API
+        REDIS
+        FILES
+    end
+```
+
+### 운영 구성
+
+| 구성 요소 | 역할 |
+|---|---|
+| React + Nginx | 정적 파일 제공, `/api`, `/socket.io` reverse proxy |
+| NestJS API | 인증, 채팅, Agent, RAG, 메모리, BullMQ Processor |
+| Redis | BullMQ, 승인 Lock, Socket.IO Adapter |
+| RDS Application DB | 사용자·채팅·지출·RAG·메모리 데이터 |
+| RDS LangGraph DB | Checkpoint와 interrupt/resume 상태 |
+| EC2 Host Volume | 업로드한 RAG 원본 파일 영속화 |
+| GitHub Actions | 이미지 빌드, GHCR push, EC2 자동 배포 |
+
+현재 프로젝트 규모에서는 API와 BullMQ Processor를 같은 NestJS 프로세스에서 실행합니다.
+Redis는 EC2의 Docker Compose에서 운영하고, 영구 상태의 원본은 PostgreSQL에 둡니다.
 
 ---
 
@@ -61,52 +220,17 @@ Monorepo 구조에서 프론트엔드, 백엔드, 공통 패키지를 함께 관
 
 | 영역 | 기술 |
 |---|---|
-| Frontend | React, TypeScript, Vite |
-| Backend | NestJS, TypeScript, Prisma, JWT |
-| Realtime | Socket.IO |
+| Frontend | React, TypeScript, Vite, Tailwind CSS, Zustand, React Router |
+| Backend | NestJS, TypeScript, Prisma |
+| AI Agent | LangChain, LangGraph, OpenAI |
+| Realtime | Socket.IO, Redis Adapter |
+| Queue | BullMQ, Redis |
 | Database | PostgreSQL, AWS RDS |
-| Infra | Docker, Docker Compose, Nginx |
-| CI/CD | GitHub Actions, GitHub Container Registry |
-| Cloud | AWS EC2, AWS RDS |
-| DNS / HTTPS | Cloudflare, Let’s Encrypt |
-
----
-
-## 아키텍처
-
-```mermaid
-flowchart TD
-    User[User Browser] --> CF[Cloudflare DNS / Proxy]
-    CF --> EC2[AWS EC2]
-
-    subgraph EC2[AWS EC2]
-        WEB[Nginx + React Web Container]
-        API[NestJS API Container]
-    end
-
-    WEB -->|/api| API
-    WEB -->|/socket.io| API
-    API --> RDS[(AWS RDS PostgreSQL)]
-
-    LE[Let's Encrypt] --> WEB
-```
-
-### 요청 흐름
-
-```txt
-사용자
-  ↓
-Cloudflare
-  ↓
-EC2 80/443
-  ↓
-Nginx Web Container
-  ├── React 정적 파일 제공
-  ├── /api/ → NestJS API Container
-  └── /socket.io/ → NestJS WebSocket
-  ↓
-AWS RDS PostgreSQL
-```
+| Vector Search | pgvector, HNSW, cosine distance |
+| Authentication | JWT, Passport, bcrypt, Refresh Token Cookie |
+| Infrastructure | Docker, Docker Compose, Nginx |
+| CI/CD | GitHub Actions, GHCR, AWS OIDC |
+| Cloud | AWS EC2, AWS RDS, Cloudflare, Let’s Encrypt |
 
 ---
 
@@ -114,450 +238,213 @@ AWS RDS PostgreSQL
 
 ```txt
 chat-ai-agent/
-├── apps/
-│   ├── api/
-│   │   ├── Dockerfile
-│   │   └── src/
-│   └── web/
-│       ├── Dockerfile
-│       ├── nginx.conf
-│       └── src/
-├── packages/
-│   └── shared/
-├── prisma/
-│   ├── schema.prisma
-│   └── migrations/
-├── docker-compose.ec2.yml
-├── pnpm-workspace.yaml
-├── package.json
-└── .github/
-    └── workflows/
-        └── deploy.yml
+├─ apps/
+│  ├─ api/
+│  │  ├─ prisma/
+│  │  │  ├─ schema.prisma
+│  │  │  └─ migrations/
+│  │  ├─ src/
+│  │  │  ├─ agent/
+│  │  │  ├─ chat/
+│  │  │  ├─ queue/
+│  │  │  ├─ rag/
+│  │  │  ├─ redis/
+│  │  │  └─ user-memory/
+│  │  └─ Dockerfile
+│  └─ web/
+│     ├─ src/
+│     ├─ nginx.conf
+│     └─ Dockerfile
+├─ packages/
+│  └─ shared/
+├─ docker-compose.dev.yml
+├─ docker-compose.ec2.yml
+├─ pnpm-workspace.yaml
+├─ turbo.json
+└─ .github/workflows/
 ```
 
 ---
 
-## 배포 구조
+## 로컬 실행
 
-현재 배포는 GitHub Actions에서 이미지를 빌드한 뒤 GHCR에 push하고, EC2에서 해당 이미지를 pull하여 실행하는 방식입니다.
+### 요구 사항
 
-```mermaid
-sequenceDiagram
-    participant Dev as Developer
-    participant GH as GitHub Actions
-    participant GHCR as GitHub Container Registry
-    participant EC2 as AWS EC2
-    participant RDS as AWS RDS
+- Node.js 22
+- pnpm
+- Docker
+- PostgreSQL
+- Redis
 
-    Dev->>GH: Run workflow
-    GH->>GH: Checkout repository
-    GH->>GH: Build API / Web images
-    GH->>GHCR: Push images with commit SHA
-    GH->>EC2: SSH deploy
-    EC2->>GHCR: Pull tagged images
-    EC2->>RDS: Prisma migrate deploy
-    EC2->>EC2: docker compose up -d
-```
-
-이미지 태그는 Git commit SHA를 사용합니다.
-
-```txt
-ghcr.io/itwoo/chat-ai-agent-api:<commit-sha>
-ghcr.io/itwoo/chat-ai-agent-web:<commit-sha>
-```
-
-이 방식의 장점은 다음과 같습니다.
-
-- 어떤 커밋이 배포되었는지 추적 가능
-- 이미지 태그 기반 배포로 기존 컨테이너 갱신 여부 확인 가능
-- EC2에서는 이미지를 빌드하지 않고 pull 후 실행
-- 롤백 시 이전 이미지 태그를 기준으로 되돌릴 수 있음
-
----
-
-## Docker Compose 운영 설정
-
-`docker-compose.ec2.yml`은 EC2에서 이미지를 빌드하지 않고 GHCR 이미지를 실행합니다.
-
-```yaml
-services:
-  api:
-    image: ghcr.io/itwoo/chat-ai-agent-api:${IMAGE_TAG}
-    container_name: chat-ai-agent-api
-    env_file:
-      - /home/ec2-user/env/chat-ai-agent-api.env
-    expose:
-      - "3000"
-    restart: unless-stopped
-
-  web:
-    image: ghcr.io/itwoo/chat-ai-agent-web:${IMAGE_TAG}
-    container_name: chat-ai-agent-web
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /var/www/certbot:/var/www/certbot
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-    depends_on:
-      - api
-    restart: unless-stopped
-```
-
----
-
-## Nginx 역할
-
-`apps/web/nginx.conf`는 다음 역할을 담당합니다.
-
-- React 정적 파일 제공
-- HTTP → HTTPS 리다이렉트
-- `/api/` 요청을 NestJS API 컨테이너로 프록시
-- `/socket.io/` 요청을 WebSocket 서버로 프록시
-- Let’s Encrypt 인증서 갱신용 challenge 경로 제공
-
-주요 프록시 설정 예시:
-
-```nginx
-location /api/ {
-  proxy_pass http://api:3000;
-  proxy_http_version 1.1;
-
-  proxy_set_header Host $host;
-  proxy_set_header X-Real-IP $remote_addr;
-  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-  proxy_set_header X-Forwarded-Proto $scheme;
-}
-
-location /socket.io/ {
-  proxy_pass http://api:3000;
-  proxy_http_version 1.1;
-
-  proxy_set_header Upgrade $http_upgrade;
-  proxy_set_header Connection $connection_upgrade;
-
-  proxy_set_header Host $host;
-  proxy_set_header X-Real-IP $remote_addr;
-  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-  proxy_set_header X-Forwarded-Proto $scheme;
-
-  proxy_read_timeout 86400;
-  proxy_send_timeout 86400;
-}
-```
-
----
-
-## 환경 변수
-
-API 서버 운영 환경 변수는 EC2 내부 파일로 관리합니다.
-
-```txt
-/home/ec2-user/env/chat-ai-agent-api.env
-```
-
-예시:
-
-```env
-NODE_ENV=production
-PORT=3000
-DATABASE_URL=postgresql://<user>:<password>@<rds-endpoint>:5432/<database>?schema=public&sslmode=require&uselibpqcompat=true
-JWT_SECRET=<jwt-secret>
-JWT_EXPIRES_IN=3600
-```
-
-> 운영 환경 변수와 시크릿은 Git에 커밋하지 않습니다.
-
----
-
-## 로컬 개발
-
-패키지 설치:
+### 설치
 
 ```bash
 pnpm install
+pnpm --filter api exec prisma generate
 ```
 
-Prisma Client 생성:
+### 인프라 실행
 
 ```bash
-pnpm --filter api prisma generate
+docker compose -f docker-compose.dev.yml up -d
 ```
 
-개발 서버 실행:
+### 개발 서버 실행
 
 ```bash
 pnpm --filter api start:dev
 pnpm --filter web dev
 ```
 
-빌드:
+### 전체 빌드
 
 ```bash
-pnpm --filter @repo/shared build
-pnpm --filter api build
-pnpm --filter web build
+pnpm build
 ```
 
 ---
 
-## 운영 배포
+## 환경 변수
 
-배포는 GitHub Actions에서 수동으로 실행합니다.
+API 환경변수 예시:
 
-```txt
-GitHub Repository
-→ Actions
-→ Deploy to EC2
-→ Run workflow
+```env
+NODE_ENV=development
+PORT=3000
+
+DATABASE_URL=postgresql://user:password@localhost:5432/chat_ai_agent
+LANGGRAPH_DATABASE_URL=postgresql://user:password@localhost:5432/chat_ai_agent_langgraph
+REDIS_URL=redis://localhost:6379/0
+
+OPENAI_API_KEY=
+OPENAI_MODEL=
+
+JWT_SECRET=
+JWT_REFRESH_SECRET=
 ```
 
-배포 단계 요약:
+Web 환경변수:
 
-1. Repository checkout
-2. Docker Buildx 설정
-3. GHCR 로그인
-4. API 이미지 빌드 및 push
-5. Web 이미지 빌드 및 push
-6. AWS OIDC 인증
-7. GitHub Actions Runner IP를 EC2 보안그룹에 임시 허용
-8. EC2 SSH 접속
-9. 최신 코드 반영
-10. GHCR 이미지 pull
-11. Prisma migration 실행
-12. Docker Compose up
-13. 배포 결과 검증
-14. 임시 SSH 보안그룹 규칙 제거
+```env
+# apps/web/.env.development
+VITE_API_URL=http://localhost:3000
+```
+
+```env
+# apps/web/.env.production
+VITE_API_URL=https://woohyuk.dev
+```
+
+> `VITE_*` 값은 브라우저 번들에 포함되므로 비밀값을 넣지 않습니다.
 
 ---
 
-## 배포 검증
+## 배포
 
-EC2에서 현재 실행 중인 이미지 확인:
+배포는 GitHub Actions에서 API·Web 이미지를 생성해 GHCR에 push하고, EC2에서 해당
+commit SHA 이미지를 pull하는 방식입니다.
 
-```bash
-docker inspect chat-ai-agent-web --format '{{.Config.Image}}'
-docker inspect chat-ai-agent-api --format '{{.Config.Image}}'
+```mermaid
+sequenceDiagram
+    participant DEV as Developer
+    participant GH as GitHub Actions
+    participant CR as GHCR
+    participant EC2 as AWS EC2
+    participant RDS as AWS RDS
+
+    DEV->>GH: main push / workflow 실행
+    GH->>GH: API·Web 이미지 빌드
+    GH->>CR: commit SHA 태그 push
+    GH->>EC2: 임시 SSH 허용 후 배포
+    EC2->>CR: 이미지 pull
+    EC2->>RDS: prisma migrate deploy
+    EC2->>EC2: docker compose up -d
+    GH->>GH: 임시 SSH 규칙 제거
 ```
 
-정상 예시:
+운영 환경에서는 다음 서비스가 실행됩니다.
 
 ```txt
-ghcr.io/itwoo/chat-ai-agent-web:<commit-sha>
-ghcr.io/itwoo/chat-ai-agent-api:<commit-sha>
+chat-ai-agent-web
+chat-ai-agent-api
+chat-ai-agent-redis
 ```
 
-컨테이너 상태 확인:
+---
+
+## 운영 확인
 
 ```bash
 docker compose -f docker-compose.ec2.yml ps
+docker logs chat-ai-agent-api --since 10m
+docker exec chat-ai-agent-redis redis-cli ping
+docker exec chat-ai-agent-api pnpm exec prisma migrate status
 ```
 
-Nginx 설정 확인:
+운영 Smoke Test:
 
-```bash
-docker exec chat-ai-agent-web grep -n "server_name" /etc/nginx/conf.d/default.conf
-```
-
-HTTPS 확인:
-
-```bash
-curl -I https://woohyuk.dev
-curl -I https://www.woohyuk.dev
-```
-
-HTTP → HTTPS 리다이렉트 확인:
-
-```bash
-curl -I http://woohyuk.dev
-curl -I http://www.woohyuk.dev
+```txt
+로그인
+→ 채팅방 생성
+→ 지출 등록
+→ 지출 수정 승인
+→ 서버 재시작 후 승인 복구
+→ 사용자 메모리 추출
+→ RAG 문서 업로드
+→ 문서 기반 질문과 출처 확인
 ```
 
 ---
 
-## HTTPS / 도메인
+## 주요 트레이드오프
 
-사용 도메인:
+### Redis 운영 위치
+
+현재는 단일 EC2 포트폴리오 서비스이므로 ElastiCache 대신 Docker Redis를 사용합니다.
+API 인스턴스가 하나인 상황에서 Redis만 관리형으로 분리해도 고가용성 효과가 제한적인 반면,
+비용과 운영 복잡도는 증가하기 때문입니다.
+
+Redis에만 상태를 의존하지 않고 PostgreSQL에 작업 상태를 저장해 Queue 유실 시 복구할 수
+있도록 설계했습니다.
+
+### RAG 파일 저장
+
+현재는 EC2 Host Volume에 원본 파일을 저장합니다. 컨테이너 교체에는 안전하지만 EC2 자체가
+교체되는 환경에는 적합하지 않습니다. 다중 인스턴스나 무중단 교체가 필요해지면 S3 기반
+Storage Adapter로 전환할 계획입니다.
+
+### 검색 방식
+
+현재는 pgvector cosine 검색에 집중합니다. PostgreSQL Full Text Search와 RRF를 결합한
+하이브리드 검색은 구현 복잡도 대비 현재 데이터 규모에서 얻는 효과가 작아 보류했습니다.
+
+---
+
+## 실행 화면
+
+운영 화면 캡처는 다음 순서로 추가할 예정입니다.
 
 ```txt
-woohyuk.dev
-www.woohyuk.dev
-```
-
-구성:
-
-| 항목 | 내용 |
-|---|---|
-| DNS | Cloudflare |
-| HTTPS 인증서 | Let’s Encrypt |
-| 인증서 저장 위치 | `/etc/letsencrypt/live/woohyuk.dev` |
-| 웹 서버 | Nginx Container |
-| SSL 모드 | Cloudflare Full Strict 권장 |
-
-인증서 볼륨:
-
-```yaml
-volumes:
-  - /var/www/certbot:/var/www/certbot
-  - /etc/letsencrypt:/etc/letsencrypt:ro
+docs/images/
+├─ chat-expense-create.png
+├─ expense-approval.png
+├─ expense-update-completed.png
+├─ rag-answer-citations.png
+└─ user-memory.png
 ```
 
 ---
 
-## 인증서 자동 갱신
+## 향후 개선
 
-Let’s Encrypt 인증서는 cron으로 자동 갱신합니다.
-
-갱신 스크립트 예시:
-
-```bash
-#!/bin/bash
-set -e
-
-docker run --rm \
-  -v /etc/letsencrypt:/etc/letsencrypt \
-  -v /var/www/certbot:/var/www/certbot \
-  certbot/certbot renew
-
-cd /home/ec2-user/projects/chat-ai-agent
-
-docker compose -f docker-compose.ec2.yml exec -T web nginx -t
-docker compose -f docker-compose.ec2.yml exec -T web nginx -s reload
-```
-
-cron 예시:
-
-```cron
-0 4 * * * /home/ec2-user/renew-chat-ai-agent-cert.sh >> /home/ec2-user/renew-chat-ai-agent-cert.log 2>&1
-```
-
----
-
-## 보안 설정
-
-### EC2 Security Group
-
-| Port | Purpose |
-|---:|---|
-| 80 | HTTP |
-| 443 | HTTPS |
-| 22 | SSH |
-
-SSH 22번 포트는 GitHub Actions Runner IP만 임시로 허용하고, 배포 후 제거합니다.
-
-### RDS Security Group
-
-| Port | Source |
-|---:|---|
-| 5432 | EC2 Security Group |
-
-RDS는 `0.0.0.0/0`으로 공개하지 않습니다.
-
----
-
-## 트러블슈팅
-
-### 1. Nginx 설정이 컨테이너에 반영되지 않던 문제
-
-증상:
-
-```txt
-EC2의 apps/web/nginx.conf는 최신이지만
-컨테이너 내부 /etc/nginx/conf.d/default.conf는 구버전
-```
-
-원인:
-
-```txt
-동일한 로컬 이미지 이름을 계속 사용하면서 기존 컨테이너가 새 이미지 기준으로 재생성되지 않음
-```
-
-해결:
-
-```txt
-GitHub Actions에서 commit SHA 태그로 이미지를 빌드
-GHCR에 push
-EC2에서는 해당 태그 이미지를 pull
-docker compose up -d로 새 이미지 기준 컨테이너 실행
-```
-
----
-
-### 2. `docker compose run` 이후 배포 로그가 끊기던 문제
-
-증상:
-
-```txt
-Prisma migration 이후 deploy containers 단계가 실행되지 않음
-하지만 GitHub Actions는 성공 처리됨
-```
-
-원인:
-
-```txt
-SSH heredoc 환경에서 docker compose run이 남은 stdin을 소비
-```
-
-해결:
-
-```bash
-docker compose -f docker-compose.ec2.yml run -T --rm --no-deps api pnpm exec prisma migrate deploy < /dev/null
-```
-
----
-
-### 3. `docker compose exec` 검증 단계에서 로그가 끊기던 문제
-
-증상:
-
-```txt
-docker compose exec 검증 단계 이후 로그가 이어지지 않음
-```
-
-해결:
-
-```txt
-검증용 명령은 docker compose exec 대신 docker exec 사용
-```
-
-예시:
-
-```bash
-docker exec chat-ai-agent-web grep -n "server_name" /etc/nginx/conf.d/default.conf
-```
-
----
-
-## 운영 체크리스트
-
-배포 후 아래 항목을 확인합니다.
-
-- [ ] GitHub Actions가 성공했는가?
-- [ ] 마지막 로그에 `deploy completed`가 출력되었는가?
-- [ ] web 컨테이너 이미지가 `ghcr.io/...:<commit-sha>` 인가?
-- [ ] api 컨테이너 이미지가 `ghcr.io/...:<commit-sha>` 인가?
-- [ ] Nginx `server_name`에 `woohyuk.dev`와 `www.woohyuk.dev`가 모두 있는가?
-- [ ] `https://woohyuk.dev` 접속이 가능한가?
-- [ ] `https://www.woohyuk.dev` 접속이 가능한가?
-- [ ] HTTP 요청이 HTTPS로 리다이렉트되는가?
-- [ ] 회원가입/로그인이 정상 동작하는가?
-- [ ] `/api` 요청이 정상 동작하는가?
-- [ ] `/socket.io` 연결이 정상 동작하는가?
-
----
-
-## 향후 개선 사항
-
-- Cloudflare WAF / Rate Limiting 설정
-- Nginx rate limit 추가
-- GitHub Packages 오래된 이미지 정리 정책 추가
-- CloudWatch 비용 / 트래픽 알람 추가
-- 배포 실패 시 Slack 또는 Email 알림 추가
-- 테스트 자동화 후 배포 전 검증 단계 추가
-- Blue-Green 또는 Rolling 배포 구조 검토
+- RAG 원본 파일 저장소를 EC2 Volume에서 S3로 전환
+- API와 BullMQ Worker 프로세스 분리
+- 하이브리드 검색 도입 여부를 데이터 기반으로 재평가
+- 핵심 승인·복구 시나리오 자동 테스트 확대
+- CloudWatch 기반 운영 알림 추가
 
 ---
 
 ## License
 
-This project is for personal portfolio and learning purposes.
+개인 포트폴리오 및 학습 목적으로 개발한 프로젝트입니다.

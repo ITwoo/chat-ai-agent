@@ -2,13 +2,19 @@ import { io, type Socket } from "socket.io-client";
 import { getAccessToken } from "../auth/utils/authStorage";
 import { refreshAccessToken } from "../../api/http";
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+// const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 let socket: Socket | null = null;
 let isRefreshingSocketToken = false;
 
 function createSocket(token: string): Socket {
-    const nextSocket = io(API_URL, {
+    // const nextSocket = io(API_URL, {
+    //     auth: {
+    //         token,
+    //     },
+    //     transports: ['websocket'],
+    // });
+    const nextSocket = io({
         auth: {
             token,
         },

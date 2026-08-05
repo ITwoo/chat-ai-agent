@@ -1,6 +1,7 @@
 import {
     BadRequestException,
     Injectable,
+    Logger,
     NotFoundException,
 } from '@nestjs/common';
 import type {
@@ -37,6 +38,8 @@ type UserMemoryEmbeddingBackfillRow = {
 
 @Injectable()
 export class UserMemoryService {
+    private readonly logger = new Logger(UserMemoryService.name);
+
     constructor(
         private readonly prisma: PrismaService,
         private readonly ragEmbeddingService: RagEmbeddingService,
@@ -245,6 +248,20 @@ export class UserMemoryService {
             `;
         });
 
+        this.logger.log(
+            `[memory-search] userId=${userId}, ` +
+            `query=${JSON.stringify(normalizedQuery)}, ` +
+            `type=${normalizedType ?? 'ALL'}, ` +
+            `candidates=${JSON.stringify(
+                candidates.map(({ id, type, memoryKey, similarity }) => ({
+                    id,
+                    type,
+                    memoryKey,
+                    similarity,
+                })),
+            )}`,
+        );
+        
         return candidates
             .filter((memory) => memory.similarity >= USER_MEMORY_MIN_SIMILARITY)
             .slice(0, searchLimit);

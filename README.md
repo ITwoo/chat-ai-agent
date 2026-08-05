@@ -422,17 +422,17 @@ Storage Adapter로 전환할 계획입니다.
 
 ## 실행 화면
 
-운영 화면 캡처는 다음 순서로 추가할 예정입니다.
+### 지출 수정 승인
 
-```txt
-docs/images/
-├─ chat-expense-create.png
-├─ expense-approval.png
-├─ expense-update-completed.png
-├─ rag-answer-citations.png
-└─ user-memory.png
-```
+![지출 수정 승인](docs/images/expense-approval.png)
 
+### RAG 답변과 출처
+
+![RAG 답변과 출처](docs/images/rag-answer-citations.png)
+
+### 사용자 장기 메모리
+
+![사용자 장기 메모리](docs/images/user-memory.png)
 ---
 
 ## 향후 개선

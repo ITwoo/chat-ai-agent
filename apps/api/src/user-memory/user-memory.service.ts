@@ -24,7 +24,7 @@ const MAX_MEMORY_SEARCH_LIMIT = 20;
 const DEFAULT_RELEVANT_MEMORY_LIMIT = 8;
 const MAX_RELEVANT_MEMORY_LIMIT = 20;
 const RELEVANT_MEMORY_CANDIDATE_MULTIPLIER = 3;
-const USER_MEMORY_MIN_SIMILARITY = 0.45;
+const USER_MEMORY_MIN_SIMILARITY = 0.40;
 
 const DEFAULT_EMBEDDING_BACKFILL_LIMIT = 25;
 const MAX_EMBEDDING_BACKFILL_LIMIT = 100;
@@ -261,7 +261,7 @@ export class UserMemoryService {
                 })),
             )}`,
         );
-        
+
         return candidates
             .filter((memory) => memory.similarity >= USER_MEMORY_MIN_SIMILARITY)
             .slice(0, searchLimit);

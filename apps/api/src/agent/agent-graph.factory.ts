@@ -22,6 +22,7 @@ import { z } from 'zod';
 import { ragCitationSchema } from '../rag/schemas/rag-citation.schema';
 import { createRagCitations } from '../rag/utils/rag-citation.util';
 import { RunnableConfig } from '@langchain/core/runnables';
+import { routeAgentToolCalls } from './agent-route.util';
 
 const AGENT_MODEL_TIMEOUT_MS = 60_000;
 const MAX_ACTION_TOOL_ROUNDS = 5;
@@ -412,56 +413,27 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
     ): AgentRoute {
         const lastMessage = state.messages.at(-1);
 
-        if (
-            !lastMessage
-            || !AIMessage.isInstance(lastMessage)
-        ) {
+        if (!lastMessage || !AIMessage.isInstance(lastMessage)) {
             return END;
         }
 
         const toolCalls = lastMessage.tool_calls ?? [];
 
-        if (toolCalls.length === 0) {
-            return END;
+        if (toolCalls.length > 0) {
+            const toolNames = toolCalls
+                .map((toolCall) => toolCall.name)
+                .join(', ');
+
+            this.logger.log(`[agent:tool_calls] ${toolNames}`);
         }
 
-        const toolNames = toolCalls
-            .map((toolCall) => toolCall.name)
-            .join(', ');
-
-        this.logger.log(
-            `[agent:tool_calls] ${toolNames}`,
-        );
-
-        const ragToolCalls = toolCalls.filter(
-            (toolCall) =>
-                toolCall.name === RAG_SEARCH_TOOL_NAME,
-        );
-
-        if (ragToolCalls.length === 0) {
-            const mutationSignatures = this.getMutationSignatures(toolCalls);
-
-            const hasDuplicateMutation = mutationSignatures.some((signature) => {
-                return state.executedMutationSignatures.includes(signature);
-            });
-
-            if (hasDuplicateMutation) return 'rejectDuplicateMutation';
-
-            if (state.actionToolRoundCount >= MAX_ACTION_TOOL_ROUNDS) {
-                return 'rejectToolLimit';
-            }
-
-            return 'tools';
-        }
-
-        if (
-            ragToolCalls.length === 1
-            && toolCalls.length === 1
-        ) {
-            return 'ragAnswer';
-        }
-
-        return 'rejectRagCombination';
+        return routeAgentToolCalls({
+            toolCalls,
+            mutationSignatures: this.getMutationSignatures(toolCalls),
+            executedMutationSignatures: state.executedMutationSignatures,
+            actionToolRoundCount: state.actionToolRoundCount,
+            maxActionToolRounds: MAX_ACTION_TOOL_ROUNDS,
+        });
     }
 
     private createRejectToolLimitNode() {

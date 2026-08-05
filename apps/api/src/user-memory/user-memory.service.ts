@@ -226,6 +226,7 @@ export class UserMemoryService {
                     memory."type",
                     memory."memoryKey",
                     memory."content",
+                    memory."updatedAt",
                     (
                         1 - (
                             memory."embedding" <=> ${vector}::vector

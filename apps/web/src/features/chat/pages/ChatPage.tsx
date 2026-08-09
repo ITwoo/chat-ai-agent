@@ -1,12 +1,12 @@
 import type { ChatMessageResponse, ChatRoomResponse } from "@repo/shared";
 import { useEffect, useRef, useState } from "react";
-import { connectChatSocket, disconnectChatSocket } from "../features/chat/chatSocket";
-import { createChatRoom, deleteChatRoom, getChatMessages, getChatRooms, updateChatRoomTitle } from "../features/chat/chatApi";
-import { ChatRoomSidebar } from "../features/chat/components/ChatRoomSidebar";
-import { ChatMessageList } from "../features/chat/components/ChatMessageList";
-import { ChatInput } from "../features/chat/components/ChatInput";
-import type { PendingAgentApproval, AgentApprovalResolvedEvent, AgentApprovalAction } from "../features/chat/types/agentApproval";
-import { AgentApprovalCard } from "../features/chat/components/AgentApprovalCard";
+import { connectChatSocket, disconnectChatSocket } from "../chatSocket";
+import { createChatRoom, deleteChatRoom, getChatMessages, getChatRooms, updateChatRoomTitle } from "../chatApi";
+import { ChatRoomSidebar } from "../components/ChatRoomSidebar";
+import { ChatMessageList } from "../components/ChatMessageList";
+import { ChatInput } from "../components/ChatInput";
+import type { PendingAgentApproval, AgentApprovalResolvedEvent, AgentApprovalAction } from "../types/agentApproval";
+import { AgentApprovalCard } from "../components/AgentApprovalCard";
 
 const MESSAGE_PAGE_SIZE = 10;
 

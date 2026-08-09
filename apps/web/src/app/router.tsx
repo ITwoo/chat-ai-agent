@@ -6,7 +6,7 @@ import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { BoardListPage } from '../features/board/pages/BoardListPage';
 import { BoardEditPage } from '../features/board/pages/BoardEditPage';
 import { BoardCreatePage } from '../features/board/pages/BoardCreatePage';
-import { ChatPage } from '../pages/ChatPage';
+import { ChatPage } from '../features/chat/pages/ChatPage';
 import { RagDocumentsPage } from '../features/rag/pages/RagDocumentsPage';
 
 export const router = createBrowserRouter([

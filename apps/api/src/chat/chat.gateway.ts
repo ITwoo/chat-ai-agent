@@ -48,7 +48,7 @@ type AgentApprovalSource =
         action: 'approve' | 'cancel';
     }
 
-const APPROVE_MESSAGES = new Set([
+const UPDATE_APPROVE_MESSAGES = new Set([
     '승인',
     '승인해',
     '승인할게',
@@ -57,6 +57,18 @@ const APPROVE_MESSAGES = new Set([
     '그대로해',
     '수정해',
     '수정해줘',
+    'approve',
+]);
+
+const DELETE_APPROVE_MESSAGES = new Set([
+    '승인',
+    '승인해',
+    '승인할게',
+    '진행',
+    '진행해',
+    '그대로해',
+    '삭제해',
+    '삭제해줘',
     'approve',
 ]);
 
@@ -659,6 +671,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     }
 
     private parseApprovalDecision(
+        request: AgentApprovalRequest,
         content: string,
     ): AgentApprovalDecision | null {
         const normalized = content
@@ -667,13 +680,30 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             .replace(/[.!?]+$/g, '')
             .toLocaleLowerCase();
 
-        if (APPROVE_MESSAGES.has(normalized)) {
+        let isApprove = false;
+        let isCancel = false;
+
+        switch(request.type) {
+            case 'expense_update_approval':
+                isApprove = UPDATE_APPROVE_MESSAGES.has(normalized);
+                isCancel = CANCEL_MESSAGES.has(normalized);
+                break;
+
+            case 'user_memory_delete_approval':
+                isApprove = DELETE_APPROVE_MESSAGES.has(normalized);
+                isCancel = CANCEL_MESSAGES.has(normalized);
+                break;            
+            default:
+                break;
+        }
+        
+        if (isApprove) {
             return {
                 action: 'approve',
             };
         }
 
-        if (CANCEL_MESSAGES.has(normalized)) {
+        if (isCancel) {
             return {
                 action: 'cancel'
             };
@@ -1135,7 +1165,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
         const content = source.content.trim();
 
-        const parsedDecision = this.parseApprovalDecision(content);
+        const parsedDecision = this.parseApprovalDecision(request, content);
 
         if (parsedDecision) {
             return this.attachExpenseApprovalVersion(request, parsedDecision);

@@ -696,7 +696,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             default:
                 break;
         }
-        
+
         if (isApprove) {
             return {
                 action: 'approve',
@@ -1110,27 +1110,49 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                     : String(error),
             );
 
-            await this.pendingApprovalStore.save(roomId, pendingApproval);
-
-            this.pendingApprovals.set(
-                processingKey,
-                pendingApproval,
+            const hasPendingInterrupt = await this.agentService.hasPendingInterrupt(
+                    user.id,
+                    pendingApproval.threadId,
             );
 
-            this.server.to(roomName).emit(
-                'assistant_approval_required',
-                {
+            if (hasPendingInterrupt) {
+                await this.pendingApprovalStore.save(
                     roomId,
-                    approvalId: pendingApproval.approvalId,
-                    userMessageId:
-                        pendingApproval.originUserMessageId,
-                    request: pendingApproval.request,
-                },
+                    pendingApproval,
+                );
+
+                this.pendingApprovals.set(
+                    processingKey,
+                    pendingApproval,
+                );
+
+                this.server.to(roomName).emit(
+                    'assistant_approval_required',
+                    {
+                        roomId,
+                        approvalId: pendingApproval.approvalId,
+                        userMessageId: pendingApproval.originUserMessageId,
+                        request: pendingApproval.request,
+                    },
+                );
+
+                client.emit('chat_error', {
+                    message:
+                        '승인 처리에 실패했습니다. 기존 승인 요청은 유지되며 다시 시도할 수 있습니다.',
+                });
+
+                return;
+            }
+            
+            this.pendingApprovals.delete(processingKey);
+
+            await this.pendingApprovalStore.deleteByRoomId(
+                roomId,
             );
 
             client.emit('chat_error', {
                 message:
-                    '승인 처리에 실패했습니다. 기존 승인 요청은 유지되며 다시 시도할 수 있습니다.',
+                    '승인된 작업은 이미 처리되었지만 후속 응답 처리에 실패했습니다.',
             });
         } finally {
             this.processingRooms.delete(processingKey);
@@ -1219,22 +1241,36 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 return;
             }
 
-            pendingApproval = storedApproval;
-
-            this.pendingApprovals.set(
-                approvalKey,
-                pendingApproval,
-            );
+            pendingApproval = storedApproval
         }
+
+        const hasPendingInterrupt =
+            await this.agentService.hasPendingInterrupt(
+                userId,
+                pendingApproval.threadId,
+            );
+
+        if (!hasPendingInterrupt) {
+            this.pendingApprovals.delete(approvalKey);
+
+            await this.pendingApprovalStore.deleteByRoomId(
+                roomId,
+            );
+
+            return;
+        }
+
+        this.pendingApprovals.set(
+            approvalKey,
+            pendingApproval,
+        );
 
         client.emit(
             'assistant_approval_required',
             {
                 roomId,
-                approvalId:
-                    pendingApproval.approvalId,
-                userMessageId:
-                    pendingApproval.originUserMessageId,
+                approvalId: pendingApproval.approvalId,
+                userMessageId: pendingApproval.originUserMessageId,
                 request: pendingApproval.request,
             },
         );

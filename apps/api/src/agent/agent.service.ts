@@ -191,6 +191,23 @@ export class AgentService {
         return this.agentGraphFactory.createGraph(model, tools, context);
     }
 
+    async hasPendingInterrupt(
+        userId: number,
+        agentThreadId: string,
+    ): Promise<boolean> {
+        const graph = this.createGraphForUser(userId);
+
+        const state = await graph.getState({
+            configurable: {
+                thread_id: agentThreadId,
+            },
+        });
+
+        return state.tasks.some((task) => {
+            return task.interrupts.length > 0;
+        });
+    }
+
     async generateReply(
         userId: number,
         context: ChatAgentContext,

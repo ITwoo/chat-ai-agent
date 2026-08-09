@@ -880,6 +880,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         return {
             agentThreadId: this.getAgentThreadId(userId, roomId, userMessageId),
             conversationThreadId: `chat-room:${userId}:${roomId}`,
+            roomId,
+            userMessageId,
         };
     }
 
@@ -1205,6 +1207,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             const agentRunContext: AgentRunContext = {
                 agentThreadId: pendingApproval.threadId,
                 conversationThreadId: `chat-room:${user.id}:${roomId}`,
+                roomId,
+                userMessageId: pendingApproval.originUserMessageId,
             };
 
             for await (const event of this.agentService.resumeReply(

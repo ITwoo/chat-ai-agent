@@ -39,6 +39,8 @@ type AgentRunKind =
 export type AgentRunContext = {
     agentThreadId: string;
     conversationThreadId: string;
+    roomId: number;
+    userMessageId: number;
 };
 
 export type ApprovalIntentTraceContext = {
@@ -157,6 +159,8 @@ export class AgentService {
                 thread_id: runContext.conversationThreadId,
                 agent_thread_id: runContext.agentThreadId,
                 user_id: String(userId),
+                room_id: String(runContext.roomId),
+                user_message_id: String(runContext.userMessageId),
                 run_kind: runKind,
                 context_version: AGENT_CONTEXT_VERSION,
             },

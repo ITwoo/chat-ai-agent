@@ -29,6 +29,7 @@ import { ChatSummaryService } from './chat-summary.service';
 import { UserMemoryExtractionService } from '../user-memory/user-memory-extraction.service';
 import { QueueProducerService } from '../queue/queue-producer.service';
 import { UserMemoryJobStateService } from '../user-memory/user-memory-job-state.service';
+import { RetryMessageDto } from './dto/retry-message.dto';
 
 type AuthenticatedSocket = Socket & {
     data: {
@@ -466,6 +467,229 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                     error instanceof Error ? error.message : '메시지 전송에 실패했습니다.',
             });
 
+        } finally {
+            this.processingRooms.delete(processingKey);
+            this.cancelledRooms.delete(processingKey);
+            this.abortControllers.delete(processingKey);
+        }
+    }
+
+    @SubscribeMessage('retry_message')
+    async handleRetryMessage(
+        @ConnectedSocket() client: AuthenticatedSocket,
+        @MessageBody() payload: RetryMessageDto,
+    ) {
+        const user = client.data.user;
+
+        if (!user) {
+            client.emit('chat_error', {
+                message: '인증 정보가 없습니다.',
+            });
+            return;
+        }
+
+        const processingKey = this.getUserRoomKey(
+            user.id,
+            payload.roomId,
+        );
+
+        if (this.pendingApprovals.has(processingKey)) {
+            client.emit('chat_error', {
+                message: '대기 중인 승인 요청을 먼저 처리해주세요.',
+            });
+            return;
+        }
+
+        if (this.processingRooms.has(processingKey)) {
+            client.emit('chat_error', {
+                message: '이미 이 채팅방에서 AI가 응답 중입니다.',
+            });
+            return;
+        }
+
+        try {
+            const rateLimit =
+                await this.redisRateLimitService.consume(
+                    `rate-limit:agent-chat:${user.id}`,
+                    CHAT_RATE_LIMIT,
+                    CHAT_RATE_LIMIT_WINDOW_MS,
+                );
+
+            if (!rateLimit.allowed) {
+                const retryAfterSeconds = Math.ceil(
+                    rateLimit.retryAfterMs / 1000,
+                );
+
+                client.emit('chat_error', {
+                    message:
+                        `요청이 너무 많습니다. ` +
+                        `${retryAfterSeconds}초 후 다시 시도해주세요.`,
+                });
+
+                return;
+            }
+        } catch (error) {
+            this.logger.error(
+                `재시도 요청 제한 확인 실패: userId=${user.id}`,
+                error instanceof Error
+                    ? error.stack
+                    : String(error),
+            );
+
+            client.emit('chat_error', {
+                message:
+                    '요청 제한 상태를 확인하지 못했습니다. ' +
+                    '잠시 후 다시 시도해주세요.',
+            });
+
+            return;
+        }
+
+        this.processingRooms.add(processingKey);
+
+        const roomName = this.getRoomName(payload.roomId);
+
+        const abortController = new AbortController();
+
+        this.abortControllers.set(
+            processingKey,
+            abortController,
+        );
+
+        try {
+            await this.chatService.getRetryableUserMessage(
+                payload.roomId,
+                user.id,
+                payload.userMessageId,
+            );
+
+            const agentRunContext =
+                this.createAgentRunContext(
+                    user.id,
+                    payload.roomId,
+                    payload.userMessageId,
+                );
+
+            this.server.to(roomName).emit(
+                'assistant_message_started',
+                {
+                    roomId: payload.roomId,
+                },
+            );
+
+            let assistantContent = '';
+            let ragCitations: RagCitation[] = [];
+            let isWaitingForApproval = false;
+
+            for await (
+                const event of this.agentService.retryReply(
+                    user.id,
+                    agentRunContext,
+                    abortController.signal,
+                )
+            ) {
+                if (event.type === 'text_delta') {
+                    assistantContent += event.delta;
+
+                    this.server.to(roomName).emit(
+                        'assistant_message_delta',
+                        {
+                            roomId: payload.roomId,
+                            delta: event.delta,
+                        },
+                    );
+
+                    continue;
+                }
+
+                if (event.type === 'completed') {
+                    ragCitations = event.ragCitations;
+                    continue;
+                }
+
+                isWaitingForApproval = true;
+
+                await this.setPendingApproval(
+                    user.id,
+                    payload.roomId,
+                    payload.userMessageId,
+                    event,
+                );
+
+                break;
+            }
+
+            if (isWaitingForApproval) {
+                const updatedUserMessage =
+                    await this.chatService.completeUserMessageIfFailed(
+                        payload.roomId,
+                        user.id,
+                        payload.userMessageId,
+                    );
+
+                if (updatedUserMessage) {
+                    this.server.to(roomName).emit(
+                        'message_updated',
+                        {
+                            ...updatedUserMessage,
+                            ragCitations: [],
+                        },
+                    );
+                }
+
+                return;
+            }
+
+            if (!assistantContent.trim()) {
+                throw new Error(
+                    'AI 응답이 비어 있습니다.',
+                );
+            }
+
+            const {
+                userMessage,
+                assistantMessage,
+            } =
+                await this.chatService.saveRetriedAssistantMessage(
+                    payload.roomId,
+                    user.id,
+                    payload.userMessageId,
+                    assistantContent,
+                    ragCitations,
+                );
+
+            this.server.to(roomName).emit(
+                'message_updated',
+                {
+                    ...userMessage,
+                    ragCitations: [],
+                },
+            );
+
+            this.server.to(roomName).emit(
+                'assistant_message_completed',
+                {
+                    roomId: payload.roomId,
+                    message: assistantMessage,
+                },
+            );
+
+            void this.summarizeRoomSafely(
+                payload.roomId,
+                user.id,
+            );
+        } catch (error) {
+            this.logger.error(
+                `메시지 재시도 실패: ${processingKey}`,
+                error instanceof Error
+                    ? error.stack
+                    : String(error),
+            );
+
+            client.emit('chat_error', {
+                message:
+                    '응답 재시도에 실패했습니다. 다시 시도해주세요.',
+            });
         } finally {
             this.processingRooms.delete(processingKey);
             this.cancelledRooms.delete(processingKey);

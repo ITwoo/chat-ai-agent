@@ -527,4 +527,136 @@ export class ChatService {
 
         return normalized;
     }
+
+    async getRetryableUserMessage(
+        roomId: number,
+        userId: number,
+        userMessageId: number,
+    ): Promise<ChatMessage> {
+        await this.assertRoomOwner(roomId, userId);
+
+        const message = await this.prisma.chatMessage.findFirst({
+            where: {
+                id: userMessageId,
+                roomId,
+                role: ChatMessageRole.USER,
+            },
+        });
+
+        if (!message) {
+            throw new NotFoundException(
+                '재시도할 사용자 메시지를 찾을 수 없습니다.',
+            );
+        }
+
+        if (message.status !== ChatMessageStatus.FAILED) {
+            throw new BadRequestException(
+                '실패한 메시지만 재시도할 수 있습니다.',
+            );
+        }
+
+        return message;
+    }
+
+    async completeUserMessageIfFailed(
+        roomId: number,
+        userId: number,
+        userMessageId: number,
+    ): Promise<ChatMessage | null> {
+        await this.assertRoomOwner(roomId, userId);
+
+        const updated = await this.prisma.chatMessage.updateMany({
+            where: {
+                id: userMessageId,
+                roomId,
+                role: ChatMessageRole.USER,
+                status: ChatMessageStatus.FAILED,
+            },
+            data: {
+                status: ChatMessageStatus.COMPLETED,
+            },
+        });
+
+        if (updated.count === 0) {
+            return null;
+        }
+
+        return this.prisma.chatMessage.findUniqueOrThrow({
+            where: {
+                id: userMessageId,
+            },
+        });
+    }
+
+    async saveRetriedAssistantMessage(
+        roomId: number,
+        userId: number,
+        userMessageId: number,
+        assistantContent: string,
+        ragCitations: RagCitation[] = [],
+    ) {
+        await this.assertRoomOwner(roomId, userId);
+
+        return this.prisma.$transaction(async (tx) => {
+            const updated = await tx.chatMessage.updateMany({
+                where: {
+                    id: userMessageId,
+                    roomId,
+                    role: ChatMessageRole.USER,
+                    status: ChatMessageStatus.FAILED,
+                },
+                data: {
+                    status: ChatMessageStatus.COMPLETED,
+                },
+            });
+
+            if (updated.count !== 1) {
+                throw new BadRequestException(
+                    '재시도할 수 없는 메시지입니다.',
+                );
+            }
+
+            const userMessage =
+                await tx.chatMessage.findUniqueOrThrow({
+                    where: {
+                        id: userMessageId,
+                    },
+                });
+
+            const assistantMessage =
+                await tx.chatMessage.create({
+                    data: {
+                        roomId,
+                        role: ChatMessageRole.ASSISTANT,
+                        content: assistantContent,
+                        ragCitations: ragCitations.length
+                            ? {
+                                createMany: {
+                                    data: ragCitations,
+                                },
+                            }
+                            : undefined,
+                    },
+                    include: {
+                        ragCitations: {
+                            select: ragCitationSelect,
+                        },
+                    },
+                });
+
+            await tx.chatRoom.update({
+                where: {
+                    id: roomId,
+                },
+                data: {
+                    updatedAt: new Date(),
+                },
+            });
+
+            return {
+                userMessage,
+                assistantMessage,
+            };
+        });
+    }
 }

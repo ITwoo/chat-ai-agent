@@ -401,27 +401,26 @@ export function ChatPage() {
             return;
         }
 
-        const retryContent = message.content.trim();
-
-        if (!retryContent) {
-            setErrorMessage('재시도할 메시지가 없습니다.');
-            return;
-        }
-
         const socket = connectChatSocket();
 
         const payload = {
             roomId: room.id,
-            content: retryContent,
+            userMessageId: message.id,
         };
 
         setErrorMessage('');
         setIsSending(true);
         setStreamingText('');
 
-        console.log('[socket emit] retry send_message', payload);
+        console.log(
+            '[socket emit] retry_message',
+            payload,
+        );
 
-        socket.emit('send_message', payload);
+        socket.emit(
+            'retry_message',
+            payload,
+        );
 
         moveRoomToTop(room.id);
     }

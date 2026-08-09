@@ -15,6 +15,7 @@ import { RelevantUserMemory } from '../user-memory/user-memory.types';
 import { RunnableConfig } from '@langchain/core/runnables';
 import { AGENT_CONTEXT_VERSION, AgentContextBuilderService } from './agent-context-builder.service';
 
+
 export type AgentStreamEvent =
     | {
         type: 'text_delta';
@@ -29,7 +30,11 @@ export type AgentStreamEvent =
 
 type AgentGraphStreamInput = Parameters<AgentGraph['streamEvents']>[0];
 
-type AgentRunKind = 'generate' | 'stream' | 'resume';
+type AgentRunKind =
+    | 'generate'
+    | 'stream'
+    | 'resume'
+    | 'retry';
 
 export type AgentRunContext = {
     agentThreadId: string;
@@ -274,6 +279,76 @@ export class AgentService {
             'resume',
             signal,
         );
+    }
+
+    async *retryReply(
+        userId: number,
+        runContext: AgentRunContext,
+        signal?: AbortSignal,
+    ): AsyncGenerator<AgentStreamEvent> {
+        const graph = this.createGraphForUser(userId);
+
+        const config = this.createRunConfig(
+            userId,
+            runContext,
+            'retry',
+        );
+
+        const state = await graph.getState(config);
+
+        const hasPendingInterrupt = state.tasks.some(
+            (task) => task.interrupts.length > 0,
+        );
+
+        if (hasPendingInterrupt) {
+            throw new Error(
+                '승인 대기 중인 실행은 메시지 재시도로 처리할 수 없습니다.',
+            );
+        }
+
+        if (state.next.length > 0) {
+            yield* this.streamGraph(
+                userId,
+                null,
+                runContext,
+                'retry',
+                signal,
+            );
+
+            return;
+        }
+
+        const lastMessage = state.values.messages.at(-1);
+
+        if (
+            !lastMessage ||
+            !AIMessage.isInstance(lastMessage)
+        ) {
+            throw new Error(
+                '복구할 AI 응답을 찾을 수 없습니다.',
+            );
+        }
+
+        const content =
+            this.messageContentToString(lastMessage.content);
+
+        if (!content.trim()) {
+            throw new Error(
+                '복구할 AI 응답이 비어 있습니다.',
+            );
+        }
+
+        yield {
+            type: 'text_delta',
+            delta: content,
+        };
+
+        yield {
+            type: 'completed',
+            ragCitations: ragCitationSchema.array().parse(
+                state.values.ragCitations,
+            ),
+        };
     }
 
     private async *streamGraph(

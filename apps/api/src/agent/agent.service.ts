@@ -68,7 +68,13 @@ const APPROVAL_INTENT_SYSTEM_PROMPT = `
 판단 기준:
 
 - approvalRequest에 포함된 현재 제안과 사용자 답변을 반드시 비교한다.
-- "승인", "승인해", "진행해", "그대로 해", "수정해", "그대로 수정해줘"는 approve다.
+- "승인", "승인해", "진행해", "그대로 해"는 approve다.
+- approvalRequest.type이 "expense_update_approval"인 경우
+  "수정해", "수정해줘", "그대로 수정해줘"는 approve다.
+- approvalRequest.type이 "user_memory_delete_approval"인 경우
+  삭제를 명확하게 허용해야 approve다.
+- 메모리 삭제 승인에서 "수정해", "내용을 바꿔", "다르게 저장해"처럼
+  삭제가 아닌 변경을 요청하면 revise다.
 - 사용자가 현재 제안과 같은 값을 다시 말하면서 실행을 요청해도 approve다.
 - 현재 제안과 다른 값을 제시하거나 새로운 변경 항목을 추가하면 revise다.
 - 기존 변경 항목을 제외하거나 수정 대상을 바꾸려는 경우에도 revise다.
@@ -80,6 +86,8 @@ const APPROVAL_INTENT_SYSTEM_PROMPT = `
 - 현재 제안 금액이 9,500원이고 "9,500원으로 수정해"라고 하면 approve다.
 - 현재 제안 금액이 9,500원이고 "10,000원으로 수정해"라고 하면 revise다.
 - 현재 제안이 금액 변경뿐인데 "제목도 점심으로 바꿔"라고 하면 revise다.
+- 현재 제안이 장기 메모리 삭제이고 "삭제해"라고 하면 approve다.
+- 현재 제안이 장기 메모리 삭제이고 "수정해"라고 하면 revise다.
 `;
 
 @Injectable()

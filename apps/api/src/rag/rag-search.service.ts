@@ -98,12 +98,10 @@ export class RagSearchService {
 
         for (const result of filteredResults) {
             const selectedDocumentCount = documentChunkCounts.get(result.documentId) ?? 0;
-            const hasAdjacentChunk = selectedResults.some(
+            /*const hasAdjacentChunk = selectedResults.some(
                 (selected) => selected.documentId === result.documentId && Math.abs(selected.chunkIndex - result.chunkIndex) <= 1,
-            );
-            const shouldDefer =
-                selectedDocumentCount >= MAX_PREFERRED_CHUNKS_PER_DOCUMENT ||
-                hasAdjacentChunk;
+            ); // chunksize 1000 overlap 200 연속성을 해치는 필터링 임시 제거 */
+            const shouldDefer = selectedDocumentCount >= MAX_PREFERRED_CHUNKS_PER_DOCUMENT
 
             if (shouldDefer) {
                 deferredResults.push(result);

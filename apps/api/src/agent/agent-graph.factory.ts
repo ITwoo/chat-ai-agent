@@ -194,14 +194,16 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             const timeout = this.getActionToolTimeout(toolCalls);
             const toolKind = hasMutation ? 'mutation' : 'read';                    
 
+            const { runName: _runName, ...toolConfig } = config;
+
             this.logger.log(
                 `[agent:tools] kind=${toolKind} timeoutMs=${timeout}`,
             );
 
             const result = await actionToolNode.invoke(state, {
-                ...config,
-                runName: `action_tools_${toolKind}`,
+                ...toolConfig,
                 tags: [...(config.tags ?? []), `${toolKind}-tool`],
+                metadata: { ...config.metadata, tool_kind: toolKind },
                 timeout,
             });
 

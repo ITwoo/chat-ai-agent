@@ -6,7 +6,8 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "dev:api": "pnpm --filter api dev",
-    "dev:web": "pnpm --filter web dev"
+    "dev:web": "pnpm --filter web dev",
+    "audit": "pnpm audit --prod --audit-level high"
   },
   "devDependencies": {
     "turbo": "latest"

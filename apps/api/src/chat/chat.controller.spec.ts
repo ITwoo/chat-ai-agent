@@ -1,18 +1,31 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ChatController } from './chat.controller';
+import { beforeEach, describe, expect, it } from '@jest/globals';
+import { ChatService } from './chat.service';
 
 describe('ChatController', () => {
-  let controller: ChatController;
+    let controller: ChatController;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [ChatController],
-    }).compile();
+    beforeEach(async () => {
+        const module: TestingModule =
+            await Test.createTestingModule({
+                controllers: [
+                    ChatController,
+                ],
+                providers: [
+                    {
+                        provide: ChatService,
+                        useValue: {},
+                    },
+                ],
+            }).compile();
 
-    controller = module.get<ChatController>(ChatController);
-  });
+        controller = module.get<ChatController>(
+            ChatController,
+        );
+    });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
+    it('should be defined', () => {
+        expect(controller).toBeDefined();
+    });
 });

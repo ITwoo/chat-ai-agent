@@ -92,16 +92,46 @@ export class AuthController {
     }
 
     @Post('/refresh')
-    refresh(
+    async refresh(
         @Req() request: RequestWithCookies,
+        @Res({ passthrough: true }) response: Response,
     ): Promise<LoginResponse> {
         const refreshToken = request.cookies?.refreshToken;
 
         if (!refreshToken) {
-            throw new UnauthorizedException('Refresh token not found');
+            throw new UnauthorizedException(
+                'Refresh token not found',
+            );
         }
 
-        return this.authService.refreshAccessToken(refreshToken);
+        const {
+            accessToken,
+            refreshToken: nextRefreshToken,
+            refreshTokenExpiresInSeconds,
+        } = await this.authService.refreshAccessToken(
+            refreshToken,
+        );
+
+        const sameSite = this.configService.get<string>('NODE_ENV') === 'production'
+                ? 'lax'
+                : 'none';
+
+        response.cookie(
+            'refreshToken',
+            nextRefreshToken,
+            {
+                httpOnly: true,
+                secure: true,
+                sameSite,
+                path: '/api/auth',
+                maxAge:
+                    refreshTokenExpiresInSeconds * 1000,
+            },
+        );
+
+        return {
+            accessToken,
+        };
     }
 
     @Get('/me')

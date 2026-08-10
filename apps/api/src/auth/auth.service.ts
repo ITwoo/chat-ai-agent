@@ -5,15 +5,23 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtPayload } from './types/jwt-payload.type';
+import { randomUUID } from 'crypto';
 
 type SignInResult = {
     accessToken: string;
     refreshToken: string;
-}
+};
+
+type RefreshTokenResult = {
+    accessToken: string;
+    refreshToken: string;
+    refreshTokenExpiresInSeconds: number;
+};
 
 type RefreshTokenSessionSummary = {
     id: number;
     tokenHash: string;
+    expiresAt: Date;
 };
 
 @Injectable()
@@ -74,7 +82,7 @@ export class AuthService {
         };
     }
 
-    async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string }> {
+    async refreshAccessToken(refreshToken: string): Promise<RefreshTokenResult> {
         let payload: JwtPayload;
 
         try {
@@ -106,6 +114,7 @@ export class AuthService {
             select: {
                 id: true,
                 tokenHash: true,
+                expiresAt: true,
             },
         });
 
@@ -114,17 +123,56 @@ export class AuthService {
             activeSessions,
         );
 
-        if(!matchedSession) {
+        if (!matchedSession) {
             throw new UnauthorizedException('Invalid refresh token');
         }
 
-        const accessToken = this.createAccessToken({
+        const remainingSeconds = Math.floor(
+            (matchedSession.expiresAt.getTime() - Date.now()) / 1000,
+        );
+
+        if (remainingSeconds <= 0) {
+            throw new UnauthorizedException('Invalid refresh token');
+        }
+
+        const tokenPayload = {
             sub: user.id,
             username: user.username,
+        };
+
+        const accessToken = this.createAccessToken(tokenPayload);
+
+        const nextRefreshToken = this.createRefreshToken(
+            tokenPayload,
+            remainingSeconds,
+        );
+
+        const nextTokenHash = await this.hashRefreshToken(nextRefreshToken);
+
+        const result = await this.prisma.refreshTokenSession.updateMany({
+            where: {
+                id: matchedSession.id,
+                tokenHash: matchedSession.tokenHash,
+                revokedAt: null,
+                expiresAt: {
+                    gt: new Date(),
+                },
+            },
+            data: {
+                tokenHash: nextTokenHash,
+            },
         });
+
+        if (result.count !== 1) {
+            throw new UnauthorizedException(
+                'Invalid refresh token',
+            );
+        }
 
         return {
             accessToken,
+            refreshToken: nextRefreshToken,
+            refreshTokenExpiresInSeconds: remainingSeconds,
         };
     }
 
@@ -150,6 +198,7 @@ export class AuthService {
             select: {
                 id: true,
                 tokenHash: true,
+                expiresAt: true,
             },
         });
 
@@ -176,12 +225,21 @@ export class AuthService {
         return this.jwtService.sign(payload);
     }
 
-    private createRefreshToken(payload: JwtPayload): string {
+    private createRefreshToken(
+        payload: JwtPayload,
+        expiresInSeconds = Number(
+            this.configService.get<string>(
+                'JWT_REFRESH_EXPIRES_IN',
+            ) ?? 60 * 60 * 24 * 7,
+        ),
+    ): string {
         return this.jwtService.sign(payload, {
-            secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
-            expiresIn: Number(
-                this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ?? 60 * 60 * 24 * 7,
-            ),
+            secret:
+                this.configService.getOrThrow<string>(
+                    'JWT_REFRESH_SECRET',
+                ),
+            expiresIn: expiresInSeconds,
+            jwtid: randomUUID(),
         });
     }
 

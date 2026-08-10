@@ -71,8 +71,10 @@ export function ChatPage() {
     useEffect(() => {
         const socket = connectChatSocket();
 
-        const handleAnyEvent = (eventName: string, ...args: unknown[]) => {
-            console.log('[socket event]', eventName, args);
+        const handleAnyEvent = (eventName: string, ...args: unknown[]) => {        
+            if (import.meta.env.DEV) {
+                console.log('[socket event]', eventName, args); 
+            }
         };
 
         const handleConnect = () => {
@@ -103,7 +105,7 @@ export function ChatPage() {
                 return;
             }
 
-            console.log('[message_created]', message);
+            if (import.meta.env.DEV) console.log('[message_created]', message);
 
             appendMessage(message);
         };
@@ -382,7 +384,9 @@ export function ChatPage() {
         setErrorMessage('');
         setIsSending(true);
 
-        console.log('[socket emit] send_message', payload);
+        if (import.meta.env.DEV) {
+            console.log('[socket emit] send_message', payload);
+        }
 
         socket.emit('send_message', payload);
 

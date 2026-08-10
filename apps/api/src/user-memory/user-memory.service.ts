@@ -12,6 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { RelevantUserMemory, SearchUserMemoriesInput, UpsertExtractedUserMemoryInput, UpsertUserMemoryInput, UserMemoryEmbeddingBackfillBatchResult, UserMemorySearchResult, UserMemoryWriteResult } from './user-memory.types';
 import { RagEmbeddingService } from '../rag/rag-embedding.service.js';
 import { serializeVector } from '../rag/utils/rag-vector.util.js';
+import { ConfigService } from '@nestjs/config';
 
 const DEFAULT_MEMORY_LIMIT = 50;
 const MAX_MEMORY_LIMIT = 100;
@@ -43,6 +44,7 @@ export class UserMemoryService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly ragEmbeddingService: RagEmbeddingService,
+        private readonly configService: ConfigService,
     ) {}
 
     private normalizeMemoryKey(memoryKey: string): string {
@@ -248,9 +250,12 @@ export class UserMemoryService {
             `;
         });
 
+        let logQuery = this.configService.get<string>('NODE_ENV') !== 'production' ? `query=${JSON.stringify(normalizedQuery)}, ` : ''
+            
+        
         this.logger.log(
             `[memory-search] userId=${userId}, ` +
-            `query=${JSON.stringify(normalizedQuery)}, ` +
+            `${logQuery}}` +
             `type=${normalizedType ?? 'ALL'}, ` +
             `candidates=${JSON.stringify(
                 candidates.map(({ id, type, memoryKey, similarity }) => ({

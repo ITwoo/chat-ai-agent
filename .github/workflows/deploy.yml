@@ -94,8 +94,27 @@ jobs:
             echo "===== login to GHCR ====="
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
+            echo "===== preserve previous image tag ====="
+            if [ -f .env.deploy ]; then
+              cp .env.deploy .env.deploy.previous
+            fi
+
             echo "===== write image tag ====="
             echo "IMAGE_TAG=${{ github.sha }}" > .env.deploy
+
+            dump_deploy_diagnostics() {
+              docker compose \
+                --env-file .env.deploy \
+                -f docker-compose.ec2.yml \
+                ps || true
+
+              docker compose \
+                --env-file .env.deploy \
+                -f docker-compose.ec2.yml \
+                logs --tail=200 api web redis || true
+            }
+
+            trap dump_deploy_diagnostics ERR
 
             echo "===== compose config ====="
             docker compose --env-file .env.deploy -f docker-compose.ec2.yml config

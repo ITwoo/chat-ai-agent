@@ -10,9 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://woohyuk.dev"><strong>Live Demo</strong></a>
-  ·
-  <a href="https://www.woohyuk.dev">www.woohyuk.dev</a>
+  <a href="https://www.woohyuk.dev"><strong>Live Demo</strong></a>
 </p>
 
 <p align="center">
@@ -91,6 +89,13 @@ LangGraph의 `interrupt/resume`으로 승인을 받은 뒤 실행하며, 중복 
 - AWS EC2·RDS 배포
 - GitHub Actions·GHCR 기반 자동 배포
 - Cloudflare DNS·Let’s Encrypt HTTPS
+
+### Observability
+
+* LangSmith 기반 Agent 실행 추적
+* Agent 실행 유형과 사용자·대화·Agent thread를 trace metadata로 기록
+* LLM·Tool 호출의 latency, token usage, error 확인
+* 일반 Action Tool과 RAG 실행 흐름을 구분해 추적
 
 ---
 
@@ -322,21 +327,6 @@ OPENAI_MODEL=
 JWT_SECRET=
 JWT_REFRESH_SECRET=
 ```
-
-Web 환경변수:
-
-```env
-# apps/web/.env.development
-VITE_API_URL=http://localhost:3000
-```
-
-```env
-# apps/web/.env.production
-VITE_API_URL=https://woohyuk.dev
-```
-
-> `VITE_*` 값은 브라우저 번들에 포함되므로 비밀값을 넣지 않습니다.
-
 ---
 
 ## 배포

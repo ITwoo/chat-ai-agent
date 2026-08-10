@@ -9,6 +9,7 @@ import { AgentModule } from './agent/agent.module';
 import { RedisModule } from './redis/redis.module';
 import { QueueModule } from './queue/queue.module';
 import { RagModule } from './rag/rag.module';
+import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { RagModule } from './rag/rag.module';
     QueueModule,
     RagModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: [],
 }) 
 export class AppModule {}

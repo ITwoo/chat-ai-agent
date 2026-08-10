@@ -107,7 +107,7 @@ jobs:
             docker compose --env-file .env.deploy -f docker-compose.ec2.yml run -T --rm --no-deps api pnpm exec prisma migrate deploy < /dev/null
 
             echo "===== deploy containers ====="
-            docker compose --env-file .env.deploy -f docker-compose.ec2.yml up -d --remove-orphans
+            docker compose --env-file .env.deploy -f docker-compose.ec2.yml up -d --remove-orphans --wait --wait-timeout 90
 
             echo "===== verify containers ====="
             docker compose --env-file .env.deploy -f docker-compose.ec2.yml ps

@@ -30,7 +30,7 @@ export class BoardsController {
     @Get('/:id' )
     getBoardById(@Param('id', ParseIntPipe) id: number, @GetUser() user: AuthUser) : Promise<Board> {
         this.logger.verbose(`User "${user.username}" getting board "${id}".`);
-        return this.boardsService.getBoardById(id);
+        return this.boardsService.getBoardById(id, user.id);
     }
 
     @Delete('/:id')
@@ -44,7 +44,7 @@ export class BoardsController {
         this.logger.verbose(
             `User "${user.username}" updating board "${id}". Data: ${JSON.stringify(updateBoardDto)}`,
         );
-        return this.boardsService.updateBoard(id, updateBoardDto);
+        return this.boardsService.updateBoard(id, user.id, updateBoardDto);
     }
 
     @Patch('/:id/status')
@@ -56,7 +56,7 @@ export class BoardsController {
         this.logger.verbose(
             `User "${user.username}" updating board "${id}" status to "${status}".`,
         );
-        return this.boardsService.updateBoardStatus(id, status);
+        return this.boardsService.updateBoardStatus(id, user.id, status);
     }
 
     @Get()

@@ -8,11 +8,7 @@ import { GetUser } from '../auth/decorator/get-user.decorator';
 import { JwtGuard } from '../auth/guard/jwt.guard';
 import type { AuthUser } from '../auth/types/auth-user.type';
 import { RagSearchService } from './rag-search.service';
-
-type RagSearchRequest = {
-    query: string;
-    limit?: number;
-};
+import { RagSearchRequestDto } from './dto/rag-search-request.dto';
 
 @Controller('rag/search')
 @UseGuards(JwtGuard)
@@ -24,7 +20,7 @@ export class RagSearchController {
     @Post()
     search(
         @GetUser() user: AuthUser,
-        @Body() body: RagSearchRequest,
+        @Body() body: RagSearchRequestDto,
     ) {
         return this.ragSearchService.search(
             user.id,

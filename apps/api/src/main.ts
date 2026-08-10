@@ -12,7 +12,7 @@ async function bootstrap() {
 
     const app = await NestFactory.create(AppModule);
     app.enableShutdownHooks();
-    
+
     const configService = app.get(ConfigService);
 
     const configFileName = configService.get<string>('ENV_NAME') ?? '';
@@ -26,8 +26,13 @@ async function bootstrap() {
     app.useWebSocketAdapter(redisIoAdapter);
 
     app.use(cookieParser());
+
+    const allowedOrigins = [
+        'http://localhost:5173',
+        'https://www.woohyuk.dev',
+    ];
     app.enableCors({
-        origin: configService.get<string>('CORS_ORIGIN') ?? '*',
+        origin: allowedOrigins,
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
         credentials: true,
     });

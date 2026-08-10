@@ -4,18 +4,18 @@ import { CreateBoardDto } from './dto/create-board.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Board } from '../generated/prisma/client';
 import { UpdateBoardDto } from './dto/update-board.dto';
-import type{ AuthUser } from '../auth/types/auth-user.type';
+import type { AuthUser } from '../auth/types/auth-user.type';
 
 @Injectable()
 export class BoardsService {
-    constructor (
-         private readonly prisma: PrismaService,
-    ) {}
+    constructor(
+        private readonly prisma: PrismaService,
+    ) { }
 
     async createBoard(createBoardDto: CreateBoardDto, user: AuthUser): Promise<Board> {
         const { title, description } = createBoardDto;
         const board = this.prisma.board.create({
-            data : {
+            data: {
                 title,
                 description,
                 status: BoardStatus.PUBLIC,
@@ -26,10 +26,17 @@ export class BoardsService {
         return board;
     }
 
-    async getBoardById(id: number): Promise<Board> {
-        const found = await this.prisma.board.findUnique({ where: { id } });
-    
-        if(!found) {
+    async getBoardById(id: number, userId: number): Promise<Board> {
+        const found = await this.prisma.board.findUnique(
+            {
+                where: {
+                    id,
+                    userId,
+                }
+            }
+        );
+
+        if (!found) {
             throw new NotFoundException(`Can't find Board with id ${id}`);
         }
 
@@ -44,22 +51,45 @@ export class BoardsService {
         // }
     }
 
-    async updateBoard(id: number, updateBoardDto: UpdateBoardDto): Promise<Board> {
+    async updateBoard(id: number, userId: number, updateBoardDto: UpdateBoardDto): Promise<Board> {
         const { title, description, status } = updateBoardDto;
-        const board = await this.prisma.board.update({ where: { id }, data: { title, description, status } });
-        
+        const board = await this.prisma.board.update(
+            {
+                where: {
+                    id,
+                    userId,
+                },
+                data: {
+                    title,
+                    description,
+                    status
+                }
+            }
+        );
+
         return board;
     }
 
-    async updateBoardStatus(id: number, status: BoardStatus): Promise<Board> {
+    async updateBoardStatus(id: number, userId: number, status: BoardStatus): Promise<Board> {
 
-        const board = await this.prisma.board.update({ where: { id }, data: { status } });
-        
+        const board = await this.prisma.board.update(
+            {
+                where:
+                {
+                    id,
+                    userId,
+                },
+                data: {
+                    status
+                }
+            }
+        );
+
         return board;
     }
 
     async getAllBoards(user: AuthUser): Promise<Board[]> {
         return this.prisma.board.findMany({ where: { userId: user.id } });
     }
-    
+
 }

@@ -87,7 +87,10 @@ const CHAT_RATE_LIMIT_WINDOW_MS = 60000;
 
 @WebSocketGateway({
     cors: {
-        origin: true,
+        origin: [
+            'http://localhost:5173',
+            'https://www.woohyuk.dev',
+        ],
         credentials: true,
     },
 })
@@ -290,8 +293,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 payload.roomId,
                 user,
                 payload.content,
-            );            
-            
+            );
+
             userMessageId = userMessage.id;
 
             await this.enqueueUserMemoryExtractionSafely(
@@ -305,7 +308,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 userMessage.id,
             );
 
-            this.server.to(roomName).emit('message_created', { ...userMessage, ragCitations: []});
+            this.server.to(roomName).emit('message_created', { ...userMessage, ragCitations: [] });
 
             const updatedRoom = await this.chatService.updateRoomTitleFromFirstMessage(
                 payload.roomId,
@@ -315,7 +318,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
             this.server.to(roomName).emit('chat_room_updated', updatedRoom)
 
-            const agentContext  = await this.chatService.getContextMessages(
+            const agentContext = await this.chatService.getContextMessages(
                 payload.roomId,
                 user.id,
             );
@@ -382,11 +385,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                         userMessageId,
                     );
 
-                    this.server.to(roomName).emit('message_updated', { ...userMessage, ragCitations: []});
+                    this.server.to(roomName).emit('message_updated', { ...userMessage, ragCitations: [] });
 
                     this.server.to(roomName).emit('assistant_message_cancelled', {
                         roomId: payload.roomId,
-                        message: { ...assistantMessage, ragCitations: []},
+                        message: { ...assistantMessage, ragCitations: [] },
                     });
                 } else {
                     this.server.to(roomName).emit('assistant_message_cancelled', {
@@ -430,11 +433,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                         userMessageId,
                     );
 
-                    this.server.to(roomName).emit('message_updated', { ...userMessage, ragCitations: []});
+                    this.server.to(roomName).emit('message_updated', { ...userMessage, ragCitations: [] });
 
                     this.server.to(roomName).emit('assistant_message_cancelled', {
                         roomId: payload.roomId,
-                        message: { ...assistantMessage, ragCitations: []},
+                        message: { ...assistantMessage, ragCitations: [] },
                     });
                 } else {
                     this.server.to(roomName).emit('assistant_message_cancelled', {
@@ -452,11 +455,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                     userMessageId,
                 );
 
-                this.server.to(roomName).emit('message_updated', { ...userMessage, ragCitations: []});
+                this.server.to(roomName).emit('message_updated', { ...userMessage, ragCitations: [] });
 
                 this.server.to(roomName).emit('assistant_message_failed', {
                     roomId: payload.roomId,
-                    message: { ...assistantMessage, ragCitations: []},
+                    message: { ...assistantMessage, ragCitations: [] },
                 });
 
                 return;
@@ -807,7 +810,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 `Generation stop requested. ` +
                 `userId=${user.id}, roomId=${payload.roomId}`,
             );
-            
+
         } catch (error) {
             client.emit('chat_error', {
                 message:
@@ -909,7 +912,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         let isApprove = false;
         let isCancel = false;
 
-        switch(request.type) {
+        switch (request.type) {
             case 'expense_update_approval':
                 isApprove = UPDATE_APPROVE_MESSAGES.has(normalized);
                 isCancel = CANCEL_MESSAGES.has(normalized);
@@ -918,7 +921,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             case 'user_memory_delete_approval':
                 isApprove = DELETE_APPROVE_MESSAGES.has(normalized);
                 isCancel = CANCEL_MESSAGES.has(normalized);
-                break;            
+                break;
             default:
                 break;
         }
@@ -1115,7 +1118,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             return;
         }
 
-        if(!approvalLock) {
+        if (!approvalLock) {
             client.emit('chat_error', {
                 message: '다른 요청에서 이 승인을 처리하고 있습니다.',
             });
@@ -1261,17 +1264,17 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
                 await this.pendingApprovalStore.deleteByRoomId(roomId);
                 this.pendingApprovals.delete(processingKey);
-    
+
                 this.server.to(roomName).emit(
                     'message_updated',
-                    { ...userMessage, ragCitations: []},
+                    { ...userMessage, ragCitations: [] },
                 );
 
                 this.server.to(roomName).emit(
                     'assistant_message_cancelled',
                     {
                         roomId,
-                        message: { ...assistantMessage, ragCitations: []},
+                        message: { ...assistantMessage, ragCitations: [] },
                     },
                 );
 
@@ -1294,7 +1297,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             );
 
             await this.pendingApprovalStore.deleteByRoomId(roomId);
-            
+
             this.pendingApprovals.delete(processingKey);
 
             this.server.to(roomName).emit(
@@ -1317,14 +1320,14 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
                 this.server.to(roomName).emit(
                     'message_updated',
-                    { ...userMessage, ragCitations: []},
+                    { ...userMessage, ragCitations: [] },
                 );
 
                 this.server.to(roomName).emit(
                     'assistant_message_cancelled',
                     {
                         roomId,
-                        message: { ...assistantMessage, ragCitations: []},
+                        message: { ...assistantMessage, ragCitations: [] },
                     },
                 );
 
@@ -1339,8 +1342,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
             );
 
             const hasPendingInterrupt = await this.agentService.hasPendingInterrupt(
-                    user.id,
-                    pendingApproval.threadId,
+                user.id,
+                pendingApproval.threadId,
             );
 
             if (hasPendingInterrupt) {
@@ -1371,7 +1374,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
                 return;
             }
-            
+
             this.pendingApprovals.delete(processingKey);
 
             await this.pendingApprovalStore.deleteByRoomId(
@@ -1398,7 +1401,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                     `승인 처리 Redis 락 해제 실패: ${processingKey}`,
                     error instanceof Error ? error.stack : String(error),
                 );
-            }            
+            }
         }
     }
 

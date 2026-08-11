@@ -5,6 +5,7 @@ import { AgentGraphFactory } from './agent-graph.factory';
 import { RagModule } from '../rag/rag.module';
 import { UserMemoryModule } from '../user-memory/user-memory.module';
 import { AgentContextBuilderService } from './agent-context-builder.service';
+import { AgentMcpToolsService } from './agent-mcp-tools.service';
 
 @Module({
     imports: [
@@ -16,6 +17,7 @@ import { AgentContextBuilderService } from './agent-context-builder.service';
         AgentToolsService,
         AgentGraphFactory,
         AgentContextBuilderService,
+        AgentMcpToolsService,
     ],
     exports: [AgentService],
 })

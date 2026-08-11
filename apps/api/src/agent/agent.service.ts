@@ -14,6 +14,7 @@ import { UserMemoryService } from '../user-memory/user-memory.service';
 import { RelevantUserMemory } from '../user-memory/user-memory.types';
 import { RunnableConfig } from '@langchain/core/runnables';
 import { AGENT_CONTEXT_VERSION, AgentContextBuilderService } from './agent-context-builder.service';
+import { AgentMcpToolsService } from './agent-mcp-tools.service';
 
 
 export type AgentStreamEvent =
@@ -104,6 +105,7 @@ export class AgentService {
     constructor(
         private readonly configService: ConfigService,
         private readonly agentToolsService: AgentToolsService,
+        private readonly agentMcpToolsService: AgentMcpToolsService,
         private readonly agentGraphFactory: AgentGraphFactory,
         private readonly userMemoryService: UserMemoryService,
         private readonly agentContextBuilderService: AgentContextBuilderService,
@@ -188,12 +190,14 @@ export class AgentService {
         };
     }
 
-    private createGraphForUser(userId: number): AgentGraph {
+    private async createGraphForUser(userId: number): Promise<AgentGraph> {
         const context = {
             userId,
         }
 
-        const tools = this.agentToolsService.getTools(context);
+        const agentTools = this.agentToolsService.getTools(context);
+        const mcpTools = await this.agentMcpToolsService.getTools();
+        const tools = [...agentTools, ...mcpTools];
 
         const model = this.createModel().bindTools(tools);
 
@@ -204,7 +208,7 @@ export class AgentService {
         userId: number,
         agentThreadId: string,
     ): Promise<boolean> {
-        const graph = this.createGraphForUser(userId);
+        const graph = await this.createGraphForUser(userId);
 
         const state = await graph.getState({
             configurable: {
@@ -222,7 +226,7 @@ export class AgentService {
         context: ChatAgentContext,
         runContext: AgentRunContext,
     ): Promise<string> {
-        const graph = this.createGraphForUser(userId)
+        const graph = await this.createGraphForUser(userId)
         const userMemories = await this.getUserMemoriesSafely(userId, context);
         const langchainMessages = await this.agentContextBuilderService.build(
             context,
@@ -290,7 +294,7 @@ export class AgentService {
         runContext: AgentRunContext,
         signal?: AbortSignal,
     ): AsyncGenerator<AgentStreamEvent> {
-        const graph = this.createGraphForUser(userId);
+        const graph = await this.createGraphForUser(userId);
 
         const config = this.createRunConfig(
             userId,
@@ -362,7 +366,7 @@ export class AgentService {
         runKind: AgentRunKind,
         signal?: AbortSignal,
     ): AsyncGenerator<AgentStreamEvent> {
-        const graph = this.createGraphForUser(userId);
+        const graph = await this.createGraphForUser(userId);
 
         const stream = await graph.streamEvents(
             input,

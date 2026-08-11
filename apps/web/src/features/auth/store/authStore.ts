@@ -2,6 +2,7 @@ import type { LoginRequest, UserResponse } from "@repo/shared";
 import { create } from "zustand";
 import { getAccessToken, removeAccessToken, saveAccessToken } from "../utils/authStorage";
 import { authApi } from "../api/authApi";
+import { refreshAccessToken } from "../../../api/http";
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -39,9 +40,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
 
         try {
-            const response = await authApi.refresh();
-
-            saveAccessToken(response.accessToken);
+            await refreshAccessToken();
 
             const user = await authApi.getMe();
 

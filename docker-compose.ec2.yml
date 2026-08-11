@@ -14,6 +14,22 @@ services:
       timeout: 3s
       retries: 10
     restart: unless-stopped
+  mcp:
+    image: ghcr.io/itwoo/chat-ai-agent-mcp:${IMAGE_TAG}
+    container_name: chat-ai-agent-mcp
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import socket; s = socket.create_connection(('127.0.0.1', 8000), 2); s.close()"
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
   api:
     image: ghcr.io/itwoo/chat-ai-agent-api:${IMAGE_TAG}
     container_name: chat-ai-agent-api

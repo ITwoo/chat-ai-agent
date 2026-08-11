@@ -174,7 +174,11 @@ export class RagSearchService {
     }
 
     private selectDiverseResults(results: RagSearchResult[], limit: number): RagSearchResult[] {
-        const filteredResults = results.filter((result) => result.similarity >= RAG_MIN_SIMILARITY);
+        const filteredResults = results.filter(
+            (result) =>
+                result.keywordRank !== null ||
+                result.similarity >= RAG_MIN_SIMILARITY,
+        );
         const selectedResults: RagSearchResult[] = [];
         const deferredResults: RagSearchResult[] = [];
         const documentChunkCounts = new Map<number, number>();

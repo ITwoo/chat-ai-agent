@@ -369,8 +369,7 @@ export class AgentToolsService {
                         .int()
                         .min(1)
                         .max(50)
-                        .default(10)
-                        .describe('조회할 최대 지출 개수. 기본값은 10이고 최대 50이다.'),
+                        .describe('조회할 최대 지출 개수. 일반 조회는 10, 통계·패턴·이상치 분석은 50을 사용한다.'),
                 }),
             },
         );

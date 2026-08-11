@@ -22,6 +22,7 @@
   <img alt="Redis" src="https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white" />
   <img alt="Docker" src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" />
   <img alt="AWS" src="https://img.shields.io/badge/AWS-232F3E?style=flat-square&logo=amazonaws&logoColor=white" />
+  <img alt="Python" src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white" />
 </p>
 
 ---
@@ -37,6 +38,10 @@ LangGraph의 `interrupt/resume`으로 승인을 받은 뒤 실행하며, 중복 
 
 업로드한 문서는 `pgvector`로 검색하고 답변에 출처를 함께 표시합니다. 사용자 선호·목표·제약은
 장기 메모리로 추출해 이후 대화에 활용합니다.
+
+Python MCP Server를 별도 분석 서비스로 구성하고 NestJS/LangGraph Agent와 연결했습니다.
+Agent는 기존 TypeScript Tool과 Python MCP Tool을 함께 선택할 수 있으며, 현재는 지출 데이터를
+전달해 IQR 기반 금액 이상치 후보를 분석합니다.
 
 ---
 
@@ -80,6 +85,17 @@ LangGraph의 `interrupt/resume`으로 승인을 받은 뒤 실행하며, 중복 
 - 사용자별 메모리 검색·조회·삭제
 - Embedding 기반 관련 메모리 검색
 - BullMQ 재시도와 DB 상태 기반 Job 복구
+
+### Python MCP 분석
+
+- Python MCP Server를 별도 서비스로 구성
+- `@langchain/mcp-adapters`를 통해 LangGraph Agent와 MCP 연결
+- 기존 NestJS Tool과 Python MCP Tool을 하나의 Agent Tool 집합으로 통합
+- `analyze_expense_anomalies` Tool에서 IQR 기반 지출 금액 이상치 후보 분석
+- Pydantic을 이용한 MCP Tool 입력 검증
+- MCP 서버 연결 실패 시 기존 Agent 기능과 장애 격리
+- MCP Tool timeout 및 실행 오류 처리
+- Python 서버 재기동 후 다음 요청에서 MCP 연결 복구
 
 ### 인증과 운영
 
@@ -178,6 +194,26 @@ RAG와 사용자 메모리 작업은 Redis Queue 상태만 신뢰하지 않고 P
 문서 내용은 시스템 명령이 아니라 검색 데이터로 전달하며, 답변 근거를 확인할 수 있도록
 인용 정보를 함께 반환합니다.
 
+### 5. Python MCP 분석 서비스
+
+지출 조회와 사용자 데이터 접근은 기존 NestJS Agent Tool이 담당하고, 통계 분석은 별도의
+Python MCP Server가 담당하도록 역할을 분리했습니다.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant A as LangGraph Agent
+    participant T as NestJS Expense Tool
+    participant M as Python MCP Server
+
+    U->>A: 지출 이상치 분석 요청
+    A->>T: get_expense_list
+    T-->>A: 사용자 지출 데이터
+    A->>M: analyze_expense_anomalies
+    M->>M: IQR 기반 분석
+    M-->>A: 이상치 후보
+    A-->>U: 분석 결과 설명
+
 ---
 
 ## 아키텍처
@@ -227,7 +263,8 @@ Redis는 EC2의 Docker Compose에서 운영하고, 영구 상태의 원본은 Po
 |---|---|
 | Frontend | React, TypeScript, Vite, Tailwind CSS, Zustand, React Router |
 | Backend | NestJS, TypeScript, Prisma |
-| AI Agent | LangChain, LangGraph, OpenAI |
+| AI Agent | LangChain, LangGraph, OpenAI, MCP |
+| Python Analysis | Python, MCP Python SDK, Pydantic |
 | Realtime | Socket.IO, Redis Adapter |
 | Queue | BullMQ, Redis |
 | Database | PostgreSQL, AWS RDS |
@@ -256,6 +293,10 @@ chat-ai-agent/
 │  │  │  ├─ redis/
 │  │  │  └─ user-memory/
 │  │  └─ Dockerfile
+│  ├─ mcp/
+│  │  ├─ server.py
+│  │  ├─ pyproject.toml
+│  │  └─ package.json
 │  └─ web/
 │     ├─ src/
 │     ├─ nginx.conf
@@ -277,6 +318,8 @@ chat-ai-agent/
 
 - Node.js 22
 - pnpm
+- Python 3.12
+- uv
 - Docker
 - PostgreSQL
 - Redis
@@ -299,8 +342,13 @@ docker compose -f docker-compose.dev.yml up -d
 ```bash
 pnpm --filter api start:dev
 pnpm --filter web dev
+pnpm --filter mcp dev
 ```
+또는 전체 개발 서비스를 실행합니다.
 
+```bash
+pnpm dev
+```
 ### 전체 빌드
 
 ```bash
@@ -326,6 +374,8 @@ OPENAI_MODEL=
 
 JWT_SECRET=
 JWT_REFRESH_SECRET=
+
+MCP_ANALYSIS_SERVER_URL=http://127.0.0.1:8000/mcp
 ```
 ---
 

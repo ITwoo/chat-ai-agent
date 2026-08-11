@@ -1,31 +1,68 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { StructuredToolInterface } from '@langchain/core/tools';
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 
+const MCP_TOOL_TIMEOUT_MS = 15_000;
+
 @Injectable()
-export class AgentMcpToolsService {
-    private readonly client: MultiServerMCPClient;
-    private tools?: StructuredToolInterface[];
+export class AgentMcpToolsService implements OnModuleDestroy {
+    private readonly logger = new Logger(AgentMcpToolsService.name);
+    private readonly serverUrl: string;
+
+    private client?: MultiServerMCPClient;
+    private toolsPromise?: Promise<StructuredToolInterface[]>;
 
     constructor(configService: ConfigService) {
-        const serverUrl = configService.getOrThrow<string>(
-            'MCP_ANALYSIS_SERVER_URL',
-        );
-
-        this.client = new MultiServerMCPClient({
-            personalAnalysis: {
-                transport: 'http',
-                url: serverUrl,
-            },
-        });
+        this.serverUrl = configService.getOrThrow<string>('MCP_ANALYSIS_SERVER_URL');
     }
 
     async getTools(): Promise<StructuredToolInterface[]> {
-        if (this.tools) return this.tools;
+        if (!this.toolsPromise) {
+            this.toolsPromise = this.loadTools();
+        }
 
-        this.tools = await this.client.getTools();
+        return this.toolsPromise;
+    }
 
-        return this.tools;
+    private async loadTools(): Promise<StructuredToolInterface[]> {
+        const client = new MultiServerMCPClient({
+            mcpServers: {
+                personalAnalysis: {
+                    transport: 'http',
+                    url: this.serverUrl,
+                    defaultToolTimeout: MCP_TOOL_TIMEOUT_MS,
+                },
+            },
+            useStandardContentBlocks: true,
+        });
+
+        this.client = client;
+
+        try {
+            const tools = await client.getTools();
+
+            this.logger.log(`[agent:mcp] loaded tools=${tools.length}`);
+
+            return tools;
+        } catch (error) {
+            this.logger.warn(
+                `[agent:mcp] unavailable: ${error instanceof Error ? error.message : String(error)}`,
+            );
+
+            await client.close().catch(() => undefined);
+
+            if (this.client === client) {
+                this.client = undefined;
+            }
+
+            this.toolsPromise = undefined;
+
+            return [];
+        }
+    }
+
+    async onModuleDestroy(): Promise<void> {
+        await this.client?.close();
     }
 }

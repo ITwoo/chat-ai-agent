@@ -72,6 +72,7 @@ def analyze_expense_anomalies(expenses: ExpenseList) -> ExpenseAnomalyResult:
 def main() -> None:
     mcp.run(
         transport="streamable-http",
+        host="0.0.0.0",
         port=8000,
         stateless_http=True,
         json_response=True,

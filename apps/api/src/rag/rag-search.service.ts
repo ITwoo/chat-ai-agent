@@ -60,7 +60,7 @@ export class RagSearchService {
                         SELECT
                             chunk."id" AS "chunkId",
                             (
-                                RANK() OVER (
+                                ROW_NUMBER() OVER (
                                     ORDER BY chunk."embedding" <=> ${vector}::vector
                                 )
                             )::integer AS "vectorRank"
@@ -77,7 +77,7 @@ export class RagSearchService {
                         SELECT
                             chunk."id" AS "chunkId",
                             (
-                                RANK() OVER (
+                                ROW_NUMBER() OVER (
                                     ORDER BY ts_rank_cd(
                                         to_tsvector(
                                             'simple'::regconfig,

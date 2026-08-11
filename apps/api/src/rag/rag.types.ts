@@ -23,6 +23,9 @@ export type RagSearchResult = {
     fileName: string;
     distance: number;
     similarity: number;
+    vectorRank: number | null;
+    keywordRank: number | null;
+    rrfScore: number;
 };
 
 export type RagDocumentListItem = {

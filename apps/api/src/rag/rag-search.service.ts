@@ -12,7 +12,7 @@ const DEFAULT_SEARCH_LIMIT = 5;
 const MAX_SEARCH_LIMIT = 10;
 const SEARCH_CANDIDATE_MULTIPLIER = 4;
 const MAX_PREFERRED_CHUNKS_PER_DOCUMENT = 2;
-
+const RRF_K = 60;
 @Injectable()
 export class RagSearchService {
     constructor(
@@ -50,6 +50,89 @@ export class RagSearchService {
                 `;
 
                 return tx.$queryRaw<RagSearchResult[]>`
+                    WITH search_query AS (
+                        SELECT websearch_to_tsquery(
+                            'simple'::regconfig,
+                            ${normalizedQuery}
+                        ) AS query
+                    ),
+                    vector_candidates AS (
+                        SELECT
+                            chunk."id" AS "chunkId",
+                            (
+                                RANK() OVER (
+                                    ORDER BY chunk."embedding" <=> ${vector}::vector
+                                )
+                            )::integer AS "vectorRank"
+                        FROM "RagDocumentChunk" AS chunk
+                        INNER JOIN "RagDocument" AS document
+                            ON document."id" = chunk."documentId"
+                        WHERE document."userId" = ${userId}
+                        AND document."status" = 'READY'
+                        AND chunk."embedding" IS NOT NULL
+                        ORDER BY chunk."embedding" <=> ${vector}::vector
+                        LIMIT ${candidateLimit}
+                    ),
+                    keyword_candidates AS (
+                        SELECT
+                            chunk."id" AS "chunkId",
+                            (
+                                RANK() OVER (
+                                    ORDER BY ts_rank_cd(
+                                        to_tsvector(
+                                            'simple'::regconfig,
+                                            chunk."content"
+                                        ),
+                                        search_query.query
+                                    ) DESC
+                                )
+                            )::integer AS "keywordRank"
+                        FROM "RagDocumentChunk" AS chunk
+                        INNER JOIN "RagDocument" AS document
+                            ON document."id" = chunk."documentId"
+                        CROSS JOIN search_query
+                        WHERE document."userId" = ${userId}
+                        AND document."status" = 'READY'
+                        AND chunk."embedding" IS NOT NULL
+                        AND to_tsvector(
+                                'simple'::regconfig,
+                                chunk."content"
+                            ) @@ search_query.query
+                        ORDER BY ts_rank_cd(
+                            to_tsvector(
+                                'simple'::regconfig,
+                                chunk."content"
+                            ),
+                            search_query.query
+                        ) DESC
+                        LIMIT ${candidateLimit}
+                    ),
+                    fused_candidates AS (
+                        SELECT
+                            COALESCE(
+                                vector_candidates."chunkId",
+                                keyword_candidates."chunkId"
+                            ) AS "chunkId",
+                            vector_candidates."vectorRank",
+                            keyword_candidates."keywordRank",
+                            (
+                                COALESCE(
+                                    1.0 / (${RRF_K} + vector_candidates."vectorRank"),
+                                    0.0
+                                )
+                                +
+                                COALESCE(
+                                    1.0 / (${RRF_K} + keyword_candidates."keywordRank"),
+                                    0.0
+                                )
+                            )::double precision AS "rrfScore"
+                        FROM vector_candidates
+                        FULL OUTER JOIN keyword_candidates
+                            ON keyword_candidates."chunkId" =
+                            vector_candidates."chunkId"
+                        ORDER BY "rrfScore" DESC
+                        LIMIT ${candidateLimit}
+                    )
                     SELECT
                         chunk."id" AS "chunkId",
                         chunk."documentId",
@@ -65,16 +148,16 @@ export class RagSearchService {
                             1 - (
                                 chunk."embedding" <=> ${vector}::vector
                             )
-                        )::double precision AS "similarity"
-                    FROM "RagDocumentChunk" AS chunk
+                        )::double precision AS "similarity",
+                        fused_candidates."vectorRank",
+                        fused_candidates."keywordRank",
+                        fused_candidates."rrfScore"
+                    FROM fused_candidates
+                    INNER JOIN "RagDocumentChunk" AS chunk
+                        ON chunk."id" = fused_candidates."chunkId"
                     INNER JOIN "RagDocument" AS document
                         ON document."id" = chunk."documentId"
-                    WHERE document."userId" = ${userId}
-                    AND document."status" = 'READY'
-                    AND chunk."embedding" IS NOT NULL
-                    ORDER BY
-                        chunk."embedding" <=> ${vector}::vector
-                    LIMIT ${candidateLimit}
+                    ORDER BY fused_candidates."rrfScore" DESC
                 `;
             },
         );

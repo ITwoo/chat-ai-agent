@@ -3,4 +3,7 @@ name = "chat-ai-agent-mcp"
 version = "0.1.0"
 description = "Python MCP server for chat-ai-agent"
 requires-python = ">=3.12,<4.0"
-dependencies = ["mcp[cli]>=2.0.0,<3.0.0"]
+dependencies = [
+    "mcp[cli]>=2.0.0,<3.0.0",
+    "pydantic>=2.12,<3.0.0",
+]

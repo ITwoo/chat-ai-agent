@@ -2,6 +2,7 @@
   "name": "mcp",
   "private": true,
   "scripts": {
-    "dev": "uv run python server.py"
+    "dev": "uv run python server.py",
+    "inspect": "uv run mcp dev server.py"
   }
 }

@@ -117,12 +117,14 @@ export function RagDocumentsPage() {
 
     const handleUpload = async () => {
         if (!selectedFile) {
-            setErrorMessage('업로드할 TXT 파일을 선택해주세요.');
+            setErrorMessage('업로드할 TXT 또는 PDF 파일을 선택해주세요.');
             return;
         }
 
-        if (!selectedFile.name.toLowerCase().endsWith('.txt')) {
-            setErrorMessage('현재는 TXT 파일만 업로드할 수 있습니다.');
+        const fileName = selectedFile.name.toLowerCase();
+
+        if (!fileName.endsWith('.txt') && !fileName.endsWith('.pdf')) {
+            setErrorMessage('현재는 TXT 또는 PDF 파일만 업로드할 수 있습니다.');
             return;
         }
 
@@ -231,7 +233,7 @@ export function RagDocumentsPage() {
                     <input
                         ref={fileInputRef}
                         type="file"
-                        accept=".txt,text/plain"
+                        accept=".txt,.pdf,text/plain,application/pdf"
                         disabled={isUploading}
                         onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
                         className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:font-semibold file:text-slate-700"
@@ -247,7 +249,9 @@ export function RagDocumentsPage() {
                     </button>
                 </div>
 
-                <p className="mt-3 text-xs text-slate-400">TXT 파일만 지원하며 최대 크기는 5MB입니다.</p>
+                <p className="mt-3 text-xs text-slate-400">
+                    TXT 또는 PDF 파일을 지원하며 최대 크기는 5MB입니다.
+                </p>
             </div>
 
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">

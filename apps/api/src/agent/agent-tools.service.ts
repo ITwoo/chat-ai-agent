@@ -3,7 +3,7 @@ import { StructuredToolInterface, tool, ToolRuntime } from '@langchain/core/tool
 import { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service';
 import { interrupt } from '@langchain/langgraph';
-import { ExpenseUpdateApprovalRequest, updateExpenseDecisionSchema } from './agent-interrupt.schema';
+import { ExpenseUpdateApprovalRequest, ScheduleUpdateApprovalRequest, updateExpenseDecisionSchema, updateScheduleDecisionSchema } from './agent-interrupt.schema';
 import { RAG_SEARCH_TOOL_NAME } from '../rag/rag.constants';
 import { ragSearchToolInputSchema } from '../rag/schemas/rag-search-tool.schema';
 import { AgentToolContext } from './types/agent-tool-context.type';
@@ -40,10 +40,11 @@ export class AgentToolsService {
     getTools(context: AgentToolContext): StructuredToolInterface[] {
         return [
             this.createGetCurrentDateTimeTool(),
-            this.createExpenseTool(context),
             this.createScheduleTool(context),
             this.createScheduleListTool(context),
             this.createFindSchedulesTool(context),
+            this.createUpdateScheduleTool(context),
+            this.createExpenseTool(context),
             this.createExpenseSummaryTool(context),
             this.createExpenseListTool(context),
             this.createFindExpensesTool(context),
@@ -924,6 +925,247 @@ export class AgentToolsService {
                         .describe(
                             '반환할 최대 후보 개수. 기본값은 10이고 최대 20이다.',
                         ),
+                }),
+            },
+        );
+    }
+
+    private createUpdateScheduleTool(context: AgentToolContext) {
+        return tool(
+            async ({
+                scheduleId,
+                title,
+                memo,
+                location,
+                startsAt,
+                endsAt,
+            }) => {
+                this.logger.log('[tool] update_schedule');
+
+                const updateData: {
+                    title?: string;
+                    memo?: string | null;
+                    location?: string | null;
+                    startsAt?: Date;
+                    endsAt?: Date | null;
+                } = {};
+
+                if (title !== undefined) updateData.title = title;
+                if (memo !== undefined) updateData.memo = memo;
+                if (location !== undefined) updateData.location = location;
+
+                if (startsAt !== undefined) {
+                    const parsedStartsAt = new Date(startsAt);
+
+                    if (Number.isNaN(parsedStartsAt.getTime())) {
+                        return '일정 시작 시간 형식이 올바르지 않습니다.';
+                    }
+
+                    updateData.startsAt = parsedStartsAt;
+                }
+
+                if (endsAt !== undefined) {
+                    if (endsAt === null) {
+                        updateData.endsAt = null;
+                    } else {
+                        const parsedEndsAt = new Date(endsAt);
+
+                        if (Number.isNaN(parsedEndsAt.getTime())) {
+                            return '일정 종료 시간 형식이 올바르지 않습니다.';
+                        }
+
+                        updateData.endsAt = parsedEndsAt;
+                    }
+                }
+
+                if (Object.keys(updateData).length === 0) {
+                    return '수정할 내용이 없습니다.';
+                }
+
+                const schedule = await this.prisma.schedule.findFirst({
+                    where: {
+                        id: scheduleId,
+                        userId: context.userId,
+                    },
+                    select: {
+                        id: true,
+                        title: true,
+                        memo: true,
+                        location: true,
+                        startsAt: true,
+                        endsAt: true,
+                        version: true,
+                    },
+                });
+
+                if (!schedule) {
+                    return '수정할 일정을 찾을 수 없습니다.';
+                }
+
+                const nextStartsAt =
+                    updateData.startsAt ?? schedule.startsAt;
+
+                const nextEndsAt =
+                    updateData.endsAt !== undefined
+                        ? updateData.endsAt
+                        : schedule.endsAt;
+
+                if (nextEndsAt && nextEndsAt <= nextStartsAt) {
+                    return '일정 종료 시간은 시작 시간보다 이후여야 합니다.';
+                }
+
+                const changes: ScheduleUpdateApprovalRequest['changes'] = {
+                    title: updateData.title,
+                    memo: updateData.memo,
+                    location: updateData.location,
+                    startsAt: updateData.startsAt?.toISOString(),
+                    endsAt:
+                        updateData.endsAt === undefined
+                            ? undefined
+                            : updateData.endsAt?.toISOString() ?? null,
+                };
+
+                const approvalRequest = {
+                    type: 'schedule_update_approval',
+                    action: 'update_schedule',
+                    message: '이 일정을 수정할까요?',
+                    schedule: {
+                        id: schedule.id,
+                        title: schedule.title,
+                        memo: schedule.memo,
+                        location: schedule.location,
+                        startsAt: schedule.startsAt.toISOString(),
+                        endsAt: schedule.endsAt?.toISOString() ?? null,
+                        version: schedule.version,
+                    },
+                    changes,
+                } satisfies ScheduleUpdateApprovalRequest;
+
+                const resumeValue: unknown = interrupt(approvalRequest);
+
+                const decisionResult =
+                    updateScheduleDecisionSchema.safeParse(resumeValue);
+
+                if (!decisionResult.success) {
+                    return '일정 수정 승인 응답 형식이 올바르지 않습니다.';
+                }
+
+                const decision = decisionResult.data;
+
+                if (decision.action === 'cancel') {
+                    return JSON.stringify({
+                        updated: false,
+                        status: 'cancelled',
+                        scheduleId,
+                        message: '일정 수정을 취소했습니다.',
+                    });
+                }
+
+                if (decision.action === 'revise') {
+                    return JSON.stringify({
+                        updated: false,
+                        status: 'revision_requested',
+                        schedule: {
+                            id: schedule.id,
+                            title: schedule.title,
+                            memo: schedule.memo,
+                            location: schedule.location,
+                            startsAt: schedule.startsAt.toISOString(),
+                            endsAt: schedule.endsAt?.toISOString() ?? null,
+                        },
+                        previousChanges: changes,
+                        revisionRequest: decision.content,
+                        nextAction:
+                            'revisionRequest를 반영해 update_schedule을 다시 호출한다.',
+                    });
+                }
+
+                const expectedVersion = decision.expectedVersion;
+
+                if (expectedVersion === undefined || expectedVersion === null) {
+                    return JSON.stringify({
+                        updated: false,
+                        status: 'expired_approval',
+                        scheduleId,
+                        message: '승인 요청의 버전 정보가 없어 다시 요청해야 합니다.',
+                    });
+                }
+
+                const updateResult = await this.prisma.schedule.updateMany({
+                    where: {
+                        id: scheduleId,
+                        userId: context.userId,
+                        version: expectedVersion,
+                    },
+                    data: {
+                        ...updateData,
+                        version: {
+                            increment: 1,
+                        },
+                    },
+                });
+
+                if (updateResult.count === 0) {
+                    const currentSchedule =
+                        await this.prisma.schedule.findFirst({
+                            where: {
+                                id: scheduleId,
+                                userId: context.userId,
+                            },
+                            select: {
+                                version: true,
+                            },
+                        });
+
+                    if (!currentSchedule) {
+                        return '수정할 일정을 찾을 수 없습니다.';
+                    }
+
+                    return JSON.stringify({
+                        updated: false,
+                        status: 'stale_approval',
+                        scheduleId,
+                        expectedVersion,
+                        currentVersion: currentSchedule.version,
+                        message:
+                            '승인 대기 중 일정이 변경되었습니다. 다시 조회해 주세요.',
+                    });
+                }
+
+                const updatedSchedule =
+                    await this.prisma.schedule.findFirstOrThrow({
+                        where: {
+                            id: scheduleId,
+                            userId: context.userId,
+                        },
+                    });
+
+                return JSON.stringify({
+                    updated: true,
+                    schedule: {
+                        id: updatedSchedule.id,
+                        title: updatedSchedule.title,
+                        memo: updatedSchedule.memo,
+                        location: updatedSchedule.location,
+                        startsAt: updatedSchedule.startsAt.toISOString(),
+                        endsAt:
+                            updatedSchedule.endsAt?.toISOString() ?? null,
+                        version: updatedSchedule.version,
+                    },
+                    message: '일정을 수정했습니다.',
+                });
+            },
+            {
+                name: 'update_schedule',
+                description:
+                    '기존 일정을 수정한다. find_schedules로 대상을 식별한 뒤 호출한다. 최종 승인은 tool 내부에서 처리한다.',
+                schema: z.object({
+                    scheduleId: z.number().int().positive(),
+                    title: z.string().trim().min(1).max(100).optional(),
+                    memo: z.string().trim().min(1).nullable().optional(),
+                    location: z.string().trim().min(1).max(255).nullable().optional(),
+                    startsAt: z.string().optional(),
+                    endsAt: z.string().nullable().optional(),
                 }),
             },
         );

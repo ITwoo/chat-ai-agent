@@ -918,6 +918,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 isCancel = CANCEL_MESSAGES.has(normalized);
                 break;
 
+            case 'schedule_update_approval':
+                isApprove = UPDATE_APPROVE_MESSAGES.has(normalized);
+                isCancel = CANCEL_MESSAGES.has(normalized);
+                break;
+            
             case 'user_memory_delete_approval':
                 isApprove = DELETE_APPROVE_MESSAGES.has(normalized);
                 isCancel = CANCEL_MESSAGES.has(normalized);
@@ -952,6 +957,64 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 `- 내용: ${request.memory.content}`,
             ].join('\n');
         }
+
+        if (request.type === 'schedule_update_approval') {
+            const changes: string[] = [];
+
+            if (
+                request.changes.title !== undefined &&
+                request.changes.title !== request.schedule.title
+            ) {
+                changes.push(
+                    `제목: ${request.schedule.title} → ${request.changes.title}`,
+                );
+            }
+
+            if (
+                request.changes.location !== undefined &&
+                request.changes.location !== request.schedule.location
+            ) {
+                changes.push(
+                    `장소: ${request.schedule.location ?? '없음'} → ` +
+                    `${request.changes.location ?? '없음'}`,
+                );
+            }
+
+            if (
+                request.changes.startsAt !== undefined &&
+                request.changes.startsAt !== request.schedule.startsAt
+            ) {
+                changes.push(
+                    `시작: ${request.schedule.startsAt} → ${request.changes.startsAt}`,
+                );
+            }
+
+            if (
+                request.changes.endsAt !== undefined &&
+                request.changes.endsAt !== request.schedule.endsAt
+            ) {
+                changes.push(
+                    `종료: ${request.schedule.endsAt ?? '없음'} → ` +
+                    `${request.changes.endsAt ?? '없음'}`,
+                );
+            }
+
+            if (
+                request.changes.memo !== undefined &&
+                request.changes.memo !== request.schedule.memo
+            ) {
+                changes.push(
+                    `메모: ${request.schedule.memo ?? '없음'} → ` +
+                    `${request.changes.memo ?? '없음'}`,
+                );
+            }
+
+            return [
+                `${request.schedule.title} 일정을 다음과 같이 수정할까요?`,
+                ...changes.map((change) => `- ${change}`),
+            ].join('\n');
+        }
+
         const changes: string[] = [];
 
         if (
@@ -1411,7 +1474,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         traceContext: ApprovalIntentTraceContext,
     ): Promise<AgentApprovalDecision | null> {
         if (source.type === 'button') {
-            return this.attachExpenseApprovalVersion(request, {
+            return this.attachApprovalVersion(request, {
                 action: source.action,
             });
         }
@@ -1421,7 +1484,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         const parsedDecision = this.parseApprovalDecision(request, content);
 
         if (parsedDecision) {
-            return this.attachExpenseApprovalVersion(request, parsedDecision);
+            return this.attachApprovalVersion(request, parsedDecision);
         }
 
         const result =
@@ -1433,7 +1496,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
         switch (result.intent) {
             case 'approve':
-                return this.attachExpenseApprovalVersion(request, {
+                return this.attachApprovalVersion(request, {
                     action: 'approve',
                 });
 
@@ -1547,21 +1610,30 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         }
     }
 
-    private attachExpenseApprovalVersion(
+    private attachApprovalVersion(
         request: AgentApprovalRequest,
-        decision: UpdateExpenseDecision,
-    ): UpdateExpenseDecision {
-        if (
-            decision.action !== 'approve' ||
-            request.type !== 'expense_update_approval'
-        ) {
+        decision: AgentApprovalDecision,
+    ): AgentApprovalDecision {
+        if (decision.action !== 'approve') {
             return decision;
         }
 
-        return {
-            ...decision,
-            expectedVersion: request.expense.version,
-        };
+        switch (request.type) {
+            case 'expense_update_approval':
+                return {
+                    ...decision,
+                    expectedVersion: request.expense.version,
+                };
+
+            case 'schedule_update_approval':
+                return {
+                    ...decision,
+                    expectedVersion: request.schedule.version,
+                };
+
+            default:
+                return decision;
+        }
     }
 
 }

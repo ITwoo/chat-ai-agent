@@ -2,6 +2,7 @@ import type {
     AgentApprovalAction,
     ExpenseUpdateApprovalRequest,
     PendingAgentApproval,
+    ScheduleUpdateApprovalRequest,
     UserMemoryDeleteApprovalRequest,
 } from '../types/agentApproval';
 
@@ -24,6 +25,10 @@ type UserMemoryDeleteApprovalCardProps =
     ApprovalCardContentProps & {
         request: UserMemoryDeleteApprovalRequest;
     };
+
+type ScheduleApprovalCardProps = ApprovalCardContentProps & {
+    request: ScheduleUpdateApprovalRequest;
+};
 
 type ApprovalChange = {
     label: string;
@@ -214,6 +219,72 @@ function ExpenseUpdateApprovalCard({
     );
 }
 
+function ScheduleUpdateApprovalCard({
+    request,
+    disabled,
+    onRespond,
+}: ScheduleApprovalCardProps) {
+    const { schedule, changes } = request;
+
+    return (
+        <section className="shrink-0 border-t bg-gray-50 px-4 py-4 md:px-6">
+            <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm">
+                <p className="text-sm font-bold text-gray-900">
+                    일정 수정 승인 필요
+                </p>
+
+                <p className="mt-1 text-sm text-gray-600">
+                    {request.message}
+                </p>
+
+                <div className="mt-4 rounded-lg bg-gray-50 p-3 text-sm">
+                    <p className="font-semibold text-gray-900">
+                        {schedule.title}
+                    </p>
+
+                    {changes.title !== undefined && (
+                        <p>제목: {schedule.title} → {changes.title}</p>
+                    )}
+
+                    {changes.location !== undefined && (
+                        <p>
+                            장소: {schedule.location ?? '없음'} →{' '}
+                            {changes.location ?? '없음'}
+                        </p>
+                    )}
+
+                    {changes.startsAt !== undefined && (
+                        <p>
+                            시작: {schedule.startsAt} → {changes.startsAt}
+                        </p>
+                    )}
+
+                    {changes.endsAt !== undefined && (
+                        <p>
+                            종료: {schedule.endsAt ?? '없음'} →{' '}
+                            {changes.endsAt ?? '없음'}
+                        </p>
+                    )}
+
+                    {changes.memo !== undefined && (
+                        <p>
+                            메모: {schedule.memo ?? '없음'} →{' '}
+                            {changes.memo ?? '없음'}
+                        </p>
+                    )}
+                </div>
+
+                <ApprovalButtons
+                    disabled={disabled}
+                    onRespond={onRespond}
+                    approveLabel="승인"
+                    approveButtonClassName="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+            </div>
+        </section>
+    );
+}
+
 function UserMemoryDeleteApprovalCard({
     request,
     disabled,
@@ -296,6 +367,15 @@ export function AgentApprovalCard({
         case 'expense_update_approval':
             return (
                 <ExpenseUpdateApprovalCard
+                    request={request}
+                    disabled={disabled}
+                    onRespond={onRespond}
+                />
+            );
+
+        case 'schedule_update_approval':
+            return (
+                <ScheduleUpdateApprovalCard
                     request={request}
                     disabled={disabled}
                     onRespond={onRespond}

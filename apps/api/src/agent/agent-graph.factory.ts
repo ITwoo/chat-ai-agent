@@ -38,6 +38,7 @@ const MUTATING_ACTION_TOOL_NAMES = new Set([
 const DUPLICATE_GUARDED_MUTATION_TOOL_NAMES = new Set([
     'update_expense',
     'update_schedule',
+    'delete_schedule',
     'delete_user_memory',
 ]);
 
@@ -72,6 +73,12 @@ const SYSTEM_PROMPT = `
 - 대상과 변경 내용이 명확하면 update_schedule을 즉시 호출한다.
 - update_schedule 내부의 interrupt가 최종 승인을 담당한다.
 - update_schedule 호출 전에 별도의 승인 질문을 하지 않는다.
+
+일정 삭제에서는 다음 규칙을 반드시 따른다.
+- find_schedules로 삭제 대상을 먼저 정확하게 식별한다.
+- 후보가 여러 개이면 사용자가 대상을 선택하게 한다.
+- 대상이 명확하면 delete_schedule을 호출한다.
+- delete_schedule 내부의 interrupt가 최종 승인을 담당하므로 호출 전에 별도의 승인 질문을 하지 않는다.
 
 지출 수정에서는 다음 규칙을 반드시 따른다.
 - find_expenses 결과가 여러 개이면 사용자가 수정 대상을 선택하게 한다.

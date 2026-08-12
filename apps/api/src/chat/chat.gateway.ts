@@ -18,7 +18,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AgentRunContext, AgentService, AgentStreamEvent, ApprovalIntentTraceContext } from '../agent/agent.service';
-import { AgentApprovalDecision, AgentApprovalRequest, agentApprovalResponseSchema, ExpenseUpdateApprovalRequest, UpdateExpenseDecision } from '../agent/agent-interrupt.schema';
+import { AgentApprovalDecision, AgentApprovalRequest, agentApprovalResponseSchema } from '../agent/agent-interrupt.schema';
 import { randomUUID } from 'node:crypto';
 import { PendingAgentApproval } from './types/pending-agent-approval.type';
 import { PendingAgentApprovalStoreService } from './pending-agent-approval-store.service';
@@ -26,7 +26,6 @@ import { RedisLock, RedisLockService } from '../redis/redis-lock.service';
 import { RedisRateLimitService } from '../redis/redis-rate-limit.service';
 import { RagCitation } from '../rag/schemas/rag-citation.schema';
 import { ChatSummaryService } from './chat-summary.service';
-import { UserMemoryExtractionService } from '../user-memory/user-memory-extraction.service';
 import { QueueProducerService } from '../queue/queue-producer.service';
 import { UserMemoryJobStateService } from '../user-memory/user-memory-job-state.service';
 import { RetryMessageDto } from './dto/retry-message.dto';
@@ -923,6 +922,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 isCancel = CANCEL_MESSAGES.has(normalized);
                 break;
             
+            case 'schedule_delete_approval':
+                isApprove = DELETE_APPROVE_MESSAGES.has(normalized);
+                isCancel = CANCEL_MESSAGES.has(normalized);
+                break;
+
             case 'user_memory_delete_approval':
                 isApprove = DELETE_APPROVE_MESSAGES.has(normalized);
                 isCancel = CANCEL_MESSAGES.has(normalized);
@@ -955,6 +959,16 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 `- 타입: ${request.memory.type}`,
                 `- 키: ${request.memory.memoryKey}`,
                 `- 내용: ${request.memory.content}`,
+            ].join('\n');
+        }
+
+        if (request.type === 'schedule_delete_approval') {
+            return [
+                request.message,
+                `- 제목: ${request.schedule.title}`,
+                `- 장소: ${request.schedule.location ?? '없음'}`,
+                `- 시작: ${request.schedule.startsAt}`,
+                `- 종료: ${request.schedule.endsAt ?? '없음'}`,
             ].join('\n');
         }
 
@@ -1631,6 +1645,12 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                     expectedVersion: request.schedule.version,
                 };
 
+            case 'schedule_delete_approval':
+                return {
+                    ...decision,
+                    expectedVersion: request.schedule.version,
+                };
+            
             default:
                 return decision;
         }

@@ -49,6 +49,21 @@ export type ScheduleUpdateApprovalRequest = {
     };
 };
 
+export type ScheduleDeleteApprovalRequest = {
+    type: 'schedule_delete_approval';
+    action: 'delete_schedule';
+    message: string;
+
+    schedule: {
+        id: number;
+        title: string;
+        memo: string | null;
+        location: string | null;
+        startsAt: string;
+        endsAt: string | null;
+    };
+};
+
 export type UserMemoryDeleteApprovalRequest = {
     type: 'user_memory_delete_approval';
     action: 'delete_user_memory';
@@ -68,6 +83,7 @@ export type UserMemoryDeleteApprovalRequest = {
 export type AgentApprovalRequest =
     | ExpenseUpdateApprovalRequest
     | ScheduleUpdateApprovalRequest
+    | ScheduleDeleteApprovalRequest
     | UserMemoryDeleteApprovalRequest;
 
 export type PendingAgentApproval = {

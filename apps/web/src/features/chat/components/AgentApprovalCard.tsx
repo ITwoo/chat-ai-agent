@@ -2,6 +2,7 @@ import type {
     AgentApprovalAction,
     ExpenseUpdateApprovalRequest,
     PendingAgentApproval,
+    ScheduleDeleteApprovalRequest,
     ScheduleUpdateApprovalRequest,
     UserMemoryDeleteApprovalRequest,
 } from '../types/agentApproval';
@@ -28,6 +29,10 @@ type UserMemoryDeleteApprovalCardProps =
 
 type ScheduleApprovalCardProps = ApprovalCardContentProps & {
     request: ScheduleUpdateApprovalRequest;
+};
+
+type ScheduleDeleteApprovalCardProps = ApprovalCardContentProps & {
+    request: ScheduleDeleteApprovalRequest;
 };
 
 type ApprovalChange = {
@@ -285,6 +290,44 @@ function ScheduleUpdateApprovalCard({
     );
 }
 
+function ScheduleDeleteApprovalCard({
+    request,
+    disabled,
+    onRespond,
+}: ScheduleDeleteApprovalCardProps) {
+    const { schedule } = request;
+
+    return (
+        <section className="shrink-0 border-t bg-gray-50 px-4 py-4 md:px-6">
+            <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm">
+                <p className="text-sm font-bold text-gray-900">
+                    일정 삭제 승인 필요
+                </p>
+
+                <p className="mt-1 text-sm text-gray-600">
+                    {request.message}
+                </p>
+
+                <div className="mt-4 rounded-lg bg-gray-50 p-3 text-sm">
+                    <p className="font-semibold text-gray-900">
+                        {schedule.title}
+                    </p>
+                    <p>장소: {schedule.location ?? '없음'}</p>
+                    <p>시작: {schedule.startsAt}</p>
+                    <p>종료: {schedule.endsAt ?? '없음'}</p>
+                </div>
+
+                <ApprovalButtons
+                    disabled={disabled}
+                    onRespond={onRespond}
+                    approveLabel="삭제"
+                    approveButtonClassName="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+            </div>
+        </section>
+    );
+}
+
 function UserMemoryDeleteApprovalCard({
     request,
     disabled,
@@ -382,6 +425,15 @@ export function AgentApprovalCard({
                 />
             );
 
+        case 'schedule_delete_approval':
+            return (
+                <ScheduleDeleteApprovalCard
+                    request={request}
+                    disabled={disabled}
+                    onRespond={onRespond}
+                />
+            );
+            
         case 'user_memory_delete_approval':
             return (
                 <UserMemoryDeleteApprovalCard

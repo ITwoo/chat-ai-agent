@@ -52,6 +52,25 @@ export type ScheduleUpdateApprovalRequest = z.infer<
     typeof scheduleUpdateApprovalRequestSchema
 >;
 
+export const scheduleDeleteApprovalRequestSchema = z.object({
+    type: z.literal('schedule_delete_approval'),
+    action: z.literal('delete_schedule'),
+    message: z.string(),
+    schedule: z.object({
+        id: z.number().int().positive(),
+        title: z.string(),
+        memo: z.string().nullable(),
+        location: z.string().nullable(),
+        startsAt: z.string(),
+        endsAt: z.string().nullable(),
+        version: z.number().int().nonnegative(),
+    }),
+});
+
+export type ScheduleDeleteApprovalRequest = z.infer<
+    typeof scheduleDeleteApprovalRequestSchema
+>;
+
 export const updateExpenseDecisionSchema =
     z.discriminatedUnion('action', [
         z.object({
@@ -136,6 +155,7 @@ export const agentApprovalRequestSchema = z.discriminatedUnion(
     [
         expenseUpdateApprovalRequestSchema,
         scheduleUpdateApprovalRequestSchema,
+        scheduleDeleteApprovalRequestSchema,
         userMemoryDeleteApprovalRequestSchema,
     ],
 );

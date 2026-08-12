@@ -3,7 +3,7 @@ import { StructuredToolInterface, tool, ToolRuntime } from '@langchain/core/tool
 import { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service';
 import { interrupt } from '@langchain/langgraph';
-import { ExpenseUpdateApprovalRequest, ScheduleUpdateApprovalRequest, updateExpenseDecisionSchema, updateScheduleDecisionSchema } from './agent-interrupt.schema';
+import { agentApprovalDecisionSchema, ExpenseUpdateApprovalRequest, ScheduleDeleteApprovalRequest, ScheduleUpdateApprovalRequest, updateExpenseDecisionSchema, updateScheduleDecisionSchema } from './agent-interrupt.schema';
 import { RAG_SEARCH_TOOL_NAME } from '../rag/rag.constants';
 import { ragSearchToolInputSchema } from '../rag/schemas/rag-search-tool.schema';
 import { AgentToolContext } from './types/agent-tool-context.type';
@@ -44,6 +44,7 @@ export class AgentToolsService {
             this.createScheduleListTool(context),
             this.createFindSchedulesTool(context),
             this.createUpdateScheduleTool(context),
+            this.createDeleteScheduleTool(context),
             this.createExpenseTool(context),
             this.createExpenseSummaryTool(context),
             this.createExpenseListTool(context),
@@ -1166,6 +1167,149 @@ export class AgentToolsService {
                     location: z.string().trim().min(1).max(255).nullable().optional(),
                     startsAt: z.string().optional(),
                     endsAt: z.string().nullable().optional(),
+                }),
+            },
+        );
+    }
+
+    private createDeleteScheduleTool(context: AgentToolContext) {
+        return tool(
+            async ({ scheduleId }) => {
+                this.logger.log('[tool] delete_schedule');
+
+                const schedule = await this.prisma.schedule.findFirst({
+                    where: {
+                        id: scheduleId,
+                        userId: context.userId,
+                    },
+                    select: {
+                        id: true,
+                        title: true,
+                        memo: true,
+                        location: true,
+                        startsAt: true,
+                        endsAt: true,
+                        version: true,
+                    },
+                });
+
+                if (!schedule) {
+                    return '삭제할 일정을 찾을 수 없습니다.';
+                }
+
+                const approvalRequest = {
+                    type: 'schedule_delete_approval',
+                    action: 'delete_schedule',
+                    message: '이 일정을 삭제할까요?',
+                    schedule: {
+                        id: schedule.id,
+                        title: schedule.title,
+                        memo: schedule.memo,
+                        location: schedule.location,
+                        startsAt: schedule.startsAt.toISOString(),
+                        endsAt: schedule.endsAt?.toISOString() ?? null,
+                        version: schedule.version,
+                    },
+                } satisfies ScheduleDeleteApprovalRequest;
+
+                const resumeValue: unknown = interrupt(approvalRequest);
+
+                const decisionResult =
+                    agentApprovalDecisionSchema.safeParse(resumeValue);
+
+                if (!decisionResult.success) {
+                    return '일정 삭제 승인 응답 형식이 올바르지 않습니다.';
+                }
+
+                const decision = decisionResult.data;
+
+                if (decision.action === 'cancel') {
+                    return JSON.stringify({
+                        deleted: false,
+                        status: 'cancelled',
+                        scheduleId,
+                        message: '일정 삭제를 취소했습니다.',
+                    });
+                }
+
+                if (decision.action === 'revise') {
+                    return JSON.stringify({
+                        deleted: false,
+                        status: 'revision_requested',
+                        schedule: approvalRequest.schedule,
+                        revisionRequest: decision.content,
+                        nextAction:
+                            'revisionRequest를 반영해 find_schedules로 대상을 다시 찾은 뒤 delete_schedule을 호출한다.',
+                    });
+                }
+
+                const expectedVersion = decision.expectedVersion;
+
+                if (expectedVersion === undefined || expectedVersion === null) {
+                    return JSON.stringify({
+                        deleted: false,
+                        status: 'expired_approval',
+                        scheduleId,
+                        message: '승인 요청의 버전 정보가 없어 다시 요청해야 합니다.',
+                    });
+                }
+
+                const deleteResult = await this.prisma.schedule.deleteMany({
+                    where: {
+                        id: scheduleId,
+                        userId: context.userId,
+                        version: expectedVersion,
+                    },
+                });
+
+                if (deleteResult.count === 0) {
+                    const currentSchedule =
+                        await this.prisma.schedule.findFirst({
+                            where: {
+                                id: scheduleId,
+                                userId: context.userId,
+                            },
+                            select: {
+                                version: true,
+                            },
+                        });
+
+                    if (!currentSchedule) {
+                        return JSON.stringify({
+                            deleted: false,
+                            status: 'already_deleted',
+                            scheduleId,
+                            message: '이미 삭제된 일정입니다.',
+                        });
+                    }
+
+                    return JSON.stringify({
+                        deleted: false,
+                        status: 'stale_approval',
+                        scheduleId,
+                        expectedVersion,
+                        currentVersion: currentSchedule.version,
+                        message:
+                            '승인 대기 중 일정이 변경되었습니다. 다시 확인해 주세요.',
+                    });
+                }
+
+                return JSON.stringify({
+                    deleted: true,
+                    schedule: approvalRequest.schedule,
+                    message: '일정을 삭제했습니다.',
+                });
+            },
+            {
+                name: 'delete_schedule',
+                description:
+                    '기존 일정을 삭제한다. find_schedules로 정확한 대상을 식별한 뒤 호출하며 내부 승인 절차를 거친다.',
+                schema: z.object({
+                    scheduleId: z
+                        .number()
+                        .int()
+                        .positive()
+                        .describe('find_schedules가 반환한 삭제 대상 일정 ID'),
                 }),
             },
         );

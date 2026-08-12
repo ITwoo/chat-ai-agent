@@ -36,8 +36,9 @@
 LangGraph의 `interrupt/resume`으로 승인을 받은 뒤 실행하며, 중복 승인과 서버 재시작에도
 안전하게 이어지도록 상태를 PostgreSQL과 Redis에 관리합니다.
 
-업로드한 문서는 `pgvector`로 검색하고 답변에 출처를 함께 표시합니다. 사용자 선호·목표·제약은
-장기 메모리로 추출해 이후 대화에 활용합니다.
+업로드한 문서는 `pgvector` 벡터 검색과 PostgreSQL Full Text Search를
+RRF로 결합한 하이브리드 검색으로 조회하고 답변에 출처를 함께 표시합니다.
+사용자 선호·목표·제약은 장기 메모리로 추출해 이후 대화에 활용합니다.
 
 Python MCP Server를 별도 분석 서비스로 구성하고 NestJS/LangGraph Agent와 연결했습니다.
 Agent는 기존 TypeScript Tool과 Python MCP Tool을 함께 선택할 수 있으며, 현재는 지출 데이터를
@@ -53,6 +54,14 @@ Agent는 기존 TypeScript Tool과 Python MCP Tool을 함께 선택할 수 있�
 - 채팅방 생성·수정·삭제 및 메시지 페이지네이션
 - 응답 생성 중지, 실패 처리, 재연결 후 채팅방 자동 재입장
 - 대화 요약과 최근 메시지를 결합한 문맥 관리
+
+### Supervisor 기반 도메인 분리
+
+- Supervisor가 사용자 요청을 `expense`, `schedule`, `memory`, `rag`, `general` 도메인으로 분류
+- 하나의 요청에 여러 도메인 작업이 포함되면 독립적인 assignment로 분리
+- 각 Domain Agent에는 현재 담당 작업만 전달하여 이전 요청의 재실행 방지
+- 수정·삭제 후보가 여러 개인 경우 임의로 하나를 선택하지 않도록 Graph 레벨에서 차단
+- 사용자가 선택한 후보 ID와 다중 대상 의도를 구조화된 상태로 관리
 
 ### 지출 관리 Agent
 
@@ -74,8 +83,11 @@ Agent는 기존 TypeScript Tool과 Python MCP Tool을 함께 선택할 수 있�
 
 - TXT·PDF 문서 업로드
 - BullMQ 기반 비동기 문서 처리
-- OpenAI Embedding과 PostgreSQL `pgvector` 검색
-- HNSW cosine index
+- OpenAI Embedding + PostgreSQL `pgvector` 벡터 검색
+- PostgreSQL Full Text Search를 이용한 키워드 검색
+- Vector Rank와 Keyword Rank를 RRF(Reciprocal Rank Fusion)로 결합한 하이브리드 검색
+- HNSW cosine index 및 `iterative_scan` 적용
+- 유사도 임계값과 문서별 청크 수 제한을 이용한 검색 결과 정제
 - 답변에 문서명·청크 출처 표시
 - 컨테이너 재생성 후에도 유지되는 RAG 파일 볼륨
 
@@ -455,8 +467,13 @@ Storage Adapter로 전환할 계획입니다.
 
 ### 검색 방식
 
-현재는 pgvector cosine 검색에 집중합니다. PostgreSQL Full Text Search와 RRF를 결합한
-하이브리드 검색은 구현 복잡도 대비 현재 데이터 규모에서 얻는 효과가 작아 보류했습니다.
+pgvector cosine 유사도 기반 벡터 검색과 PostgreSQL Full Text Search 기반 키워드 검색을 함께 사용합니다.
+
+각 검색 결과의 순위를 RRF(Reciprocal Rank Fusion)로 결합하여,
+의미적으로 유사한 문서와 정확한 키워드가 포함된 문서를 함께 검색할 수 있도록 구성했습니다.
+
+최종 검색 결과에서는 유사도 임계값과 문서별 청크 수 제한을 적용하여
+관련성이 낮은 결과와 특정 문서의 과도한 편중을 줄입니다.
 
 ---
 

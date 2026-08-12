@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  자연어 지출 관리, 사용자 승인, 중복 실행 방지, 장애 복구,
-  장기 메모리와 RAG를 구현한 풀스택 서비스입니다.
+자연어 지출·일정 관리, Supervisor 기반 도메인 분리, 사용자 승인,
+장기 메모리, Hybrid RAG, Python MCP 분석을 구현한 풀스택 AI Agent 서비스입니다.
 </p>
 
 <p align="center">
@@ -32,9 +32,12 @@
 `Chat AI Agent`는 단순 질의응답 챗봇이 아니라, 대화 문맥을 바탕으로 실제 Tool을 실행하는
 개인 관리 AI Agent입니다.
 
-사용자는 자연어로 지출을 등록·조회·수정할 수 있습니다. 데이터 변경처럼 중요한 작업은
-LangGraph의 `interrupt/resume`으로 승인을 받은 뒤 실행하며, 중복 승인과 서버 재시작에도
-안전하게 이어지도록 상태를 PostgreSQL과 Redis에 관리합니다.
+Supervisor가 요청을 지출, 일정, 장기 메모리, RAG, 일반 대화 도메인으로 분리하고,
+여러 도메인이 포함된 요청은 독립적인 작업으로 나누어 각 Agent에 전달합니다.
+
+사용자는 자연어로 지출과 일정을 등록·조회·수정·삭제할 수 있습니다.
+수정·삭제처럼 중요한 데이터 변경은 LangGraph의 `interrupt/resume`으로 승인을 받은 뒤 실행하며,
+중복 승인과 서버 재시작에도 안전하게 이어지도록 상태를 PostgreSQL과 Redis에 관리합니다.
 
 업로드한 문서는 `pgvector` 벡터 검색과 PostgreSQL Full Text Search를
 RRF로 결합한 하이브리드 검색으로 조회하고 답변에 출처를 함께 표시합니다.
@@ -65,11 +68,20 @@ Agent는 기존 TypeScript Tool과 Python MCP Tool을 함께 선택할 수 있�
 
 ### 지출 관리 Agent
 
-- 자연어 기반 지출 등록·목록·요약·검색
-- 수정 대상 탐색 후 사용자 승인 요청
+- 자연어 기반 지출 등록·목록·요약·검색·수정·삭제
+- 수정·삭제 대상 탐색 후 사용자 승인 요청
 - 승인 버튼과 채팅 입력을 통한 `approve / cancel / revise`
 - 승인 전 데이터가 바뀌었는지 `version`으로 검증
 - `operationKey`와 작업 이력으로 Tool 재실행 및 중복 반영 방지
+
+### 일정 관리 Agent
+
+- 자연어 기반 일정 등록·목록·검색·수정·삭제
+- 오늘·내일 등 상대 날짜는 Asia/Seoul 현재 시각을 기준으로 해석
+- 제목·장소·날짜·시각 조건으로 수정·삭제 대상 검색
+- 검색 후보가 여러 개인 경우 임의로 하나를 선택하지 않고 사용자 선택을 반영
+- 수정·삭제는 사용자 승인 후 실행하고 `version`으로 오래된 승인 방지
+- 일정 생성은 `operationKey`를 이용해 동일 요청의 중복 생성 방지
 
 ### 승인과 장애 복구
 
@@ -120,16 +132,19 @@ Agent는 기존 TypeScript Tool과 Python MCP Tool을 함께 선택할 수 있�
 
 ### Observability
 
-* LangSmith 기반 Agent 실행 추적
-* Agent 실행 유형과 사용자·대화·Agent thread를 trace metadata로 기록
-* LLM·Tool 호출의 latency, token usage, error 확인
-* 일반 Action Tool과 RAG 실행 흐름을 구분해 추적
+- LangSmith 기반 Agent 실행 추적
+- Agent 실행 유형과 사용자·대화·Agent thread를 trace metadata로 기록
+- Supervisor와 Domain Agent의 LLM 실행을 별도 run으로 추적
+- Action Tool은 read / mutation 유형을 tag와 metadata로 구분
+- RAG 답변 생성, 대화 요약, 사용자 메모리 추출 등 백그라운드 AI 작업도 별도 trace로 기록
+- LLM·Tool 호출의 latency, token usage, error 확인
+- `/api/health`에서 PostgreSQL 연결 상태 확인
 
 ---
 
 ## 핵심 설계
 
-### 1. 승인 기반 지출 수정
+### 1. 승인 기반 수정·삭제
 
 ```mermaid
 sequenceDiagram
@@ -139,56 +154,81 @@ sequenceDiagram
     participant G as LangGraph
     participant DB as PostgreSQL
 
-    U->>W: 지출 수정 요청
+    U->>W: 지출·일정 수정/삭제 요청
     W->>A: send_message
     A->>G: Agent 실행
-    G->>DB: 수정 대상 조회
+    G->>DB: 대상 조회
     G-->>A: interrupt(승인 요청)
     A->>DB: Pending Approval 저장
     A-->>W: 승인 카드 전송
     U->>W: approve / cancel / revise
     W->>A: 승인 응답
     A->>G: Command(resume)
-    G->>DB: version 조건부 수정
+    G->>DB: version 조건부 수정/삭제
     G-->>A: Tool 결과
     A-->>W: 최종 응답
 ```
 
-승인 대기 중 다른 요청이 같은 지출을 변경하면 `expectedVersion`과 현재 `version`이 달라져
-이전 승인을 거부합니다. 이를 통해 오래된 승인 카드가 최신 데이터를 덮어쓰지 않도록 했습니다.
+지출과 일정의 수정·삭제는 Tool 내부에서 `interrupt`를 발생시켜
+사용자의 최종 승인을 받은 뒤 실행합니다.
 
-### 2. 중복 실행 방지
+승인 대기 중 다른 요청이 같은 데이터를 변경하면 `expectedVersion`과 현재 `version`이 달라져
+이전 승인을 거부합니다. 이를 통해 오래된 승인 카드가 최신 데이터를 수정하거나 삭제하지
+못하도록 했습니다.
 
-중복 방지는 한 계층에만 의존하지 않습니다.
+### 2. 중복 실행 및 동시성 제어
+
+중요한 데이터 변경은 하나의 장치에만 의존하지 않고 여러 계층에서 보호합니다.
 
 ```txt
 Tool Call
-├─ operationKey 기반 지출 등록 멱등성
-├─ approvalId 검증
-├─ 처리 중인 방 상태 확인
-├─ Redis 승인 Lock
-├─ Expense.version 낙관적 동시성 제어
-└─ ExpenseUpdateOperation 작업 이력
+├─ 지출·일정 생성: operationKey 기반 멱등성
+├─ 수정·삭제: 동일 Mutation Tool Call 중복 실행 차단
+├─ 승인 응답: approvalId + originUserMessageId 검증
+├─ 채팅방 단위 중복 처리 방지
+├─ 승인 처리: Redis Lock
+└─ 지출·일정 version 기반 낙관적 동시성 제어
 ```
 
-각 장치는 중복 클릭, 동일 Tool 재실행, 승인 대기 중 데이터 변경처럼 서로 다른 실패 상황을
-담당합니다.
+지출과 일정 생성은 Tool Call에서 만든 `operationKey`와
+`(userId, operationKey)` Unique 제약을 이용해 동일 요청이 다시 실행되어도
+같은 데이터가 중복 생성되지 않도록 했습니다.
+
+수정·삭제 Tool은 현재 Agent 실행에서 이미 수행한 Mutation signature를 기록하여
+동일한 Tool Call이 반복 실행되는 것을 차단합니다.
+
+승인 버튼은 현재 대기 중인 `approvalId`와 원본 사용자 메시지를 함께 검증하며,
+동일 채팅방에서 승인 처리가 동시에 실행되지 않도록 Redis Lock을 사용합니다.
+
+또한 지출과 일정의 수정·삭제는 승인 시점의 `expectedVersion`과
+현재 데이터의 `version`을 비교하여, 승인 대기 중 데이터가 변경된 경우
+오래된 승인을 실행하지 않습니다.
 
 ### 3. BullMQ 작업 복구
 
-RAG와 사용자 메모리 작업은 Redis Queue 상태만 신뢰하지 않고 PostgreSQL에도 작업 상태를
-저장합니다.
+RAG 문서 처리와 사용자 메모리 추출은 Redis Queue 상태만 신뢰하지 않고,
+PostgreSQL에도 처리 상태를 함께 저장합니다.
 
 ```txt
-요청 저장
-→ DB 상태 PENDING
-→ BullMQ Job 등록
+RAG
+PENDING
 → PROCESSING
-→ 완료 시 READY / ACTIVE
+→ READY
+
+사용자 메모리 추출
+PENDING
+→ PROCESSING
+→ COMPLETED
 ```
 
-서버가 재시작되거나 Redis Job이 사라진 경우 DB 상태와 Queue 상태를 비교해 필요한 Job을
-다시 등록합니다.
+서버 시작 시와 실행 중 주기적으로 DB 상태와 BullMQ Job 상태를 비교합니다.
+
+BullMQ의 `WAITING`, `DELAYED`, `ACTIVE`, `FAILED`, `NOT_FOUND` 상태와
+DB의 `PENDING`, `PROCESSING` 상태를 함께 확인하여,
+중단된 작업을 다시 등록하거나 상태를 복구하고 최종 실패 작업은 `FAILED`로 기록합니다.
+
+복구 작업 자체도 Redis Lock으로 보호하여 여러 서버 인스턴스가
+동시에 같은 작업을 복구하지 않도록 구성했습니다.
 
 ### 4. RAG 출처 제공
 
@@ -198,15 +238,58 @@ RAG와 사용자 메모리 작업은 Redis Queue 상태만 신뢰하지 않고 P
 → 청크 분할
 → Embedding 생성
 → pgvector 저장
-→ cosine 검색
+→ 질문 Embedding 생성
+→ pgvector cosine 벡터 후보 검색
+→ PostgreSQL Full Text Search 키워드 후보 검색
+→ RRF로 두 검색 순위 결합
+→ 유사도·문서별 청크 수 기준 결과 정제
 → 답변 생성
 → 검색 청크를 출처로 저장·표시
 ```
 
-문서 내용은 시스템 명령이 아니라 검색 데이터로 전달하며, 답변 근거를 확인할 수 있도록
-인용 정보를 함께 반환합니다.
+벡터 검색은 의미적으로 유사한 청크를 찾고,
+PostgreSQL Full Text Search는 질문의 키워드가 포함된 청크를 찾습니다.
 
-### 5. Python MCP 분석 서비스
+두 검색 결과는 RRF(Reciprocal Rank Fusion)로 결합하며,
+최종 결과에서는 관련성이 낮은 벡터 검색 결과를 제외하고
+특정 문서의 청크가 과도하게 편중되지 않도록 결과를 정제합니다.
+
+문서 내용은 시스템 명령이 아니라 검색 데이터로 전달하며,
+답변 근거를 확인할 수 있도록 인용 정보를 함께 반환합니다.
+
+### 5. 사용자 장기 메모리
+
+사용자 메시지에서 이후 대화에도 재사용할 가치가 있는 정보를 비동기로 추출해
+사용자별 장기 메모리로 저장합니다.
+
+```txt
+사용자 메시지 저장
+→ BullMQ 메모리 추출 Job 등록
+→ 기존 관련 메모리 검색
+→ LLM Structured Output으로 메모리 후보 추출
+→ confidence 기준 필터링
+→ memoryKey 기준 UPSERT / ARCHIVE
+→ Embedding 저장
+→ 이후 대화에서 관련 메모리 검색
+```
+
+장기 메모리는 다음 네 가지 유형으로 구분합니다.
+
+- `PROFILE`: 비교적 오래 유지되는 사용자 정보
+- `PREFERENCE`: 반복적으로 적용할 사용자 선호
+- `GOAL`: 여러 대화에 걸쳐 이어지는 목표
+- `CONSTRAINT`: 이후 응답에서 계속 지켜야 할 제약
+
+같은 의미의 정보는 `memoryKey`를 기준으로 갱신하며,
+Embedding과 pgvector cosine 검색을 이용해 현재 대화와 관련된 활성 메모리만 조회합니다.
+
+사용자가 메모리 삭제를 요청하면 후보를 먼저 검색해 대상을 식별하고,
+`delete_user_memory`의 승인 흐름을 거쳐 삭제합니다.
+
+삭제된 메모리는 즉시 다시 추출되지 않도록 삭제 시점과 출처 메시지 시점을 비교하며,
+실제 삭제 시에는 내용과 Embedding을 제거하고 `DELETED` 상태와 삭제 시각만 유지합니다.
+
+### 6. Python MCP 분석 서비스
 
 지출 조회와 사용자 데이터 접근은 기존 NestJS Agent Tool이 담당하고, 통계 분석은 별도의
 Python MCP Server가 담당하도록 역할을 분리했습니다.
@@ -238,8 +321,24 @@ flowchart LR
     WEB -->|/api| API[NestJS API]
     WEB -->|/socket.io| API
 
+    API --> SUPERVISOR[LangGraph Supervisor]
+
+    SUPERVISOR --> EXPENSE[Expense Agent]
+    SUPERVISOR --> SCHEDULE[Schedule Agent]
+    SUPERVISOR --> MEMORY[Memory Agent]
+    SUPERVISOR --> RAG[RAG Agent]
+    SUPERVISOR --> GENERAL[General Agent]
+
+    EXPENSE --> TOOLS[Agent Tools]
+    SCHEDULE --> TOOLS
+    MEMORY --> TOOLS
+    RAG --> TOOLS
+
     API --> OPENAI[OpenAI API]
-    API --> APPDB[(RDS PostgreSQL<br/>Prisma + pgvector)]
+
+    TOOLS --> APPDB[(RDS PostgreSQL<br/>Prisma + pgvector)]
+    TOOLS --> MCP[Python MCP Server]
+
     API --> GRAPHDB[(RDS PostgreSQL<br/>LangGraph Checkpoint)]
     API --> REDIS[(Redis<br/>BullMQ · Lock · Socket Adapter)]
     API --> FILES[(EC2 Host Volume<br/>RAG Files)]
@@ -247,6 +346,7 @@ flowchart LR
     subgraph EC2[AWS EC2]
         WEB
         API
+        MCP
         REDIS
         FILES
     end
@@ -257,15 +357,17 @@ flowchart LR
 | 구성 요소 | 역할 |
 |---|---|
 | React + Nginx | 정적 파일 제공, `/api`, `/socket.io` reverse proxy |
-| NestJS API | 인증, 채팅, Agent, RAG, 메모리, BullMQ Processor |
+| NestJS API | 인증, 채팅, Supervisor/Domain Agent, RAG, 메모리, BullMQ Processor |
+| Python MCP Server | IQR 기반 지출 이상치 분석 MCP Tool 제공 |
 | Redis | BullMQ, 승인 Lock, Socket.IO Adapter |
-| RDS Application DB | 사용자·채팅·지출·RAG·메모리 데이터 |
+| RDS Application DB | 사용자·채팅·지출·일정·RAG·메모리 데이터 |
 | RDS LangGraph DB | Checkpoint와 interrupt/resume 상태 |
 | EC2 Host Volume | 업로드한 RAG 원본 파일 영속화 |
 | GitHub Actions | 이미지 빌드, GHCR push, EC2 자동 배포 |
 
 현재 프로젝트 규모에서는 API와 BullMQ Processor를 같은 NestJS 프로세스에서 실행합니다.
-Redis는 EC2의 Docker Compose에서 운영하고, 영구 상태의 원본은 PostgreSQL에 둡니다.
+Redis는 EC2의 Docker Compose에서 운영하고,
+Queue 복구에 필요한 작업 상태와 Agent 실행 상태는 PostgreSQL에 영속화합니다.
 
 ---
 
@@ -280,7 +382,7 @@ Redis는 EC2의 Docker Compose에서 운영하고, 영구 상태의 원본은 Po
 | Realtime | Socket.IO, Redis Adapter |
 | Queue | BullMQ, Redis |
 | Database | PostgreSQL, AWS RDS |
-| Vector Search | pgvector, HNSW, cosine distance |
+| Search | pgvector, HNSW, PostgreSQL FTS, RRF |
 | Authentication | JWT, Passport, bcrypt, Refresh Token Cookie |
 | Infrastructure | Docker, Docker Compose, Nginx |
 | CI/CD | GitHub Actions, GHCR, AWS OIDC |
@@ -343,24 +445,25 @@ pnpm install
 pnpm --filter api exec prisma generate
 ```
 
-### 인프라 실행
+### Docker Compose로 전체 실행
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-### 개발 서버 실행
+Redis, Python MCP Server, NestJS API, React + Nginx를 Docker Compose로 함께 실행합니다.
+
+### 로컬 개발 서버 실행
+
+애플리케이션을 Docker가 아닌 로컬 프로세스로 실행하려면 Redis와 PostgreSQL을 준비한 뒤
+각 서비스를 실행합니다.
 
 ```bash
 pnpm --filter api start:dev
 pnpm --filter web dev
 pnpm --filter mcp dev
 ```
-또는 전체 개발 서비스를 실행합니다.
 
-```bash
-pnpm dev
-```
 ### 전체 빌드
 
 ```bash
@@ -393,7 +496,7 @@ MCP_ANALYSIS_SERVER_URL=http://127.0.0.1:8000/mcp
 
 ## 배포
 
-배포는 GitHub Actions에서 API·Web 이미지를 생성해 GHCR에 push하고, EC2에서 해당
+배포는 GitHub Actions에서 API·Web·MCP 이미지를 생성해 GHCR에 push하고, EC2에서 해당
 commit SHA 이미지를 pull하는 방식입니다.
 
 ```mermaid
@@ -405,7 +508,7 @@ sequenceDiagram
     participant RDS as AWS RDS
 
     DEV->>GH: main push / workflow 실행
-    GH->>GH: API·Web 이미지 빌드
+    GH->>GH: API·Web·MCP 이미지 빌드
     GH->>CR: commit SHA 태그 push
     GH->>EC2: 임시 SSH 허용 후 배포
     EC2->>CR: 이미지 pull
@@ -419,6 +522,7 @@ sequenceDiagram
 ```txt
 chat-ai-agent-web
 chat-ai-agent-api
+chat-ai-agent-mcp
 chat-ai-agent-redis
 ```
 
@@ -496,7 +600,6 @@ pgvector cosine 유사도 기반 벡터 검색과 PostgreSQL Full Text Search �
 
 - RAG 원본 파일 저장소를 EC2 Volume에서 S3로 전환
 - API와 BullMQ Worker 프로세스 분리
-- 하이브리드 검색 도입 여부를 데이터 기반으로 재평가
 - 핵심 승인·복구 시나리오 자동 테스트 확대
 - CloudWatch 기반 운영 알림 추가
 

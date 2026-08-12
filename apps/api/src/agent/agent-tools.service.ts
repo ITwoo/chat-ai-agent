@@ -365,6 +365,9 @@ export class AgentToolsService {
                     return '조회 시작 날짜는 종료 날짜보다 이전이어야 합니다.';
                 }
 
+                const isDuplicateLocation = Boolean(title) && location === title;
+                const effectiveLocation = isDuplicateLocation ? undefined : location;
+                        
                 const where: {
                     userId: number;
                     title?: {
@@ -387,9 +390,9 @@ export class AgentToolsService {
                     };
                 }
 
-                if (location) {
+                if (effectiveLocation) {
                     where.location = {
-                        contains: location,
+                        contains: effectiveLocation,
                     };
                 }
 
@@ -425,7 +428,7 @@ export class AgentToolsService {
                     count: schedules.length,
                     searchConditions: {
                         title: title ?? null,
-                        location: location ?? null,
+                        location: effectiveLocation ?? null,
                         startDate: parsedStartDate?.toISOString() ?? null,
                         endDate: parsedEndDate?.toISOString() ?? null,
                         limit,
@@ -443,28 +446,36 @@ export class AgentToolsService {
             {
                 name: 'find_schedules',
                 description:
-                    '사용자가 기존 일정을 수정하거나 삭제하려고 할 때 대상 후보를 식별한다. 제목, 장소와 날짜 조건으로 기존 일정을 검색한다. 일반적인 일정 목록 조회에는 사용하지 않는다.',
+                    '사용자가 기존 일정을 수정하거나 삭제하려고 할 때 대상 후보를 식별한다. ' +
+                    '사용자가 명시한 제목, 장소, 날짜와 시각 조건만 사용한다. ' +
+                    '같은 표현을 제목과 장소에 중복 적용하지 않는다. ' +
+                    '일반적인 일정 목록 조회에는 사용하지 않는다.',
                 schema: z.object({
                     title: z
                         .string()
                         .trim()
                         .min(1)
                         .optional()
-                        .describe('선택 일정 제목 검색어.'),
+                        .describe(
+                            '사용자가 일정 제목이나 종류로 명시한 경우 사용하는 제목 검색어.',
+                        ),
+
                     location: z
                         .string()
                         .trim()
                         .min(1)
                         .optional()
-                        .describe('선택 일정 장소 검색어.'),
+                        .describe(
+                            '사용자가 장소라고 명확하게 표현한 경우에만 사용하는 장소 검색어.',
+                        ),
                     startDate: z
                         .string()
                         .optional()
-                        .describe('선택 조회 시작 날짜. ISO 8601 문자열이다.'),
+                        .describe('검색 시작 일시(포함). ISO 8601 문자열이다. 날짜와 시각 조건을 모두 반영한다.'),
                     endDate: z
                         .string()
                         .optional()
-                        .describe('선택 조회 종료 날짜. ISO 8601 문자열이다.'),
+                        .describe('검색 종료 일시(미포함). ISO 8601 문자열이다. 날짜와 시각 조건을 모두 반영한다.'),
                     limit: z
                         .number()
                         .int()

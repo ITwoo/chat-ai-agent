@@ -223,6 +223,7 @@ export type UserWhereInput = {
   memories?: Prisma.UserMemoryListRelationFilter
   ragDocuments?: Prisma.RagDocumentListRelationFilter
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationListRelationFilter
+  schedules?: Prisma.ScheduleListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -238,6 +239,7 @@ export type UserOrderByWithRelationInput = {
   memories?: Prisma.UserMemoryOrderByRelationAggregateInput
   ragDocuments?: Prisma.RagDocumentOrderByRelationAggregateInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationOrderByRelationAggregateInput
+  schedules?: Prisma.ScheduleOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -256,6 +258,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   memories?: Prisma.UserMemoryListRelationFilter
   ragDocuments?: Prisma.RagDocumentListRelationFilter
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationListRelationFilter
+  schedules?: Prisma.ScheduleListRelationFilter
 }, "id" | "username">
 
 export type UserOrderByWithAggregationInput = {
@@ -294,6 +297,7 @@ export type UserCreateInput = {
   memories?: Prisma.UserMemoryCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentCreateNestedManyWithoutUserInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -309,6 +313,7 @@ export type UserUncheckedCreateInput = {
   memories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentUncheckedCreateNestedManyWithoutUserInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUncheckedCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -323,6 +328,7 @@ export type UserUpdateInput = {
   memories?: Prisma.UserMemoryUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUpdateManyWithoutUserNestedInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -338,6 +344,7 @@ export type UserUncheckedUpdateInput = {
   memories?: Prisma.UserMemoryUncheckedUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUncheckedUpdateManyWithoutUserNestedInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUncheckedUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -458,6 +465,20 @@ export type UserUpdateOneRequiredWithoutExpenseNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutExpenseInput, Prisma.UserUpdateWithoutExpenseInput>, Prisma.UserUncheckedUpdateWithoutExpenseInput>
 }
 
+export type UserCreateNestedOneWithoutSchedulesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutSchedulesInput, Prisma.UserUncheckedCreateWithoutSchedulesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSchedulesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutSchedulesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutSchedulesInput, Prisma.UserUncheckedCreateWithoutSchedulesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSchedulesInput
+  upsert?: Prisma.UserUpsertWithoutSchedulesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutSchedulesInput, Prisma.UserUpdateWithoutSchedulesInput>, Prisma.UserUncheckedUpdateWithoutSchedulesInput>
+}
+
 export type UserCreateNestedOneWithoutRefreshTokenSessionsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutRefreshTokenSessionsInput, Prisma.UserUncheckedCreateWithoutRefreshTokenSessionsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutRefreshTokenSessionsInput
@@ -525,6 +546,7 @@ export type UserCreateWithoutBoardsInput = {
   memories?: Prisma.UserMemoryCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentCreateNestedManyWithoutUserInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutBoardsInput = {
@@ -539,6 +561,7 @@ export type UserUncheckedCreateWithoutBoardsInput = {
   memories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentUncheckedCreateNestedManyWithoutUserInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUncheckedCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutBoardsInput = {
@@ -568,6 +591,7 @@ export type UserUpdateWithoutBoardsInput = {
   memories?: Prisma.UserMemoryUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUpdateManyWithoutUserNestedInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutBoardsInput = {
@@ -582,6 +606,7 @@ export type UserUncheckedUpdateWithoutBoardsInput = {
   memories?: Prisma.UserMemoryUncheckedUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUncheckedUpdateManyWithoutUserNestedInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUncheckedUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutChatRoomsInput = {
@@ -595,6 +620,7 @@ export type UserCreateWithoutChatRoomsInput = {
   memories?: Prisma.UserMemoryCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentCreateNestedManyWithoutUserInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutChatRoomsInput = {
@@ -609,6 +635,7 @@ export type UserUncheckedCreateWithoutChatRoomsInput = {
   memories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentUncheckedCreateNestedManyWithoutUserInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUncheckedCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutChatRoomsInput = {
@@ -638,6 +665,7 @@ export type UserUpdateWithoutChatRoomsInput = {
   memories?: Prisma.UserMemoryUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUpdateManyWithoutUserNestedInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutChatRoomsInput = {
@@ -652,6 +680,7 @@ export type UserUncheckedUpdateWithoutChatRoomsInput = {
   memories?: Prisma.UserMemoryUncheckedUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUncheckedUpdateManyWithoutUserNestedInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUncheckedUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutExpenseInput = {
@@ -665,6 +694,7 @@ export type UserCreateWithoutExpenseInput = {
   memories?: Prisma.UserMemoryCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentCreateNestedManyWithoutUserInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutExpenseInput = {
@@ -679,6 +709,7 @@ export type UserUncheckedCreateWithoutExpenseInput = {
   memories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentUncheckedCreateNestedManyWithoutUserInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUncheckedCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutExpenseInput = {
@@ -708,6 +739,7 @@ export type UserUpdateWithoutExpenseInput = {
   memories?: Prisma.UserMemoryUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUpdateManyWithoutUserNestedInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutExpenseInput = {
@@ -718,6 +750,81 @@ export type UserUncheckedUpdateWithoutExpenseInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   boards?: Prisma.BoardUncheckedUpdateManyWithoutUserNestedInput
   chatRooms?: Prisma.ChatRoomUncheckedUpdateManyWithoutUserNestedInput
+  refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedUpdateManyWithoutUserNestedInput
+  memories?: Prisma.UserMemoryUncheckedUpdateManyWithoutUserNestedInput
+  ragDocuments?: Prisma.RagDocumentUncheckedUpdateManyWithoutUserNestedInput
+  expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUncheckedUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutSchedulesInput = {
+  username: string
+  password: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  boards?: Prisma.BoardCreateNestedManyWithoutUserInput
+  chatRooms?: Prisma.ChatRoomCreateNestedManyWithoutUserInput
+  expense?: Prisma.ExpenseCreateNestedManyWithoutUserInput
+  refreshTokenSessions?: Prisma.RefreshTokenSessionCreateNestedManyWithoutUserInput
+  memories?: Prisma.UserMemoryCreateNestedManyWithoutUserInput
+  ragDocuments?: Prisma.RagDocumentCreateNestedManyWithoutUserInput
+  expenseUpdateOperations?: Prisma.ExpenseUpdateOperationCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutSchedulesInput = {
+  id?: number
+  username: string
+  password: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  boards?: Prisma.BoardUncheckedCreateNestedManyWithoutUserInput
+  chatRooms?: Prisma.ChatRoomUncheckedCreateNestedManyWithoutUserInput
+  expense?: Prisma.ExpenseUncheckedCreateNestedManyWithoutUserInput
+  refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedCreateNestedManyWithoutUserInput
+  memories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutUserInput
+  ragDocuments?: Prisma.RagDocumentUncheckedCreateNestedManyWithoutUserInput
+  expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutSchedulesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutSchedulesInput, Prisma.UserUncheckedCreateWithoutSchedulesInput>
+}
+
+export type UserUpsertWithoutSchedulesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutSchedulesInput, Prisma.UserUncheckedUpdateWithoutSchedulesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutSchedulesInput, Prisma.UserUncheckedCreateWithoutSchedulesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutSchedulesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutSchedulesInput, Prisma.UserUncheckedUpdateWithoutSchedulesInput>
+}
+
+export type UserUpdateWithoutSchedulesInput = {
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  boards?: Prisma.BoardUpdateManyWithoutUserNestedInput
+  chatRooms?: Prisma.ChatRoomUpdateManyWithoutUserNestedInput
+  expense?: Prisma.ExpenseUpdateManyWithoutUserNestedInput
+  refreshTokenSessions?: Prisma.RefreshTokenSessionUpdateManyWithoutUserNestedInput
+  memories?: Prisma.UserMemoryUpdateManyWithoutUserNestedInput
+  ragDocuments?: Prisma.RagDocumentUpdateManyWithoutUserNestedInput
+  expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutSchedulesInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  boards?: Prisma.BoardUncheckedUpdateManyWithoutUserNestedInput
+  chatRooms?: Prisma.ChatRoomUncheckedUpdateManyWithoutUserNestedInput
+  expense?: Prisma.ExpenseUncheckedUpdateManyWithoutUserNestedInput
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedUpdateManyWithoutUserNestedInput
   memories?: Prisma.UserMemoryUncheckedUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUncheckedUpdateManyWithoutUserNestedInput
@@ -735,6 +842,7 @@ export type UserCreateWithoutRefreshTokenSessionsInput = {
   memories?: Prisma.UserMemoryCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentCreateNestedManyWithoutUserInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutRefreshTokenSessionsInput = {
@@ -749,6 +857,7 @@ export type UserUncheckedCreateWithoutRefreshTokenSessionsInput = {
   memories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentUncheckedCreateNestedManyWithoutUserInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUncheckedCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutRefreshTokenSessionsInput = {
@@ -778,6 +887,7 @@ export type UserUpdateWithoutRefreshTokenSessionsInput = {
   memories?: Prisma.UserMemoryUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUpdateManyWithoutUserNestedInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRefreshTokenSessionsInput = {
@@ -792,6 +902,7 @@ export type UserUncheckedUpdateWithoutRefreshTokenSessionsInput = {
   memories?: Prisma.UserMemoryUncheckedUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUncheckedUpdateManyWithoutUserNestedInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUncheckedUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutRagDocumentsInput = {
@@ -805,6 +916,7 @@ export type UserCreateWithoutRagDocumentsInput = {
   refreshTokenSessions?: Prisma.RefreshTokenSessionCreateNestedManyWithoutUserInput
   memories?: Prisma.UserMemoryCreateNestedManyWithoutUserInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutRagDocumentsInput = {
@@ -819,6 +931,7 @@ export type UserUncheckedCreateWithoutRagDocumentsInput = {
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedCreateNestedManyWithoutUserInput
   memories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutUserInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUncheckedCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutRagDocumentsInput = {
@@ -848,6 +961,7 @@ export type UserUpdateWithoutRagDocumentsInput = {
   refreshTokenSessions?: Prisma.RefreshTokenSessionUpdateManyWithoutUserNestedInput
   memories?: Prisma.UserMemoryUpdateManyWithoutUserNestedInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRagDocumentsInput = {
@@ -862,6 +976,7 @@ export type UserUncheckedUpdateWithoutRagDocumentsInput = {
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedUpdateManyWithoutUserNestedInput
   memories?: Prisma.UserMemoryUncheckedUpdateManyWithoutUserNestedInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUncheckedUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMemoriesInput = {
@@ -875,6 +990,7 @@ export type UserCreateWithoutMemoriesInput = {
   refreshTokenSessions?: Prisma.RefreshTokenSessionCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentCreateNestedManyWithoutUserInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMemoriesInput = {
@@ -889,6 +1005,7 @@ export type UserUncheckedCreateWithoutMemoriesInput = {
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentUncheckedCreateNestedManyWithoutUserInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUncheckedCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMemoriesInput = {
@@ -918,6 +1035,7 @@ export type UserUpdateWithoutMemoriesInput = {
   refreshTokenSessions?: Prisma.RefreshTokenSessionUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUpdateManyWithoutUserNestedInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMemoriesInput = {
@@ -932,6 +1050,7 @@ export type UserUncheckedUpdateWithoutMemoriesInput = {
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUncheckedUpdateManyWithoutUserNestedInput
   expenseUpdateOperations?: Prisma.ExpenseUpdateOperationUncheckedUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutExpenseUpdateOperationsInput = {
@@ -945,6 +1064,7 @@ export type UserCreateWithoutExpenseUpdateOperationsInput = {
   refreshTokenSessions?: Prisma.RefreshTokenSessionCreateNestedManyWithoutUserInput
   memories?: Prisma.UserMemoryCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutExpenseUpdateOperationsInput = {
@@ -959,6 +1079,7 @@ export type UserUncheckedCreateWithoutExpenseUpdateOperationsInput = {
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedCreateNestedManyWithoutUserInput
   memories?: Prisma.UserMemoryUncheckedCreateNestedManyWithoutUserInput
   ragDocuments?: Prisma.RagDocumentUncheckedCreateNestedManyWithoutUserInput
+  schedules?: Prisma.ScheduleUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutExpenseUpdateOperationsInput = {
@@ -988,6 +1109,7 @@ export type UserUpdateWithoutExpenseUpdateOperationsInput = {
   refreshTokenSessions?: Prisma.RefreshTokenSessionUpdateManyWithoutUserNestedInput
   memories?: Prisma.UserMemoryUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutExpenseUpdateOperationsInput = {
@@ -1002,6 +1124,7 @@ export type UserUncheckedUpdateWithoutExpenseUpdateOperationsInput = {
   refreshTokenSessions?: Prisma.RefreshTokenSessionUncheckedUpdateManyWithoutUserNestedInput
   memories?: Prisma.UserMemoryUncheckedUpdateManyWithoutUserNestedInput
   ragDocuments?: Prisma.RagDocumentUncheckedUpdateManyWithoutUserNestedInput
+  schedules?: Prisma.ScheduleUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -1017,6 +1140,7 @@ export type UserCountOutputType = {
   memories: number
   ragDocuments: number
   expenseUpdateOperations: number
+  schedules: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1027,6 +1151,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   memories?: boolean | UserCountOutputTypeCountMemoriesArgs
   ragDocuments?: boolean | UserCountOutputTypeCountRagDocumentsArgs
   expenseUpdateOperations?: boolean | UserCountOutputTypeCountExpenseUpdateOperationsArgs
+  schedules?: boolean | UserCountOutputTypeCountSchedulesArgs
 }
 
 /**
@@ -1088,6 +1213,13 @@ export type UserCountOutputTypeCountExpenseUpdateOperationsArgs<ExtArgs extends 
   where?: Prisma.ExpenseUpdateOperationWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountSchedulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ScheduleWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1102,6 +1234,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   memories?: boolean | Prisma.User$memoriesArgs<ExtArgs>
   ragDocuments?: boolean | Prisma.User$ragDocumentsArgs<ExtArgs>
   expenseUpdateOperations?: boolean | Prisma.User$expenseUpdateOperationsArgs<ExtArgs>
+  schedules?: boolean | Prisma.User$schedulesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1138,6 +1271,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   memories?: boolean | Prisma.User$memoriesArgs<ExtArgs>
   ragDocuments?: boolean | Prisma.User$ragDocumentsArgs<ExtArgs>
   expenseUpdateOperations?: boolean | Prisma.User$expenseUpdateOperationsArgs<ExtArgs>
+  schedules?: boolean | Prisma.User$schedulesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1153,6 +1287,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     memories: Prisma.$UserMemoryPayload<ExtArgs>[]
     ragDocuments: Prisma.$RagDocumentPayload<ExtArgs>[]
     expenseUpdateOperations: Prisma.$ExpenseUpdateOperationPayload<ExtArgs>[]
+    schedules: Prisma.$SchedulePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -1561,6 +1696,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   memories<T extends Prisma.User$memoriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$memoriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserMemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   ragDocuments<T extends Prisma.User$ragDocumentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ragDocumentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RagDocumentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   expenseUpdateOperations<T extends Prisma.User$expenseUpdateOperationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$expenseUpdateOperationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ExpenseUpdateOperationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  schedules<T extends Prisma.User$schedulesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$schedulesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SchedulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2153,6 +2289,30 @@ export type User$expenseUpdateOperationsArgs<ExtArgs extends runtime.Types.Exten
   take?: number
   skip?: number
   distinct?: Prisma.ExpenseUpdateOperationScalarFieldEnum | Prisma.ExpenseUpdateOperationScalarFieldEnum[]
+}
+
+/**
+ * User.schedules
+ */
+export type User$schedulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Schedule
+   */
+  select?: Prisma.ScheduleSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Schedule
+   */
+  omit?: Prisma.ScheduleOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ScheduleInclude<ExtArgs> | null
+  where?: Prisma.ScheduleWhereInput
+  orderBy?: Prisma.ScheduleOrderByWithRelationInput | Prisma.ScheduleOrderByWithRelationInput[]
+  cursor?: Prisma.ScheduleWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ScheduleScalarFieldEnum | Prisma.ScheduleScalarFieldEnum[]
 }
 
 /**

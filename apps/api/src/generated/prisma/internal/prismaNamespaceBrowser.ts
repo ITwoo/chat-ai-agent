@@ -56,6 +56,7 @@ export const ModelName = {
   ChatRoom: 'ChatRoom',
   ChatMessage: 'ChatMessage',
   Expense: 'Expense',
+  Schedule: 'Schedule',
   RefreshTokenSession: 'RefreshTokenSession',
   AgentPendingApproval: 'AgentPendingApproval',
   RagDocument: 'RagDocument',
@@ -150,6 +151,23 @@ export const ExpenseScalarFieldEnum = {
 } as const
 
 export type ExpenseScalarFieldEnum = (typeof ExpenseScalarFieldEnum)[keyof typeof ExpenseScalarFieldEnum]
+
+
+export const ScheduleScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  operationKey: 'operationKey',
+  title: 'title',
+  memo: 'memo',
+  location: 'location',
+  startsAt: 'startsAt',
+  endsAt: 'endsAt',
+  version: 'version',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ScheduleScalarFieldEnum = (typeof ScheduleScalarFieldEnum)[keyof typeof ScheduleScalarFieldEnum]
 
 
 export const RefreshTokenSessionScalarFieldEnum = {

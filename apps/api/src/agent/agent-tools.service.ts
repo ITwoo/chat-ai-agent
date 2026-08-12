@@ -41,6 +41,7 @@ export class AgentToolsService {
         return [
             this.createGetCurrentDateTimeTool(),
             this.createExpenseTool(context),
+            this.createScheduleTool(context),
             this.createExpenseSummaryTool(context),
             this.createExpenseListTool(context),
             this.createFindExpensesTool(context),
@@ -175,6 +176,114 @@ export class AgentToolsService {
                     spentAt: z
                         .string()
                         .describe('실제 지출한 날짜와 시간. ISO 8601 문자열로 입력한다. 예: 2026-07-09T14:30:00+09:00'),
+                }),
+            },
+        );
+    }
+
+    private createScheduleTool(context: AgentToolContext) {
+        return tool(
+            async (
+                { title, memo, location, startsAt, endsAt },
+                runtime: ToolRuntime,
+            ) => {
+                this.logger.log('[tool] create_schedule');
+
+                const parsedStartsAt = new Date(startsAt);
+                const parsedEndsAt = endsAt ? new Date(endsAt) : null;
+
+                if (Number.isNaN(parsedStartsAt.getTime())) {
+                    return '일정 시작 시간 형식이 올바르지 않습니다. startsAt은 ISO 날짜 문자열이어야 합니다.';
+                }
+
+                if (parsedEndsAt && Number.isNaN(parsedEndsAt.getTime())) {
+                    return '일정 종료 시간 형식이 올바르지 않습니다. endsAt은 ISO 날짜 문자열이어야 합니다.';
+                }
+
+                if (parsedEndsAt && parsedEndsAt <= parsedStartsAt) {
+                    return '일정 종료 시간은 시작 시간보다 이후여야 합니다.';
+                }
+
+                const operationKey = this.createToolOperationKey(
+                    'create_schedule',
+                    runtime,
+                );
+
+                const result = await this.prisma.$transaction(async (tx) => {
+                    const createdResult = await tx.schedule.createMany({
+                        data: {
+                            userId: context.userId,
+                            operationKey,
+                            title,
+                            memo,
+                            location,
+                            startsAt: parsedStartsAt,
+                            endsAt: parsedEndsAt,
+                        },
+                        skipDuplicates: true,
+                    });
+
+                    const schedule = await tx.schedule.findUniqueOrThrow({
+                        where: {
+                            userId_operationKey: {
+                                userId: context.userId,
+                                operationKey,
+                            },
+                        },
+                    });
+
+                    return {
+                        schedule,
+                        created: createdResult.count === 1,
+                    };
+                });
+
+                const { schedule, created } = result;
+
+                return JSON.stringify({
+                    id: schedule.id,
+                    title: schedule.title,
+                    memo: schedule.memo,
+                    location: schedule.location,
+                    startsAt: schedule.startsAt.toISOString(),
+                    endsAt: schedule.endsAt?.toISOString() ?? null,
+                    version: schedule.version,
+                    duplicated: !created,
+                    message: created
+                        ? '일정을 저장했습니다.'
+                        : '이미 처리된 일정 저장 요청입니다.',
+                });
+            },
+            {
+                name: 'create_schedule',
+                description:
+                    '새로운 일정을 저장한다. 사용자가 약속, 예약, 일정 등을 등록해 달라고 요청할 때 사용한다. 상대적인 날짜나 시간을 계산해야 하면 먼저 get_current_date_time을 사용한다. 종료 시간이 명확하지 않으면 추측하지 않고 endsAt을 생략한다. 한 요청에 여러 일정이 포함되어 있으면 각 일정마다 이 tool을 각각 호출한다.',
+                schema: z.object({
+                    title: z
+                        .string()
+                        .min(1)
+                        .max(100)
+                        .describe('일정 제목. 예: 민수랑 저녁, 치과 예약, 면접'),
+                    memo: z
+                        .string()
+                        .optional()
+                        .describe('선택 메모. 사용자가 말한 추가 설명이 있으면 넣는다.'),
+                    location: z
+                        .string()
+                        .max(255)
+                        .optional()
+                        .describe('선택 장소. 사용자가 장소를 말했을 때만 넣는다.'),
+                    startsAt: z
+                        .string()
+                        .describe(
+                            '일정 시작 시간. ISO 8601 문자열로 입력한다. 예: 2026-08-13T19:00:00+09:00',
+                        ),
+                    endsAt: z
+                        .string()
+                        .optional()
+                        .describe(
+                            '선택 종료 시간. 사용자가 종료 시간을 명확하게 말했을 때만 ISO 8601 문자열로 입력한다.',
+                        ),
                 }),
             },
         );

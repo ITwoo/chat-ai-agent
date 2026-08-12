@@ -64,6 +64,7 @@ model User {
     memories UserMemory[]
     ragDocuments RagDocument[]
     expenseUpdateOperations ExpenseUpdateOperation[]
+    schedules Schedule[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -149,6 +150,26 @@ model Expense {
     @@unique([userId, operationKey])
     @@index([userId, spentAt])
     @@index([userId, category])
+}
+
+model Schedule {
+    id           Int      @id @default(autoincrement())
+    userId       Int
+    operationKey String   @db.VarChar(64)
+    title        String   @db.VarChar(100)
+    memo         String?  @db.Text
+    location     String?  @db.VarChar(255)
+    startsAt     DateTime
+    endsAt       DateTime?
+    version      Int      @default(0)
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([userId, operationKey])
+    @@index([userId, startsAt])
 }
 
 model RefreshTokenSession {

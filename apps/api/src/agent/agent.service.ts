@@ -203,9 +203,13 @@ export class AgentService {
         const mcpTools = await this.agentMcpToolsService.getTools();
         const tools = [...agentTools, ...mcpTools];
 
-        const model = this.createModel().bindTools(tools);
+        const model = this.createModel();
 
-        return this.agentGraphFactory.createGraph(model, tools, context);
+        return this.agentGraphFactory.createGraph(
+            model,
+            tools,
+            context,
+        );
     }
 
     async hasPendingInterrupt(

@@ -27,6 +27,49 @@ import { routeAgentToolCalls } from './agent-route.util';
 const AGENT_MODEL_TIMEOUT_MS = 60_000;
 const MAX_ACTION_TOOL_ROUNDS = 5;
 
+const agentDomainSchema = z.enum([
+    'expense',
+    'schedule',
+    'memory',
+    'rag',
+    'general',
+]);
+
+type AgentDomain = z.infer<typeof agentDomainSchema>;
+
+const agentDomainDecisionSchema = z.object({
+    domain: agentDomainSchema,
+});
+
+const EXPENSE_TOOL_NAMES = new Set([
+    'get_current_date_time',
+    'create_expense',
+    'get_expense_summary',
+    'get_expense_list',
+    'find_expenses',
+    'update_expense',
+    'delete_expense',
+    'analyze_expense_anomalies',
+]);
+
+const SCHEDULE_TOOL_NAMES = new Set([
+    'get_current_date_time',
+    'create_schedule',
+    'get_schedule_list',
+    'find_schedules',
+    'update_schedule',
+    'delete_schedule',
+]);
+
+const MEMORY_TOOL_NAMES = new Set([
+    'search_user_memories',
+    'delete_user_memory',
+]);
+
+const RAG_TOOL_NAMES = new Set([
+    RAG_SEARCH_TOOL_NAME,
+]);
+
 const MUTATING_ACTION_TOOL_NAMES = new Set([
     'create_expense',
     'create_schedule',
@@ -52,6 +95,20 @@ const MUTATION_ACTION_TOOL_TIMEOUT_MS = 30_000;
 
 const ACTION_TOOL_ERROR_MESSAGE =
     'Tool 실행 중 오류가 발생했습니다. 입력을 수정하거나 작업 실패를 안내하세요.';
+
+const SUPERVISOR_SYSTEM_PROMPT = `
+너는 개인 생활 관리 AI Agent의 Supervisor다.
+
+사용자의 요청을 다음 하나의 담당 Agent로 분류한다.
+
+- expense: 지출 생성, 조회, 통계, 검색, 수정, 삭제, 지출 분석
+- schedule: 일정 생성, 조회, 검색, 수정, 삭제
+- memory: 사용자 장기 메모리 조회 또는 삭제
+- rag: 사용자가 업로드한 문서나 파일 내용에 대한 질문
+- general: 일반 대화, 위 도메인에 해당하지 않는 요청, 여러 도메인이 섞인 요청
+
+반드시 하나의 domain만 선택한다.
+`;
 
 const SYSTEM_PROMPT = `
 너는 1인 가구용 개인 생활 관리 AI Agent다.
@@ -134,6 +191,7 @@ const AgentState = new StateSchema({
     ragCitations: z.array(ragCitationSchema).default(() => []),
     actionToolRoundCount: z.number().int().nonnegative().default(0),
     executedMutationSignatures: z.array(z.string()).default(() => []),
+    agentDomain: agentDomainSchema.default('general'),
 });
 
 type AgentModel = ReturnType<ChatOpenAI['bindTools']>;
@@ -174,12 +232,93 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
         await this.checkpointer.end();
     }
 
+    private getDomainTools(
+        domain: AgentDomain,
+        tools: AgentTools,
+    ): AgentTools {
+        if (domain === 'general') {
+            return tools;
+        }
+
+        const toolNames = {
+            expense: EXPENSE_TOOL_NAMES,
+            schedule: SCHEDULE_TOOL_NAMES,
+            memory: MEMORY_TOOL_NAMES,
+            rag: RAG_TOOL_NAMES,
+        }[domain];
+
+        return tools.filter((tool) => {
+            return toolNames.has(tool.name);
+        });
+    }
+
+    private createDomainModels(
+        baseModel: ChatOpenAI,
+        tools: AgentTools,
+    ): Record<AgentDomain, AgentModel> {
+        return {
+            expense: baseModel.bindTools(
+                this.getDomainTools('expense', tools),
+            ),
+            schedule: baseModel.bindTools(
+                this.getDomainTools('schedule', tools),
+            ),
+            memory: baseModel.bindTools(
+                this.getDomainTools('memory', tools),
+            ),
+            rag: baseModel.bindTools(
+                this.getDomainTools('rag', tools),
+            ),
+            general: baseModel.bindTools(tools),
+        };
+    }
+
     createGraph(
-        model: AgentModel,
+        baseModel: ChatOpenAI,
         tools: AgentTools,
         context: AgentToolContext,
     ) {
+        const domainModels = this.createDomainModels(
+            baseModel,
+            tools,
+        );
+
+        const supervisor: GraphNode<typeof AgentState> = async (
+            state,
+            config,
+        ) => {
+            const router = baseModel.withStructuredOutput(
+                agentDomainDecisionSchema,
+                {
+                    name: 'route_agent_domain',
+                },
+            );
+
+            const decision = await router.invoke(
+                [
+                    new SystemMessage(SUPERVISOR_SYSTEM_PROMPT),
+                    ...state.messages,
+                ],
+                {
+                    ...config,
+                    runName: 'agent_supervisor_route',
+                    tags: [...(config.tags ?? []), 'agent-supervisor'],
+                    timeout: AGENT_MODEL_TIMEOUT_MS,
+                },
+            );
+
+            this.logger.log(
+                `[agent:supervisor] domain=${decision.domain}`,
+            );
+
+            return {
+                agentDomain: decision.domain,
+            };
+        };
+
         const callModel: GraphNode<typeof AgentState> = async (state, config) => {
+            const model = domainModels[state.agentDomain];
+
             const response = await model.invoke(
                 [
                     new SystemMessage(SYSTEM_PROMPT),
@@ -278,6 +417,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
         const rejectDuplicateMutationNode = this.createRejectDuplicateMutationNode();
 
         return new StateGraph(AgentState)
+            .addNode('supervisor', supervisor)
             .addNode('callModel', callModel)
             .addNode('tools', executeActionTools)
             .addNode('ragAnswer', ragAnswerNode)
@@ -287,7 +427,8 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             )
             .addNode('rejectToolLimit', rejectToolLimitNode)
             .addNode('rejectDuplicateMutation', rejectDuplicateMutationNode)
-            .addEdge(START, 'callModel')
+            .addEdge(START, 'supervisor')
+            .addEdge('supervisor', 'callModel')
             .addConditionalEdges(
                 'callModel',
                 (state) => this.routeAfterModel(state),

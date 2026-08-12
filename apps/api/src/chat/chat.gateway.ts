@@ -955,6 +955,21 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         return null;
     }
 
+    private formatDateTimeForDisplay(value: string | null): string {
+        if (!value) return '없음';
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return value;
+        }
+
+        return date.toLocaleString('ko-KR', {
+            timeZone: 'Asia/Seoul',
+            hour12: false,
+        });
+    }
+
     private createApprovalRequestMessage(
         request: AgentApprovalRequest,
     ): string {
@@ -982,8 +997,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 request.message,
                 `- 제목: ${request.schedule.title}`,
                 `- 장소: ${request.schedule.location ?? '없음'}`,
-                `- 시작: ${request.schedule.startsAt}`,
-                `- 종료: ${request.schedule.endsAt ?? '없음'}`,
+                `- 시작: ${this.formatDateTimeForDisplay(request.schedule.startsAt)}`,
+                `- 종료: ${this.formatDateTimeForDisplay(request.schedule.endsAt)}`,
             ].join('\n');
         }
 
@@ -1014,7 +1029,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 request.changes.startsAt !== request.schedule.startsAt
             ) {
                 changes.push(
-                    `시작: ${request.schedule.startsAt} → ${request.changes.startsAt}`,
+                    `시작: ${this.formatDateTimeForDisplay(request.schedule.startsAt)} → ` +
+                    `${this.formatDateTimeForDisplay(request.changes.startsAt)}`,
                 );
             }
 
@@ -1023,8 +1039,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 request.changes.endsAt !== request.schedule.endsAt
             ) {
                 changes.push(
-                    `종료: ${request.schedule.endsAt ?? '없음'} → ` +
-                    `${request.changes.endsAt ?? '없음'}`,
+                    `종료: ${this.formatDateTimeForDisplay(request.schedule.endsAt)} → ` +
+                    `${this.formatDateTimeForDisplay(request.changes.endsAt)}`,
                 );
             }
 

@@ -54,14 +54,19 @@ function formatMemo(memo: string | null): string {
     return memo?.trim() || '없음';
 }
 
-function formatSpentAt(spentAt: string): string {
-    const date = new Date(spentAt);
+function formatDateTime(value: string | null): string {
+    if (!value) return '없음';
+
+    const date = new Date(value);
 
     if (Number.isNaN(date.getTime())) {
-        return spentAt;
+        return value;
     }
 
-    return date.toLocaleString('ko-KR');
+    return date.toLocaleString('ko-KR', {
+        timeZone: 'Asia/Seoul',
+        hour12: false,
+    });
 }
 
 function formatMemoryType(
@@ -118,8 +123,8 @@ function createApprovalChanges(
     if (changes.spentAt !== undefined) {
         result.push({
             label: '지출 일시',
-            before: formatSpentAt(expense.spentAt),
-            after: formatSpentAt(changes.spentAt),
+            before: formatDateTime(expense.spentAt),
+            after: formatDateTime(changes.spentAt),
         });
     }
 
@@ -253,7 +258,7 @@ function ExpenseDeleteApprovalCard({
                     </p>
                     <p>금액: {formatAmount(expense.amount)}</p>
                     <p>카테고리: {expense.category}</p>
-                    <p>지출 일시: {formatSpentAt(expense.spentAt)}</p>
+                    <p>지출 일시: {formatDateTime(expense.spentAt)}</p>
                 </div>
 
                 <ApprovalButtons
@@ -303,14 +308,15 @@ function ScheduleUpdateApprovalCard({
 
                     {changes.startsAt !== undefined && (
                         <p>
-                            시작: {schedule.startsAt} → {changes.startsAt}
+                            시작: {formatDateTime(schedule.startsAt)} →{' '}
+                            {formatDateTime(changes.startsAt)}
                         </p>
                     )}
 
                     {changes.endsAt !== undefined && (
                         <p>
-                            종료: {schedule.endsAt ?? '없음'} →{' '}
-                            {changes.endsAt ?? '없음'}
+                            종료: {formatDateTime(schedule.endsAt)} →{' '}
+                            {formatDateTime(changes.endsAt)}
                         </p>
                     )}
 
@@ -356,8 +362,8 @@ function ScheduleDeleteApprovalCard({
                         {schedule.title}
                     </p>
                     <p>장소: {schedule.location ?? '없음'}</p>
-                    <p>시작: {schedule.startsAt}</p>
-                    <p>종료: {schedule.endsAt ?? '없음'}</p>
+                    <p>시작: {formatDateTime(schedule.startsAt)}</p>
+                    <p>종료: {formatDateTime(schedule.endsAt)}</p>
                 </div>
 
                 <ApprovalButtons

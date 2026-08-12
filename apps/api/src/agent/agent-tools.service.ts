@@ -42,6 +42,8 @@ export class AgentToolsService {
             this.createGetCurrentDateTimeTool(),
             this.createExpenseTool(context),
             this.createScheduleTool(context),
+            this.createScheduleListTool(context),
+            this.createFindSchedulesTool(context),
             this.createExpenseSummaryTool(context),
             this.createExpenseListTool(context),
             this.createFindExpensesTool(context),
@@ -90,95 +92,6 @@ export class AgentToolsService {
         return createHash('sha256')
             .update(`${toolName}:${threadId}:${runtime.toolCallId}`)
             .digest('hex');
-    }
-
-    private createExpenseTool(context: AgentToolContext) {
-        return tool(
-            async (
-                { amount, category, title, memo, spentAt },
-                runtime: ToolRuntime,
-            ) => {
-                this.logger.log('[tool] create_expense');
-
-                const parsedSpentAt = new Date(spentAt);
-
-                if (Number.isNaN(parsedSpentAt.getTime())) {
-                    return '지출 날짜 형식이 올바르지 않습니다. spentAt은 ISO 날짜 문자열이어야 합니다.';
-                }
-
-                const operationKey = this.createToolOperationKey('create_expense', runtime);
-
-                const result = await this.prisma.$transaction(async (tx) => {
-                    const createdResult = await tx.expense.createMany({
-                        data: {
-                            userId: context.userId,
-                            operationKey,
-                            amount,
-                            category,
-                            title,
-                            memo,
-                            spentAt: parsedSpentAt,
-                        },
-                        skipDuplicates: true,
-                    });
-
-                    const expense = await tx.expense.findUniqueOrThrow({
-                        where: {
-                            userId_operationKey: {
-                                userId: context.userId,
-                                operationKey,
-                            },
-                        },
-                    });
-
-                    return {
-                        expense,
-                        created: createdResult.count === 1,
-                    };
-                });
-
-                const { expense, created } = result;
-
-                return JSON.stringify({
-                    id: expense.id,
-                    amount: expense.amount,
-                    category: expense.category,
-                    title: expense.title,
-                    memo: expense.memo,
-                    spentAt: expense.spentAt.toISOString(),
-                    duplicated: !created,
-                    message: created
-                        ? '지출 기록을 저장했습니다.'
-                        : '이미 처리된 지출 저장 요청입니다.',
-                });
-            },
-            {
-                name: 'create_expense',
-                description:
-                    '새로운 지출 기록을 저장한다. 사용자가 실제로 돈을 썼다고 말하거나 지출을 기록해 달라고 요청할 때 사용한다. 한 요청에 여러 지출이 포함되어 있으면 각 지출마다 이 tool을 각각 호출한다. 기존 지출의 조회, 수정 또는 삭제에는 사용하지 않는다.',
-                schema: z.object({
-                    amount: z
-                        .number()
-                        .int()
-                        .positive()
-                        .describe('지출 금액. 원화 기준 숫자만 입력한다. 예: 8500'),
-                    category: expenseCategorySchema.describe(
-                            '지출 카테고리. 반드시 정해진 카테고리 중 하나를 선택한다.',
-                        ),
-                    title: z
-                        .string()
-                        .min(1)
-                        .describe('지출 제목. 예: 편의점, 점심, 쿠팡, 전기요금'),
-                    memo: z
-                        .string()
-                        .optional()
-                        .describe('선택 메모. 사용자가 말한 추가 설명이 있으면 넣는다.'),
-                    spentAt: z
-                        .string()
-                        .describe('실제 지출한 날짜와 시간. ISO 8601 문자열로 입력한다. 예: 2026-07-09T14:30:00+09:00'),
-                }),
-            },
-        );
     }
 
     private createScheduleTool(context: AgentToolContext) {
@@ -284,6 +197,367 @@ export class AgentToolsService {
                         .describe(
                             '선택 종료 시간. 사용자가 종료 시간을 명확하게 말했을 때만 ISO 8601 문자열로 입력한다.',
                         ),
+                }),
+            },
+        );
+    }
+
+    private createScheduleListTool(context: AgentToolContext) {
+        return tool(
+            async ({ startDate, endDate, limit = 10 }) => {
+                this.logger.log('[tool] get_schedule_list');
+
+                const parsedStartDate = startDate
+                    ? new Date(startDate)
+                    : undefined;
+
+                const parsedEndDate = endDate
+                    ? new Date(endDate)
+                    : undefined;
+
+                if (
+                    parsedStartDate &&
+                    Number.isNaN(parsedStartDate.getTime())
+                ) {
+                    return '조회 시작 날짜 형식이 올바르지 않습니다. startDate는 ISO 날짜 문자열이어야 합니다.';
+                }
+
+                if (
+                    parsedEndDate &&
+                    Number.isNaN(parsedEndDate.getTime())
+                ) {
+                    return '조회 종료 날짜 형식이 올바르지 않습니다. endDate는 ISO 날짜 문자열이어야 합니다.';
+                }
+
+                if (
+                    parsedStartDate &&
+                    parsedEndDate &&
+                    parsedStartDate >= parsedEndDate
+                ) {
+                    return '조회 시작 날짜는 종료 날짜보다 이전이어야 합니다.';
+                }
+
+                const where: {
+                    userId: number;
+                    startsAt?: {
+                        gte?: Date;
+                        lt?: Date;
+                    };
+                } = {
+                    userId: context.userId,
+                };
+
+                if (parsedStartDate || parsedEndDate) {
+                    where.startsAt = {};
+
+                    if (parsedStartDate) {
+                        where.startsAt.gte = parsedStartDate;
+                    }
+
+                    if (parsedEndDate) {
+                        where.startsAt.lt = parsedEndDate;
+                    }
+                }
+
+                const schedules = await this.prisma.schedule.findMany({
+                    where,
+                    orderBy: {
+                        startsAt: 'asc',
+                    },
+                    take: limit,
+                    select: {
+                        id: true,
+                        title: true,
+                        memo: true,
+                        location: true,
+                        startsAt: true,
+                        endsAt: true,
+                    },
+                });
+
+                return JSON.stringify({
+                    count: schedules.length,
+                    startDate: parsedStartDate?.toISOString() ?? null,
+                    endDate: parsedEndDate?.toISOString() ?? null,
+                    limit,
+                    schedules: schedules.map((schedule) => ({
+                        id: schedule.id,
+                        title: schedule.title,
+                        memo: schedule.memo,
+                        location: schedule.location,
+                        startsAt: schedule.startsAt.toISOString(),
+                        endsAt: schedule.endsAt?.toISOString() ?? null,
+                    })),
+                });
+            },
+            {
+                name: 'get_schedule_list',
+                description:
+                    '사용자가 확인하기 위한 일정 목록을 시작 시간 순으로 조회한다. 오늘 일정, 이번 주 일정, 앞으로의 일정처럼 일정 목록을 보여줄 때 사용한다. 수정·삭제할 대상을 식별하는 용도로는 사용하지 않는다.',
+                schema: z.object({
+                    startDate: z
+                        .string()
+                        .optional()
+                        .describe(
+                            '선택 조회 시작 날짜. ISO 8601 문자열이며 해당 시각을 포함한다.',
+                        ),
+                    endDate: z
+                        .string()
+                        .optional()
+                        .describe(
+                            '선택 조회 종료 날짜. ISO 8601 문자열이며 해당 시각은 포함하지 않는다.',
+                        ),
+                    limit: z
+                        .number()
+                        .int()
+                        .min(1)
+                        .max(50)
+                        .default(10)
+                        .describe(
+                            '조회할 최대 일정 개수. 기본값은 10이고 최대 50이다.',
+                        ),
+                }),
+            },
+        );
+    }
+
+    private createFindSchedulesTool(context: AgentToolContext) {
+        return tool(
+            async ({
+                title,
+                location,
+                startDate,
+                endDate,
+                limit = 10,
+            }) => {
+                this.logger.log('[tool] find_schedules');
+
+                const parsedStartDate = startDate
+                    ? new Date(startDate)
+                    : undefined;
+
+                const parsedEndDate = endDate
+                    ? new Date(endDate)
+                    : undefined;
+
+                if (
+                    parsedStartDate &&
+                    Number.isNaN(parsedStartDate.getTime())
+                ) {
+                    return '조회 시작 날짜 형식이 올바르지 않습니다. startDate는 ISO 날짜 문자열이어야 합니다.';
+                }
+
+                if (
+                    parsedEndDate &&
+                    Number.isNaN(parsedEndDate.getTime())
+                ) {
+                    return '조회 종료 날짜 형식이 올바르지 않습니다. endDate는 ISO 날짜 문자열이어야 합니다.';
+                }
+
+                if (
+                    parsedStartDate &&
+                    parsedEndDate &&
+                    parsedStartDate >= parsedEndDate
+                ) {
+                    return '조회 시작 날짜는 종료 날짜보다 이전이어야 합니다.';
+                }
+
+                const where: {
+                    userId: number;
+                    title?: {
+                        contains: string;
+                    };
+                    location?: {
+                        contains: string;
+                    };
+                    startsAt?: {
+                        gte?: Date;
+                        lt?: Date;
+                    };
+                } = {
+                    userId: context.userId,
+                };
+
+                if (title) {
+                    where.title = {
+                        contains: title,
+                    };
+                }
+
+                if (location) {
+                    where.location = {
+                        contains: location,
+                    };
+                }
+
+                if (parsedStartDate || parsedEndDate) {
+                    where.startsAt = {};
+
+                    if (parsedStartDate) {
+                        where.startsAt.gte = parsedStartDate;
+                    }
+
+                    if (parsedEndDate) {
+                        where.startsAt.lt = parsedEndDate;
+                    }
+                }
+
+                const schedules = await this.prisma.schedule.findMany({
+                    where,
+                    orderBy: {
+                        startsAt: 'asc',
+                    },
+                    take: limit,
+                    select: {
+                        id: true,
+                        title: true,
+                        memo: true,
+                        location: true,
+                        startsAt: true,
+                        endsAt: true,
+                    },
+                });
+
+                return JSON.stringify({
+                    count: schedules.length,
+                    searchConditions: {
+                        title: title ?? null,
+                        location: location ?? null,
+                        startDate: parsedStartDate?.toISOString() ?? null,
+                        endDate: parsedEndDate?.toISOString() ?? null,
+                        limit,
+                    },
+                    schedules: schedules.map((schedule) => ({
+                        id: schedule.id,
+                        title: schedule.title,
+                        memo: schedule.memo,
+                        location: schedule.location,
+                        startsAt: schedule.startsAt.toISOString(),
+                        endsAt: schedule.endsAt?.toISOString() ?? null,
+                    })),
+                });
+            },
+            {
+                name: 'find_schedules',
+                description:
+                    '사용자가 기존 일정을 수정하거나 삭제하려고 할 때 대상 후보를 식별한다. 제목, 장소와 날짜 조건으로 기존 일정을 검색한다. 일반적인 일정 목록 조회에는 사용하지 않는다.',
+                schema: z.object({
+                    title: z
+                        .string()
+                        .trim()
+                        .min(1)
+                        .optional()
+                        .describe('선택 일정 제목 검색어.'),
+                    location: z
+                        .string()
+                        .trim()
+                        .min(1)
+                        .optional()
+                        .describe('선택 일정 장소 검색어.'),
+                    startDate: z
+                        .string()
+                        .optional()
+                        .describe('선택 조회 시작 날짜. ISO 8601 문자열이다.'),
+                    endDate: z
+                        .string()
+                        .optional()
+                        .describe('선택 조회 종료 날짜. ISO 8601 문자열이다.'),
+                    limit: z
+                        .number()
+                        .int()
+                        .min(1)
+                        .max(20)
+                        .default(10)
+                        .describe('반환할 최대 후보 개수. 기본값은 10이다.'),
+                }),
+            },
+        );
+    }
+
+    private createExpenseTool(context: AgentToolContext) {
+        return tool(
+            async (
+                { amount, category, title, memo, spentAt },
+                runtime: ToolRuntime,
+            ) => {
+                this.logger.log('[tool] create_expense');
+
+                const parsedSpentAt = new Date(spentAt);
+
+                if (Number.isNaN(parsedSpentAt.getTime())) {
+                    return '지출 날짜 형식이 올바르지 않습니다. spentAt은 ISO 날짜 문자열이어야 합니다.';
+                }
+
+                const operationKey = this.createToolOperationKey('create_expense', runtime);
+
+                const result = await this.prisma.$transaction(async (tx) => {
+                    const createdResult = await tx.expense.createMany({
+                        data: {
+                            userId: context.userId,
+                            operationKey,
+                            amount,
+                            category,
+                            title,
+                            memo,
+                            spentAt: parsedSpentAt,
+                        },
+                        skipDuplicates: true,
+                    });
+
+                    const expense = await tx.expense.findUniqueOrThrow({
+                        where: {
+                            userId_operationKey: {
+                                userId: context.userId,
+                                operationKey,
+                            },
+                        },
+                    });
+
+                    return {
+                        expense,
+                        created: createdResult.count === 1,
+                    };
+                });
+
+                const { expense, created } = result;
+
+                return JSON.stringify({
+                    id: expense.id,
+                    amount: expense.amount,
+                    category: expense.category,
+                    title: expense.title,
+                    memo: expense.memo,
+                    spentAt: expense.spentAt.toISOString(),
+                    duplicated: !created,
+                    message: created
+                        ? '지출 기록을 저장했습니다.'
+                        : '이미 처리된 지출 저장 요청입니다.',
+                });
+            },
+            {
+                name: 'create_expense',
+                description:
+                    '새로운 지출 기록을 저장한다. 사용자가 실제로 돈을 썼다고 말하거나 지출을 기록해 달라고 요청할 때 사용한다. 한 요청에 여러 지출이 포함되어 있으면 각 지출마다 이 tool을 각각 호출한다. 기존 지출의 조회, 수정 또는 삭제에는 사용하지 않는다.',
+                schema: z.object({
+                    amount: z
+                        .number()
+                        .int()
+                        .positive()
+                        .describe('지출 금액. 원화 기준 숫자만 입력한다. 예: 8500'),
+                    category: expenseCategorySchema.describe(
+                            '지출 카테고리. 반드시 정해진 카테고리 중 하나를 선택한다.',
+                        ),
+                    title: z
+                        .string()
+                        .min(1)
+                        .describe('지출 제목. 예: 편의점, 점심, 쿠팡, 전기요금'),
+                    memo: z
+                        .string()
+                        .optional()
+                        .describe('선택 메모. 사용자가 말한 추가 설명이 있으면 넣는다.'),
+                    spentAt: z
+                        .string()
+                        .describe('실제 지출한 날짜와 시간. ISO 8601 문자열로 입력한다. 예: 2026-07-09T14:30:00+09:00'),
                 }),
             },
         );

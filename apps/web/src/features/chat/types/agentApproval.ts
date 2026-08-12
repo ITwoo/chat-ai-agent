@@ -26,6 +26,21 @@ export type ExpenseUpdateApprovalRequest = {
     };
 };
 
+export type ExpenseDeleteApprovalRequest = {
+    type: 'expense_delete_approval';
+    action: 'delete_expense';
+    message: string;
+
+    expense: {
+        id: number;
+        amount: number;
+        category: string;
+        title: string;
+        memo: string | null;
+        spentAt: string;
+    };
+};
+
 export type ScheduleUpdateApprovalRequest = {
     type: 'schedule_update_approval';
     action: 'update_schedule';
@@ -82,6 +97,7 @@ export type UserMemoryDeleteApprovalRequest = {
 
 export type AgentApprovalRequest =
     | ExpenseUpdateApprovalRequest
+    | ExpenseDeleteApprovalRequest
     | ScheduleUpdateApprovalRequest
     | ScheduleDeleteApprovalRequest
     | UserMemoryDeleteApprovalRequest;

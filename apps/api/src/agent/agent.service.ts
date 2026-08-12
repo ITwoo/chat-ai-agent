@@ -81,6 +81,8 @@ const APPROVAL_INTENT_SYSTEM_PROMPT = `
   "수정해", "수정해줘", "그대로 수정해줘"는 approve다.
 - approvalRequest.type이 "schedule_delete_approval"인 경우
   일정을 삭제하겠다는 의도가 명확하면 approve다.
+- approvalRequest.type이 "expense_delete_approval"인 경우
+  지출 삭제를 명확하게 허용해야 approve다.
 - approvalRequest.type이 "user_memory_delete_approval"인 경우
   삭제를 명확하게 허용해야 approve다.
 - 메모리 삭제 승인에서 "수정해", "내용을 바꿔", "다르게 저장해"처럼

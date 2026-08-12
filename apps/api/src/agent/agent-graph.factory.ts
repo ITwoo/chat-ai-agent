@@ -32,6 +32,8 @@ const MUTATING_ACTION_TOOL_NAMES = new Set([
     'create_schedule',
     'update_expense',
     'update_schedule',
+    'delete_schedule',
+    'delete_expense',
     'delete_user_memory',
 ]);
 
@@ -39,6 +41,7 @@ const DUPLICATE_GUARDED_MUTATION_TOOL_NAMES = new Set([
     'update_expense',
     'update_schedule',
     'delete_schedule',
+    'delete_expense',
     'delete_user_memory',
 ]);
 
@@ -86,6 +89,12 @@ const SYSTEM_PROMPT = `
 - update_expense 내부의 interrupt가 최종 승인을 담당한다.
 - update_expense를 호출하기 전에 "수정할까요?", "진행할까요?" 같은 별도의 승인 질문을 하지 않는다.
 - 사용자의 후보 선택은 수정 대상의 식별이며, 최종 승인 자체는 아니다.
+
+지출 삭제에서는 다음 규칙을 반드시 따른다.
+- find_expenses로 삭제 대상을 먼저 정확하게 식별한다.
+- 후보가 여러 개이면 사용자가 대상을 선택하게 한다.
+- 대상이 명확하면 delete_expense를 호출한다.
+- delete_expense 내부의 interrupt가 최종 승인을 담당하므로 호출 전에 별도의 승인 질문을 하지 않는다.
 
 tool 실행 결과를 근거로 답변하며, 실제로 실행하지 않은 작업을 실행했다고 말하지 않는다.
 구현되지 않은 기능이나 존재하지 않는 tool을 사용했다고 말하지 않는다.

@@ -3,7 +3,7 @@ import { StructuredToolInterface, tool, ToolRuntime } from '@langchain/core/tool
 import { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service';
 import { interrupt } from '@langchain/langgraph';
-import { agentApprovalDecisionSchema, ExpenseUpdateApprovalRequest, ScheduleDeleteApprovalRequest, ScheduleUpdateApprovalRequest, updateExpenseDecisionSchema, updateScheduleDecisionSchema } from './agent-interrupt.schema';
+import { agentApprovalDecisionSchema, ExpenseDeleteApprovalRequest, ExpenseUpdateApprovalRequest, ScheduleDeleteApprovalRequest, ScheduleUpdateApprovalRequest, updateExpenseDecisionSchema, updateScheduleDecisionSchema } from './agent-interrupt.schema';
 import { RAG_SEARCH_TOOL_NAME } from '../rag/rag.constants';
 import { ragSearchToolInputSchema } from '../rag/schemas/rag-search-tool.schema';
 import { AgentToolContext } from './types/agent-tool-context.type';
@@ -50,6 +50,7 @@ export class AgentToolsService {
             this.createExpenseListTool(context),
             this.createFindExpensesTool(context),
             this.createUpdateExpenseTool(context),
+            this.createDeleteExpenseTool(context),
             this.createSearchRagDocumentsTool(),
             ...this.userMemoryToolsService.getTools(context),
         ];
@@ -471,6 +472,390 @@ export class AgentToolsService {
                         .max(20)
                         .default(10)
                         .describe('반환할 최대 후보 개수. 기본값은 10이다.'),
+                }),
+            },
+        );
+    }
+
+    private createUpdateScheduleTool(context: AgentToolContext) {
+        return tool(
+            async ({
+                scheduleId,
+                title,
+                memo,
+                location,
+                startsAt,
+                endsAt,
+            }) => {
+                this.logger.log('[tool] update_schedule');
+
+                const updateData: {
+                    title?: string;
+                    memo?: string | null;
+                    location?: string | null;
+                    startsAt?: Date;
+                    endsAt?: Date | null;
+                } = {};
+
+                if (title !== undefined) updateData.title = title;
+                if (memo !== undefined) updateData.memo = memo;
+                if (location !== undefined) updateData.location = location;
+
+                if (startsAt !== undefined) {
+                    const parsedStartsAt = new Date(startsAt);
+
+                    if (Number.isNaN(parsedStartsAt.getTime())) {
+                        return '일정 시작 시간 형식이 올바르지 않습니다.';
+                    }
+
+                    updateData.startsAt = parsedStartsAt;
+                }
+
+                if (endsAt !== undefined) {
+                    if (endsAt === null) {
+                        updateData.endsAt = null;
+                    } else {
+                        const parsedEndsAt = new Date(endsAt);
+
+                        if (Number.isNaN(parsedEndsAt.getTime())) {
+                            return '일정 종료 시간 형식이 올바르지 않습니다.';
+                        }
+
+                        updateData.endsAt = parsedEndsAt;
+                    }
+                }
+
+                if (Object.keys(updateData).length === 0) {
+                    return '수정할 내용이 없습니다.';
+                }
+
+                const schedule = await this.prisma.schedule.findFirst({
+                    where: {
+                        id: scheduleId,
+                        userId: context.userId,
+                    },
+                    select: {
+                        id: true,
+                        title: true,
+                        memo: true,
+                        location: true,
+                        startsAt: true,
+                        endsAt: true,
+                        version: true,
+                    },
+                });
+
+                if (!schedule) {
+                    return '수정할 일정을 찾을 수 없습니다.';
+                }
+
+                const nextStartsAt =
+                    updateData.startsAt ?? schedule.startsAt;
+
+                const nextEndsAt =
+                    updateData.endsAt !== undefined
+                        ? updateData.endsAt
+                        : schedule.endsAt;
+
+                if (nextEndsAt && nextEndsAt <= nextStartsAt) {
+                    return '일정 종료 시간은 시작 시간보다 이후여야 합니다.';
+                }
+
+                const changes: ScheduleUpdateApprovalRequest['changes'] = {
+                    title: updateData.title,
+                    memo: updateData.memo,
+                    location: updateData.location,
+                    startsAt: updateData.startsAt?.toISOString(),
+                    endsAt:
+                        updateData.endsAt === undefined
+                            ? undefined
+                            : updateData.endsAt?.toISOString() ?? null,
+                };
+
+                const approvalRequest = {
+                    type: 'schedule_update_approval',
+                    action: 'update_schedule',
+                    message: '이 일정을 수정할까요?',
+                    schedule: {
+                        id: schedule.id,
+                        title: schedule.title,
+                        memo: schedule.memo,
+                        location: schedule.location,
+                        startsAt: schedule.startsAt.toISOString(),
+                        endsAt: schedule.endsAt?.toISOString() ?? null,
+                        version: schedule.version,
+                    },
+                    changes,
+                } satisfies ScheduleUpdateApprovalRequest;
+
+                const resumeValue: unknown = interrupt(approvalRequest);
+
+                const decisionResult =
+                    updateScheduleDecisionSchema.safeParse(resumeValue);
+
+                if (!decisionResult.success) {
+                    return '일정 수정 승인 응답 형식이 올바르지 않습니다.';
+                }
+
+                const decision = decisionResult.data;
+
+                if (decision.action === 'cancel') {
+                    return JSON.stringify({
+                        updated: false,
+                        status: 'cancelled',
+                        scheduleId,
+                        message: '일정 수정을 취소했습니다.',
+                    });
+                }
+
+                if (decision.action === 'revise') {
+                    return JSON.stringify({
+                        updated: false,
+                        status: 'revision_requested',
+                        schedule: {
+                            id: schedule.id,
+                            title: schedule.title,
+                            memo: schedule.memo,
+                            location: schedule.location,
+                            startsAt: schedule.startsAt.toISOString(),
+                            endsAt: schedule.endsAt?.toISOString() ?? null,
+                        },
+                        previousChanges: changes,
+                        revisionRequest: decision.content,
+                        nextAction:
+                            'revisionRequest를 반영해 update_schedule을 다시 호출한다.',
+                    });
+                }
+
+                const expectedVersion = decision.expectedVersion;
+
+                if (expectedVersion === undefined || expectedVersion === null) {
+                    return JSON.stringify({
+                        updated: false,
+                        status: 'expired_approval',
+                        scheduleId,
+                        message: '승인 요청의 버전 정보가 없어 다시 요청해야 합니다.',
+                    });
+                }
+
+                const updateResult = await this.prisma.schedule.updateMany({
+                    where: {
+                        id: scheduleId,
+                        userId: context.userId,
+                        version: expectedVersion,
+                    },
+                    data: {
+                        ...updateData,
+                        version: {
+                            increment: 1,
+                        },
+                    },
+                });
+
+                if (updateResult.count === 0) {
+                    const currentSchedule =
+                        await this.prisma.schedule.findFirst({
+                            where: {
+                                id: scheduleId,
+                                userId: context.userId,
+                            },
+                            select: {
+                                version: true,
+                            },
+                        });
+
+                    if (!currentSchedule) {
+                        return '수정할 일정을 찾을 수 없습니다.';
+                    }
+
+                    return JSON.stringify({
+                        updated: false,
+                        status: 'stale_approval',
+                        scheduleId,
+                        expectedVersion,
+                        currentVersion: currentSchedule.version,
+                        message:
+                            '승인 대기 중 일정이 변경되었습니다. 다시 조회해 주세요.',
+                    });
+                }
+
+                const updatedSchedule =
+                    await this.prisma.schedule.findFirstOrThrow({
+                        where: {
+                            id: scheduleId,
+                            userId: context.userId,
+                        },
+                    });
+
+                return JSON.stringify({
+                    updated: true,
+                    schedule: {
+                        id: updatedSchedule.id,
+                        title: updatedSchedule.title,
+                        memo: updatedSchedule.memo,
+                        location: updatedSchedule.location,
+                        startsAt: updatedSchedule.startsAt.toISOString(),
+                        endsAt:
+                            updatedSchedule.endsAt?.toISOString() ?? null,
+                        version: updatedSchedule.version,
+                    },
+                    message: '일정을 수정했습니다.',
+                });
+            },
+            {
+                name: 'update_schedule',
+                description:
+                    '기존 일정을 수정한다. find_schedules로 대상을 식별한 뒤 호출한다. 최종 승인은 tool 내부에서 처리한다.',
+                schema: z.object({
+                    scheduleId: z.number().int().positive(),
+                    title: z.string().trim().min(1).max(100).optional(),
+                    memo: z.string().trim().min(1).nullable().optional(),
+                    location: z.string().trim().min(1).max(255).nullable().optional(),
+                    startsAt: z.string().optional(),
+                    endsAt: z.string().nullable().optional(),
+                }),
+            },
+        );
+    }
+
+    private createDeleteScheduleTool(context: AgentToolContext) {
+        return tool(
+            async ({ scheduleId }) => {
+                this.logger.log('[tool] delete_schedule');
+
+                const schedule = await this.prisma.schedule.findFirst({
+                    where: {
+                        id: scheduleId,
+                        userId: context.userId,
+                    },
+                    select: {
+                        id: true,
+                        title: true,
+                        memo: true,
+                        location: true,
+                        startsAt: true,
+                        endsAt: true,
+                        version: true,
+                    },
+                });
+
+                if (!schedule) {
+                    return '삭제할 일정을 찾을 수 없습니다.';
+                }
+
+                const approvalRequest = {
+                    type: 'schedule_delete_approval',
+                    action: 'delete_schedule',
+                    message: '이 일정을 삭제할까요?',
+                    schedule: {
+                        id: schedule.id,
+                        title: schedule.title,
+                        memo: schedule.memo,
+                        location: schedule.location,
+                        startsAt: schedule.startsAt.toISOString(),
+                        endsAt: schedule.endsAt?.toISOString() ?? null,
+                        version: schedule.version,
+                    },
+                } satisfies ScheduleDeleteApprovalRequest;
+
+                const resumeValue: unknown = interrupt(approvalRequest);
+
+                const decisionResult =
+                    agentApprovalDecisionSchema.safeParse(resumeValue);
+
+                if (!decisionResult.success) {
+                    return '일정 삭제 승인 응답 형식이 올바르지 않습니다.';
+                }
+
+                const decision = decisionResult.data;
+
+                if (decision.action === 'cancel') {
+                    return JSON.stringify({
+                        deleted: false,
+                        status: 'cancelled',
+                        scheduleId,
+                        message: '일정 삭제를 취소했습니다.',
+                    });
+                }
+
+                if (decision.action === 'revise') {
+                    return JSON.stringify({
+                        deleted: false,
+                        status: 'revision_requested',
+                        schedule: approvalRequest.schedule,
+                        revisionRequest: decision.content,
+                        nextAction:
+                            'revisionRequest를 반영해 find_schedules로 대상을 다시 찾은 뒤 delete_schedule을 호출한다.',
+                    });
+                }
+
+                const expectedVersion = decision.expectedVersion;
+
+                if (expectedVersion === undefined || expectedVersion === null) {
+                    return JSON.stringify({
+                        deleted: false,
+                        status: 'expired_approval',
+                        scheduleId,
+                        message: '승인 요청의 버전 정보가 없어 다시 요청해야 합니다.',
+                    });
+                }
+
+                const deleteResult = await this.prisma.schedule.deleteMany({
+                    where: {
+                        id: scheduleId,
+                        userId: context.userId,
+                        version: expectedVersion,
+                    },
+                });
+
+                if (deleteResult.count === 0) {
+                    const currentSchedule =
+                        await this.prisma.schedule.findFirst({
+                            where: {
+                                id: scheduleId,
+                                userId: context.userId,
+                            },
+                            select: {
+                                version: true,
+                            },
+                        });
+
+                    if (!currentSchedule) {
+                        return JSON.stringify({
+                            deleted: false,
+                            status: 'already_deleted',
+                            scheduleId,
+                            message: '이미 삭제된 일정입니다.',
+                        });
+                    }
+
+                    return JSON.stringify({
+                        deleted: false,
+                        status: 'stale_approval',
+                        scheduleId,
+                        expectedVersion,
+                        currentVersion: currentSchedule.version,
+                        message:
+                            '승인 대기 중 일정이 변경되었습니다. 다시 확인해 주세요.',
+                    });
+                }
+
+                return JSON.stringify({
+                    deleted: true,
+                    schedule: approvalRequest.schedule,
+                    message: '일정을 삭제했습니다.',
+                });
+            },
+            {
+                name: 'delete_schedule',
+                description:
+                    '기존 일정을 삭제한다. find_schedules로 정확한 대상을 식별한 뒤 호출하며 내부 승인 절차를 거친다.',
+                schema: z.object({
+                    scheduleId: z
+                        .number()
+                        .int()
+                        .positive()
+                        .describe('find_schedules가 반환한 삭제 대상 일정 ID'),
                 }),
             },
         );
@@ -931,390 +1316,6 @@ export class AgentToolsService {
         );
     }
 
-    private createUpdateScheduleTool(context: AgentToolContext) {
-        return tool(
-            async ({
-                scheduleId,
-                title,
-                memo,
-                location,
-                startsAt,
-                endsAt,
-            }) => {
-                this.logger.log('[tool] update_schedule');
-
-                const updateData: {
-                    title?: string;
-                    memo?: string | null;
-                    location?: string | null;
-                    startsAt?: Date;
-                    endsAt?: Date | null;
-                } = {};
-
-                if (title !== undefined) updateData.title = title;
-                if (memo !== undefined) updateData.memo = memo;
-                if (location !== undefined) updateData.location = location;
-
-                if (startsAt !== undefined) {
-                    const parsedStartsAt = new Date(startsAt);
-
-                    if (Number.isNaN(parsedStartsAt.getTime())) {
-                        return '일정 시작 시간 형식이 올바르지 않습니다.';
-                    }
-
-                    updateData.startsAt = parsedStartsAt;
-                }
-
-                if (endsAt !== undefined) {
-                    if (endsAt === null) {
-                        updateData.endsAt = null;
-                    } else {
-                        const parsedEndsAt = new Date(endsAt);
-
-                        if (Number.isNaN(parsedEndsAt.getTime())) {
-                            return '일정 종료 시간 형식이 올바르지 않습니다.';
-                        }
-
-                        updateData.endsAt = parsedEndsAt;
-                    }
-                }
-
-                if (Object.keys(updateData).length === 0) {
-                    return '수정할 내용이 없습니다.';
-                }
-
-                const schedule = await this.prisma.schedule.findFirst({
-                    where: {
-                        id: scheduleId,
-                        userId: context.userId,
-                    },
-                    select: {
-                        id: true,
-                        title: true,
-                        memo: true,
-                        location: true,
-                        startsAt: true,
-                        endsAt: true,
-                        version: true,
-                    },
-                });
-
-                if (!schedule) {
-                    return '수정할 일정을 찾을 수 없습니다.';
-                }
-
-                const nextStartsAt =
-                    updateData.startsAt ?? schedule.startsAt;
-
-                const nextEndsAt =
-                    updateData.endsAt !== undefined
-                        ? updateData.endsAt
-                        : schedule.endsAt;
-
-                if (nextEndsAt && nextEndsAt <= nextStartsAt) {
-                    return '일정 종료 시간은 시작 시간보다 이후여야 합니다.';
-                }
-
-                const changes: ScheduleUpdateApprovalRequest['changes'] = {
-                    title: updateData.title,
-                    memo: updateData.memo,
-                    location: updateData.location,
-                    startsAt: updateData.startsAt?.toISOString(),
-                    endsAt:
-                        updateData.endsAt === undefined
-                            ? undefined
-                            : updateData.endsAt?.toISOString() ?? null,
-                };
-
-                const approvalRequest = {
-                    type: 'schedule_update_approval',
-                    action: 'update_schedule',
-                    message: '이 일정을 수정할까요?',
-                    schedule: {
-                        id: schedule.id,
-                        title: schedule.title,
-                        memo: schedule.memo,
-                        location: schedule.location,
-                        startsAt: schedule.startsAt.toISOString(),
-                        endsAt: schedule.endsAt?.toISOString() ?? null,
-                        version: schedule.version,
-                    },
-                    changes,
-                } satisfies ScheduleUpdateApprovalRequest;
-
-                const resumeValue: unknown = interrupt(approvalRequest);
-
-                const decisionResult =
-                    updateScheduleDecisionSchema.safeParse(resumeValue);
-
-                if (!decisionResult.success) {
-                    return '일정 수정 승인 응답 형식이 올바르지 않습니다.';
-                }
-
-                const decision = decisionResult.data;
-
-                if (decision.action === 'cancel') {
-                    return JSON.stringify({
-                        updated: false,
-                        status: 'cancelled',
-                        scheduleId,
-                        message: '일정 수정을 취소했습니다.',
-                    });
-                }
-
-                if (decision.action === 'revise') {
-                    return JSON.stringify({
-                        updated: false,
-                        status: 'revision_requested',
-                        schedule: {
-                            id: schedule.id,
-                            title: schedule.title,
-                            memo: schedule.memo,
-                            location: schedule.location,
-                            startsAt: schedule.startsAt.toISOString(),
-                            endsAt: schedule.endsAt?.toISOString() ?? null,
-                        },
-                        previousChanges: changes,
-                        revisionRequest: decision.content,
-                        nextAction:
-                            'revisionRequest를 반영해 update_schedule을 다시 호출한다.',
-                    });
-                }
-
-                const expectedVersion = decision.expectedVersion;
-
-                if (expectedVersion === undefined || expectedVersion === null) {
-                    return JSON.stringify({
-                        updated: false,
-                        status: 'expired_approval',
-                        scheduleId,
-                        message: '승인 요청의 버전 정보가 없어 다시 요청해야 합니다.',
-                    });
-                }
-
-                const updateResult = await this.prisma.schedule.updateMany({
-                    where: {
-                        id: scheduleId,
-                        userId: context.userId,
-                        version: expectedVersion,
-                    },
-                    data: {
-                        ...updateData,
-                        version: {
-                            increment: 1,
-                        },
-                    },
-                });
-
-                if (updateResult.count === 0) {
-                    const currentSchedule =
-                        await this.prisma.schedule.findFirst({
-                            where: {
-                                id: scheduleId,
-                                userId: context.userId,
-                            },
-                            select: {
-                                version: true,
-                            },
-                        });
-
-                    if (!currentSchedule) {
-                        return '수정할 일정을 찾을 수 없습니다.';
-                    }
-
-                    return JSON.stringify({
-                        updated: false,
-                        status: 'stale_approval',
-                        scheduleId,
-                        expectedVersion,
-                        currentVersion: currentSchedule.version,
-                        message:
-                            '승인 대기 중 일정이 변경되었습니다. 다시 조회해 주세요.',
-                    });
-                }
-
-                const updatedSchedule =
-                    await this.prisma.schedule.findFirstOrThrow({
-                        where: {
-                            id: scheduleId,
-                            userId: context.userId,
-                        },
-                    });
-
-                return JSON.stringify({
-                    updated: true,
-                    schedule: {
-                        id: updatedSchedule.id,
-                        title: updatedSchedule.title,
-                        memo: updatedSchedule.memo,
-                        location: updatedSchedule.location,
-                        startsAt: updatedSchedule.startsAt.toISOString(),
-                        endsAt:
-                            updatedSchedule.endsAt?.toISOString() ?? null,
-                        version: updatedSchedule.version,
-                    },
-                    message: '일정을 수정했습니다.',
-                });
-            },
-            {
-                name: 'update_schedule',
-                description:
-                    '기존 일정을 수정한다. find_schedules로 대상을 식별한 뒤 호출한다. 최종 승인은 tool 내부에서 처리한다.',
-                schema: z.object({
-                    scheduleId: z.number().int().positive(),
-                    title: z.string().trim().min(1).max(100).optional(),
-                    memo: z.string().trim().min(1).nullable().optional(),
-                    location: z.string().trim().min(1).max(255).nullable().optional(),
-                    startsAt: z.string().optional(),
-                    endsAt: z.string().nullable().optional(),
-                }),
-            },
-        );
-    }
-
-    private createDeleteScheduleTool(context: AgentToolContext) {
-        return tool(
-            async ({ scheduleId }) => {
-                this.logger.log('[tool] delete_schedule');
-
-                const schedule = await this.prisma.schedule.findFirst({
-                    where: {
-                        id: scheduleId,
-                        userId: context.userId,
-                    },
-                    select: {
-                        id: true,
-                        title: true,
-                        memo: true,
-                        location: true,
-                        startsAt: true,
-                        endsAt: true,
-                        version: true,
-                    },
-                });
-
-                if (!schedule) {
-                    return '삭제할 일정을 찾을 수 없습니다.';
-                }
-
-                const approvalRequest = {
-                    type: 'schedule_delete_approval',
-                    action: 'delete_schedule',
-                    message: '이 일정을 삭제할까요?',
-                    schedule: {
-                        id: schedule.id,
-                        title: schedule.title,
-                        memo: schedule.memo,
-                        location: schedule.location,
-                        startsAt: schedule.startsAt.toISOString(),
-                        endsAt: schedule.endsAt?.toISOString() ?? null,
-                        version: schedule.version,
-                    },
-                } satisfies ScheduleDeleteApprovalRequest;
-
-                const resumeValue: unknown = interrupt(approvalRequest);
-
-                const decisionResult =
-                    agentApprovalDecisionSchema.safeParse(resumeValue);
-
-                if (!decisionResult.success) {
-                    return '일정 삭제 승인 응답 형식이 올바르지 않습니다.';
-                }
-
-                const decision = decisionResult.data;
-
-                if (decision.action === 'cancel') {
-                    return JSON.stringify({
-                        deleted: false,
-                        status: 'cancelled',
-                        scheduleId,
-                        message: '일정 삭제를 취소했습니다.',
-                    });
-                }
-
-                if (decision.action === 'revise') {
-                    return JSON.stringify({
-                        deleted: false,
-                        status: 'revision_requested',
-                        schedule: approvalRequest.schedule,
-                        revisionRequest: decision.content,
-                        nextAction:
-                            'revisionRequest를 반영해 find_schedules로 대상을 다시 찾은 뒤 delete_schedule을 호출한다.',
-                    });
-                }
-
-                const expectedVersion = decision.expectedVersion;
-
-                if (expectedVersion === undefined || expectedVersion === null) {
-                    return JSON.stringify({
-                        deleted: false,
-                        status: 'expired_approval',
-                        scheduleId,
-                        message: '승인 요청의 버전 정보가 없어 다시 요청해야 합니다.',
-                    });
-                }
-
-                const deleteResult = await this.prisma.schedule.deleteMany({
-                    where: {
-                        id: scheduleId,
-                        userId: context.userId,
-                        version: expectedVersion,
-                    },
-                });
-
-                if (deleteResult.count === 0) {
-                    const currentSchedule =
-                        await this.prisma.schedule.findFirst({
-                            where: {
-                                id: scheduleId,
-                                userId: context.userId,
-                            },
-                            select: {
-                                version: true,
-                            },
-                        });
-
-                    if (!currentSchedule) {
-                        return JSON.stringify({
-                            deleted: false,
-                            status: 'already_deleted',
-                            scheduleId,
-                            message: '이미 삭제된 일정입니다.',
-                        });
-                    }
-
-                    return JSON.stringify({
-                        deleted: false,
-                        status: 'stale_approval',
-                        scheduleId,
-                        expectedVersion,
-                        currentVersion: currentSchedule.version,
-                        message:
-                            '승인 대기 중 일정이 변경되었습니다. 다시 확인해 주세요.',
-                    });
-                }
-
-                return JSON.stringify({
-                    deleted: true,
-                    schedule: approvalRequest.schedule,
-                    message: '일정을 삭제했습니다.',
-                });
-            },
-            {
-                name: 'delete_schedule',
-                description:
-                    '기존 일정을 삭제한다. find_schedules로 정확한 대상을 식별한 뒤 호출하며 내부 승인 절차를 거친다.',
-                schema: z.object({
-                    scheduleId: z
-                        .number()
-                        .int()
-                        .positive()
-                        .describe('find_schedules가 반환한 삭제 대상 일정 ID'),
-                }),
-            },
-        );
-    }
-
     private createUpdateExpenseTool(context: AgentToolContext) {
         return tool(
             async (
@@ -1684,6 +1685,152 @@ export class AgentToolsService {
                         .optional()
                         .describe(
                             '변경할 지출 날짜와 시간. 시간대가 포함된 ISO 8601 문자열로 입력하고, 변경하지 않으면 생략한다.',
+                        ),
+                }),
+            },
+        );
+    }
+
+    private createDeleteExpenseTool(context: AgentToolContext) {
+        return tool(
+            async ({ expenseId }) => {
+                this.logger.log('[tool] delete_expense');
+
+                const expense = await this.prisma.expense.findFirst({
+                    where: {
+                        id: expenseId,
+                        userId: context.userId,
+                    },
+                    select: {
+                        id: true,
+                        amount: true,
+                        category: true,
+                        title: true,
+                        memo: true,
+                        spentAt: true,
+                        version: true,
+                    },
+                });
+
+                if (!expense) {
+                    return '삭제할 지출 기록을 찾을 수 없습니다.';
+                }
+
+                const approvalRequest = {
+                    type: 'expense_delete_approval',
+                    action: 'delete_expense',
+                    message: '이 지출 기록을 삭제할까요?',
+                    expense: {
+                        id: expense.id,
+                        amount: expense.amount,
+                        category: expense.category,
+                        title: expense.title,
+                        memo: expense.memo,
+                        spentAt: expense.spentAt.toISOString(),
+                        version: expense.version,
+                    },
+                } satisfies ExpenseDeleteApprovalRequest;
+
+                const resumeValue: unknown = interrupt(approvalRequest);
+
+                const decisionResult =
+                    agentApprovalDecisionSchema.safeParse(resumeValue);
+
+                if (!decisionResult.success) {
+                    return '지출 삭제 승인 응답 형식이 올바르지 않습니다.';
+                }
+
+                const decision = decisionResult.data;
+
+                if (decision.action === 'cancel') {
+                    return JSON.stringify({
+                        deleted: false,
+                        status: 'cancelled',
+                        expenseId,
+                        message: '지출 삭제를 취소했습니다.',
+                    });
+                }
+
+                if (decision.action === 'revise') {
+                    return JSON.stringify({
+                        deleted: false,
+                        status: 'revision_requested',
+                        expense: approvalRequest.expense,
+                        revisionRequest: decision.content,
+                        nextAction:
+                            'revisionRequest를 기준으로 find_expenses를 다시 호출해 대상을 찾은 뒤 delete_expense를 다시 호출한다.',
+                    });
+                }
+
+                const expectedVersion = decision.expectedVersion;
+
+                if (expectedVersion === undefined || expectedVersion === null) {
+                    return JSON.stringify({
+                        deleted: false,
+                        status: 'expired_approval',
+                        expenseId,
+                        message:
+                            '기존 승인 요청의 버전 정보가 없어 다시 요청해야 합니다.',
+                    });
+                }
+
+                const deleteResult = await this.prisma.expense.deleteMany({
+                    where: {
+                        id: expenseId,
+                        userId: context.userId,
+                        version: expectedVersion,
+                    },
+                });
+
+                if (deleteResult.count === 0) {
+                    const currentExpense =
+                        await this.prisma.expense.findFirst({
+                            where: {
+                                id: expenseId,
+                                userId: context.userId,
+                            },
+                            select: {
+                                version: true,
+                            },
+                        });
+
+                    if (!currentExpense) {
+                        return JSON.stringify({
+                            deleted: false,
+                            status: 'already_deleted',
+                            expenseId,
+                            message: '이미 삭제된 지출 기록입니다.',
+                        });
+                    }
+
+                    return JSON.stringify({
+                        deleted: false,
+                        status: 'stale_approval',
+                        expenseId,
+                        expectedVersion,
+                        currentVersion: currentExpense.version,
+                        message:
+                            '승인 대기 중 지출 내용이 변경되었습니다. 다시 조회해 주세요.',
+                    });
+                }
+
+                return JSON.stringify({
+                    deleted: true,
+                    expense: approvalRequest.expense,
+                    message: '지출 기록을 삭제했습니다.',
+                });
+            },
+            {
+                name: 'delete_expense',
+                description:
+                    '기존 지출 기록을 삭제한다. find_expenses로 정확한 대상을 식별한 뒤 호출하며 최종 승인은 tool 내부에서 처리한다.',
+                schema: z.object({
+                    expenseId: z
+                        .number()
+                        .int()
+                        .positive()
+                        .describe(
+                            'find_expenses가 반환한 삭제 대상 지출 기록의 고유 id',
                         ),
                 }),
             },

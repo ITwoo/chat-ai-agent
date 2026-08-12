@@ -917,6 +917,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 isCancel = CANCEL_MESSAGES.has(normalized);
                 break;
 
+            case 'expense_delete_approval':
+                isApprove = DELETE_APPROVE_MESSAGES.has(normalized);
+                isCancel = CANCEL_MESSAGES.has(normalized);
+                break;
+                
             case 'schedule_update_approval':
                 isApprove = UPDATE_APPROVE_MESSAGES.has(normalized);
                 isCancel = CANCEL_MESSAGES.has(normalized);
@@ -959,6 +964,16 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
                 `- 타입: ${request.memory.type}`,
                 `- 키: ${request.memory.memoryKey}`,
                 `- 내용: ${request.memory.content}`,
+            ].join('\n');
+        }
+
+        if (request.type === 'expense_delete_approval') {
+            return [
+                request.message,
+                `- 제목: ${request.expense.title}`,
+                `- 금액: ${request.expense.amount.toLocaleString()}원`,
+                `- 카테고리: ${request.expense.category}`,
+                `- 날짜: ${request.expense.spentAt}`,
             ].join('\n');
         }
 
@@ -1634,17 +1649,13 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
         switch (request.type) {
             case 'expense_update_approval':
+            case 'expense_delete_approval':
                 return {
                     ...decision,
                     expectedVersion: request.expense.version,
                 };
 
             case 'schedule_update_approval':
-                return {
-                    ...decision,
-                    expectedVersion: request.schedule.version,
-                };
-
             case 'schedule_delete_approval':
                 return {
                     ...decision,

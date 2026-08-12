@@ -41,6 +41,15 @@ const agentDomainDecisionSchema = z.object({
     domain: agentDomainSchema,
 });
 
+const SUPERVISOR_ROUTE_TOOL_NAME = 'route_agent_domain';
+
+const supervisorRouteTool = {
+    name: SUPERVISOR_ROUTE_TOOL_NAME,
+    description:
+        '사용자의 현재 요청을 처리할 담당 Agent 도메인을 하나 선택한다.',
+    schema: agentDomainDecisionSchema,
+};
+
 const EXPENSE_TOOL_NAMES = new Set([
     'get_current_date_time',
     'create_expense',
@@ -287,14 +296,15 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             state,
             config,
         ) => {
-            const router = baseModel.withStructuredOutput(
-                agentDomainDecisionSchema,
+            const router = baseModel.bindTools(
+                [supervisorRouteTool],
                 {
-                    name: 'route_agent_domain',
+                    tool_choice: SUPERVISOR_ROUTE_TOOL_NAME,
+                    strict: true,
                 },
             );
 
-            const decision = await router.invoke(
+            const response = await router.invoke(
                 [
                     new SystemMessage(SUPERVISOR_SYSTEM_PROMPT),
                     ...state.messages,
@@ -303,16 +313,31 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                     ...config,
                     runName: 'agent_supervisor_route',
                     tags: [...(config.tags ?? []), 'agent-supervisor'],
-                    timeout: AGENT_MODEL_TIMEOUT_MS,
                 },
             );
 
+            const routeCall = response.tool_calls?.[0];
+            
+            const decision = agentDomainDecisionSchema.safeParse(
+                routeCall?.args,
+            );
+
+            if (!decision.success) {
+                this.logger.warn(
+                    '[agent:supervisor] 도메인 분류 실패. general로 처리합니다.',
+                );
+
+                return {
+                    agentDomain: 'general',
+                };
+            }
+
             this.logger.log(
-                `[agent:supervisor] domain=${decision.domain}`,
+                `[agent:supervisor] domain=${decision.data.domain}`,
             );
 
             return {
-                agentDomain: decision.domain,
+                agentDomain: decision.data.domain,
             };
         };
 

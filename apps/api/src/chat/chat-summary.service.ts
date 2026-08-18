@@ -118,8 +118,7 @@ export class ChatSummaryService {
         userId: number,
         target: ChatSummaryTarget,
     ): Promise<string> {
-        const previousSummary =
-            target.currentSummary?.trim() || '(기존 요약 없음)';
+        const previousSummary = target.currentSummary?.trim() || '(기존 요약 없음)';
 
         const response = await this.model.invoke([
             new SystemMessage(CHAT_SUMMARY_SYSTEM_PROMPT),
@@ -149,8 +148,7 @@ export class ChatSummaryService {
         roomId: number,
         userId: number,
     ): Promise<ChatSummaryRunResult> {
-        const target =
-            await this.chatService.getSummaryTarget(roomId, userId);
+        const target = await this.chatService.getSummaryTarget(roomId, userId);
 
         if (!target) return 'NO_TARGET';
 

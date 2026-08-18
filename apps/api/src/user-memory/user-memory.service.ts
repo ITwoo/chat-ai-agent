@@ -51,21 +51,15 @@ export class UserMemoryService {
         const normalizedMemoryKey = memoryKey.trim().toLowerCase();
 
         if (!normalizedMemoryKey) {
-            throw new BadRequestException(
-                '메모리 키를 입력해주세요.',
-            );
+            throw new BadRequestException('메모리 키를 입력해주세요.');
         }
 
         if (normalizedMemoryKey.length > MAX_MEMORY_KEY_LENGTH) {
-            throw new BadRequestException(
-                `메모리 키는 ${MAX_MEMORY_KEY_LENGTH}자를 초과할 수 없습니다.`,
-            );
+            throw new BadRequestException(`메모리 키는 ${MAX_MEMORY_KEY_LENGTH}자를 초과할 수 없습니다.`);
         }
 
         if (!MEMORY_KEY_PATTERN.test(normalizedMemoryKey)) {
-            throw new BadRequestException(
-                '메모리 키는 영문 소문자와 숫자, 점, 밑줄, 하이픈만 사용할 수 있습니다.',
-            );
+            throw new BadRequestException('메모리 키는 영문 소문자와 숫자, 점, 밑줄, 하이픈만 사용할 수 있습니다.');
         }
 
         return normalizedMemoryKey;
@@ -75,9 +69,7 @@ export class UserMemoryService {
         const normalizedContent = content.trim();
 
         if (!normalizedContent) {
-            throw new BadRequestException(
-                '메모리 내용을 입력해주세요.',
-            );
+            throw new BadRequestException('메모리 내용을 입력해주세요.');
         }
 
         return normalizedContent;
@@ -152,9 +144,7 @@ export class UserMemoryService {
             });
 
         if (!sourceMessage) {
-            throw new BadRequestException(
-                '메모리 출처 메시지를 찾을 수 없거나 접근할 수 없습니다.',
-            );
+            throw new BadRequestException('메모리 출처 메시지를 찾을 수 없거나 접근할 수 없습니다.');
         }
     }
 
@@ -251,8 +241,7 @@ export class UserMemoryService {
         });
 
         let logQuery = this.configService.get<string>('NODE_ENV') !== 'production' ? `query=${JSON.stringify(normalizedQuery)}, ` : ''
-            
-        
+                    
         this.logger.log(
             `[memory-search] userId=${userId}, ` +
             `${logQuery}}` +

@@ -43,9 +43,7 @@ export class UserMemoryToolsService {
     ): StructuredToolInterface {
         return tool(
             async ({ query, type, limit }) => {
-                this.logger.log(
-                    `[tool] search_user_memories userId=${context.userId}`,
-                );
+                this.logger.log(`[tool] search_user_memories userId=${context.userId}`);
 
                 const memories =
                     await this.userMemoryService.searchMemoriesForTool(
@@ -106,9 +104,7 @@ export class UserMemoryToolsService {
     ): StructuredToolInterface {
         return tool(
             async ({ memoryId }) => {
-                this.logger.log(
-                    `[tool] delete_user_memory userId=${context.userId}, memoryId=${memoryId}`,
-                );
+                this.logger.log(`[tool] delete_user_memory userId=${context.userId}, memoryId=${memoryId}`);
 
                 const memory =
                     await this.userMemoryService.getActiveMemoryById(
@@ -128,13 +124,9 @@ export class UserMemoryToolsService {
                     },
                 } satisfies UserMemoryDeleteApprovalRequest;
 
-                const resumeValue: unknown =
-                    interrupt(approvalRequest);
+                const resumeValue: unknown = interrupt(approvalRequest);
 
-                const decisionResult =
-                    agentApprovalDecisionSchema.safeParse(
-                        resumeValue,
-                    );
+                const decisionResult = agentApprovalDecisionSchema.safeParse(resumeValue);
 
                 if (!decisionResult.success) {
                     return '메모리 삭제 승인 응답 형식이 올바르지 않습니다.';

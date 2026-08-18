@@ -267,9 +267,7 @@ export class ChatService {
                 where,
             });
 
-        const summarizableMessageCount =
-            unsummarizedMessageCount -
-            RECENT_CONTEXT_MESSAGE_LIMIT;
+        const summarizableMessageCount = unsummarizedMessageCount - RECENT_CONTEXT_MESSAGE_LIMIT;
 
         if (summarizableMessageCount <= 0) {
             return null;
@@ -288,14 +286,12 @@ export class ChatService {
             });
 
         if (
-            messages.at(-1)?.role ===
-            ChatMessageRole.USER
+            messages.at(-1)?.role === ChatMessageRole.USER
         ) {
             messages.pop();
         }
 
-        const throughMessageId =
-            messages.at(-1)?.id;
+        const throughMessageId = messages.at(-1)?.id;
 
         if (throughMessageId === undefined) {
             return null;

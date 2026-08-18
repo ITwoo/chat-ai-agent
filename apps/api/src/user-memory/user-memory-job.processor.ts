@@ -25,15 +25,11 @@ const EMPTY_EXTRACTION_RESULT: UserMemoryExtractionJobResult = {
 @Injectable()
 @Processor(USER_MEMORY_QUEUE)
 export class UserMemoryJobProcessor extends WorkerHost {
-    private readonly logger = new Logger(
-        UserMemoryJobProcessor.name,
-    );
+    private readonly logger = new Logger(UserMemoryJobProcessor.name);
 
     constructor(
-        private readonly userMemoryExtractionService:
-            UserMemoryExtractionService,
-        private readonly userMemoryJobStateService:
-            UserMemoryJobStateService,
+        private readonly userMemoryExtractionService: UserMemoryExtractionService,
+        private readonly userMemoryJobStateService: UserMemoryJobStateService,
     ) {
         super();
     }
@@ -159,12 +155,9 @@ export class UserMemoryJobProcessor extends WorkerHost {
 
         const maxAttempts = job.opts.attempts ?? 1;
         const currentAttempt = job.attemptsMade + 1;
-        const isUnrecoverable =
-            error instanceof UnrecoverableError;
+        const isUnrecoverable = error instanceof UnrecoverableError;
 
-        const willRetry =
-            !isUnrecoverable &&
-            currentAttempt < maxAttempts;
+        const willRetry = !isUnrecoverable && currentAttempt < maxAttempts;
 
         const errorMessage = willRetry
             ? `메모리 추출 실패, 재시도 예정 (${currentAttempt}/${maxAttempts}): ${error.message}`

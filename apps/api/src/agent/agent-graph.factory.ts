@@ -684,18 +684,12 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
 
             const routeCall = response.tool_calls?.[0];
             
-            const decision = agentDomainDecisionSchema.safeParse(
-                routeCall?.args,
-            );
+            const decision = agentDomainDecisionSchema.safeParse(routeCall?.args);
 
             if (!decision.success) {
-                this.logger.warn(
-                    '[agent:supervisor] 도메인 분류 실패. general로 처리합니다.',
-                );
+                this.logger.warn('[agent:supervisor] 도메인 분류 실패. general로 처리합니다.');
 
-                const task =
-                    this.getLatestUserMessageText(state) ||
-                    '사용자의 요청을 처리한다.';
+                const task = this.getLatestUserMessageText(state) || '사용자의 요청을 처리한다.';
 
                 return {
                     agentAssignments: [
@@ -719,9 +713,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             );
 
             if (hasGeneral && assignments.length > 1) {
-                const task =
-                    this.getLatestUserMessageText(state) ||
-                    '사용자의 요청을 처리한다.';
+                const task = this.getLatestUserMessageText(state) || '사용자의 요청을 처리한다.';
 
                 return {
                     agentAssignments: [
@@ -821,8 +813,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
         };
 
         const advanceDomain: GraphNode<typeof AgentState> = async (state) => {
-            const currentAssignment =
-                this.getCurrentAgentAssignment(state);
+            const currentAssignment = this.getCurrentAgentAssignment(state);
 
             const lastMessage = state.messages.at(-1);
 
@@ -875,9 +866,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
 
             const { runName: _runName, ...toolConfig } = config;
 
-            this.logger.log(
-                `[agent:tools] kind=${toolKind} timeoutMs=${timeout}`,
-            );
+            this.logger.log(`[agent:tools] kind=${toolKind} timeoutMs=${timeout}`);
 
             const result = await actionToolNode.invoke(state, {
                 ...toolConfig,
@@ -976,9 +965,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 !lastMessage
                 || !AIMessage.isInstance(lastMessage)
             ) {
-                throw new Error(
-                    'RAG 답변 노드는 AIMessage 뒤에서만 실행할 수 있습니다.',
-                );
+                throw new Error('RAG 답변 노드는 AIMessage 뒤에서만 실행할 수 있습니다.');
             }
 
             const ragToolCall = lastMessage.tool_calls?.find(
@@ -987,20 +974,14 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             );
 
             if (!ragToolCall) {
-                throw new Error(
-                    'search_rag_documents Tool 호출을 찾을 수 없습니다.',
-                );
+                throw new Error('search_rag_documents Tool 호출을 찾을 수 없습니다.');
             }
 
             if (!ragToolCall.id) {
-                throw new Error(
-                    'RAG Tool 호출 ID가 존재하지 않습니다.',
-                );
+                throw new Error('RAG Tool 호출 ID가 존재하지 않습니다.');
             }
 
-            const input = ragSearchToolInputSchema.parse(
-                ragToolCall.args,
-            );
+            const input = ragSearchToolInputSchema.parse(ragToolCall.args);
 
             const userMessage = [...state.messages]
                 .reverse()
@@ -1013,9 +994,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 || !HumanMessage.isInstance(userMessage)
                 || typeof userMessage.content !== 'string'
             ) {
-                throw new Error(
-                    'RAG 답변에 사용할 사용자 질문을 찾을 수 없습니다.',
-                );
+                throw new Error('RAG 답변에 사용할 사용자 질문을 찾을 수 없습니다.');
             }
 
             const question = userMessage.content.trim();

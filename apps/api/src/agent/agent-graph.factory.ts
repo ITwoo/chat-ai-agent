@@ -25,6 +25,8 @@ import { RunnableConfig } from '@langchain/core/runnables';
 import { routeAgentToolCalls } from './agent-route.util';
 
 const AGENT_MODEL_TIMEOUT_MS = 60_000;
+const SUPERVISOR_PROMPT_VERSION = 'supervisor-v1';
+const DOMAIN_AGENT_PROMPT_VERSION = 'domain-agent-v1';
 const MAX_ACTION_TOOL_ROUNDS = 5;
 
 const agentDomainSchema = z.enum([
@@ -679,6 +681,11 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                         'agent-supervisor',
                         'nostream',
                     ],
+                    metadata: {
+                        ...config.metadata,
+                        llm_operation: 'supervisor_route',
+                        prompt_version: SUPERVISOR_PROMPT_VERSION,
+                    },
                 },
             );
 
@@ -802,6 +809,12 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                         `agent:${domain}`,
                         ...(!isFinalDomain ? ['nostream'] : []),
                     ],
+                    metadata: {
+                        ...config.metadata,
+                        llm_operation: 'domain_decision',
+                        prompt_version: DOMAIN_AGENT_PROMPT_VERSION,
+                        agent_domain: domain,
+                    },
                     timeout: AGENT_MODEL_TIMEOUT_MS,
                 }
             );

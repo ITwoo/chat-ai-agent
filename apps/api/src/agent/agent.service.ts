@@ -55,6 +55,7 @@ export type ApprovalIntentTraceContext = {
 };
 
 const AGENT_TRACE_TAG = 'chat-agent';
+const APPROVAL_INTENT_PROMPT_VERSION = 'approval-intent-v1';
 
 const APPROVAL_INTENT_SYSTEM_PROMPT = `
 너는 AI Agent의 승인 요청에 대한 사용자 응답을 분류하는 전용 분류기다.
@@ -168,6 +169,8 @@ export class AgentService {
                 room_id: String(runContext.roomId),
                 user_message_id: String(runContext.userMessageId),
                 run_kind: runKind,
+                workload: 'chat_agent',
+                execution_mode: 'interactive',
                 context_version: AGENT_CONTEXT_VERSION,
             },
             configurable: {
@@ -190,6 +193,10 @@ export class AgentService {
                 approval_id: context.approvalId,
                 origin_user_message_id: String(context.originUserMessageId),
                 response_message_id: String(context.responseMessageId),
+                workload: 'approval_intent',
+                execution_mode: 'interactive',
+                llm_operation: 'approval_intent_classification',
+                prompt_version: APPROVAL_INTENT_PROMPT_VERSION,
             },
         };
     }

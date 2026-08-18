@@ -10,6 +10,7 @@ import { RelevantUserMemory } from "./user-memory.types";
 import { RunnableConfig } from "@langchain/core/runnables";
 
 const EXTRACTION_EXISTING_MEMORY_LIMIT = 20;
+const USER_MEMORY_EXTRACTION_PROMPT_VERSION = 'user-memory-extraction-v1';
 
 const USER_MEMORY_EXTRACTION_SYSTEM_PROMPT = `
 너는 사용자 메시지에서 장기적으로 재사용할 가치가 있는 정보를 추출하는 전용 분류기다.
@@ -101,6 +102,10 @@ export class UserMemoryExtractionService {
             metadata: {
                 user_id: String(userId),
                 source_message_id: String(sourceMessageId),
+                workload: 'user_memory_extraction',
+                execution_mode: 'background',
+                llm_operation: 'user_memory_extraction',
+                prompt_version: USER_MEMORY_EXTRACTION_PROMPT_VERSION,
             },
         };
     }

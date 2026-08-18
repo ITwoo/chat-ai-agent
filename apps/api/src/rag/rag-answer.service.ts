@@ -8,6 +8,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import type { RagSearchResult } from './rag.types';
 import { createRagAnswerMessages } from './security/rag-answer-messages.factory';
 import { RunnableConfig } from '@langchain/core/runnables';
+import { RAG_ANSWER_PROMPT_VERSION } from './security/rag-security.constants';
 
 const RAG_ANSWER_CONTEXT_TOKEN_BUDGET = 3_000;
 const UNKNOWN_CHUNK_TOKEN_COST = 1_000;
@@ -71,6 +72,11 @@ export class RagAnswerService {
             ...config,
             runName: 'rag_answer_generation',
             tags: [...(config?.tags ?? []), 'rag-answer'],
+             metadata: {
+                ...config?.metadata,
+                llm_operation: 'rag_answer_generation',
+                prompt_version: RAG_ANSWER_PROMPT_VERSION,
+            },
             timeout: RAG_ANSWER_TIMEOUT_MS,
         });
     }

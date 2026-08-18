@@ -14,6 +14,8 @@ import {
 } from './chat.service';
 import { RunnableConfig } from '@langchain/core/runnables';
 
+const CHAT_SUMMARY_PROMPT_VERSION = 'chat-summary-v1';
+
 const CHAT_SUMMARY_SYSTEM_PROMPT = `
 너는 채팅 대화 기록을 압축하는 요약기다.
 
@@ -70,6 +72,10 @@ export class ChatSummaryService {
                 room_id: String(roomId),
                 user_id: String(userId),
                 through_message_id: String(target.throughMessageId),
+                workload: 'chat_summary',
+                execution_mode: 'background',
+                llm_operation: 'chat_summary_generation',
+                prompt_version: CHAT_SUMMARY_PROMPT_VERSION,
             },
         };
     }

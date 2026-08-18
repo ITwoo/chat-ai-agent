@@ -1,3 +1,5 @@
+export const RAG_ANSWER_PROMPT_VERSION = 'rag-answer-v1';
+
 export const RAG_ANSWER_SYSTEM_PROMPT = `
 너는 사용자가 업로드한 문서에 대해서만 답변하는 문서 질의응답 전용 Assistant다.
 

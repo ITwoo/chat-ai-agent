@@ -26,7 +26,7 @@ import { routeAgentToolCalls } from './agent-route.util';
 
 const AGENT_MODEL_TIMEOUT_MS = 60_000;
 const SUPERVISOR_PROMPT_VERSION = 'supervisor-v1';
-const DOMAIN_AGENT_PROMPT_VERSION = 'domain-agent-v1';
+
 const MAX_ACTION_TOOL_ROUNDS = 5;
 
 const agentDomainSchema = z.enum([
@@ -38,6 +38,14 @@ const agentDomainSchema = z.enum([
 ]);
 
 type AgentDomain = z.infer<typeof agentDomainSchema>;
+
+const DOMAIN_AGENT_PROMPT_VERSIONS: Record<AgentDomain, string> = {
+    expense: 'expense-agent-v1',
+    schedule: 'schedule-agent-v1',
+    memory: 'memory-agent-v1',
+    rag: 'rag-agent-v1',
+    general: 'general-agent-v1',
+};
 
 const agentAssignmentSchema = z.object({
     domain: agentDomainSchema,
@@ -811,9 +819,12 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                     ],
                     metadata: {
                         ...config.metadata,
-                        llm_operation: 'domain_decision',
-                        prompt_version: DOMAIN_AGENT_PROMPT_VERSION,
+                        llm_operation: 'domain_decision',                        
                         agent_domain: domain,
+                        assignment_index: state.agentDomainIndex,
+                        assignment_count: state.agentAssignments.length,
+                        decision_round: state.actionToolRoundCount,
+                        prompt_version: DOMAIN_AGENT_PROMPT_VERSIONS[domain],
                     },
                     timeout: AGENT_MODEL_TIMEOUT_MS,
                 }
@@ -1025,7 +1036,17 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             const answer = await this.ragAnswerService.answer(
                 question,
                 contextResults,
-                config,
+                {
+                    ...config,
+                    metadata: {
+                        ...config.metadata,
+                        agent_domain:
+                            this.getCurrentAgentAssignment(state).domain,
+                        assignment_index: state.agentDomainIndex,
+                        assignment_count: state.agentAssignments.length,
+                        trigger_decision_round: state.actionToolRoundCount,
+                    },
+                },
             );
 
             const toolMessage = new ToolMessage({

@@ -8,8 +8,8 @@ import {
     StateSchema,
 } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
-import { ChatOpenAI } from '@langchain/openai';
-import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
+import { ChatOpenAI, convertMessagesToCompletionsMessageParams } from '@langchain/openai';
+import { AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import { StructuredToolInterface } from '@langchain/core/tools';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { ConfigService } from '@nestjs/config';
@@ -591,6 +591,46 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
         );
     }
 
+    private normalizeToolCallMessages(
+        messages: BaseMessage[],
+    ): BaseMessage[] {
+        return messages.map((message) => {
+            if (
+                !AIMessage.isInstance(message) ||
+                !message.tool_calls?.length ||
+                !Array.isArray(message.content)
+            ) {
+                return message;
+            }
+
+            const hasOnlyToolCallContent = message.content.every(
+                (part) =>
+                    typeof part === 'object' &&
+                    part !== null &&
+                    'type' in part &&
+                    part.type === 'tool_call',
+            );
+
+            if (!hasOnlyToolCallContent) {
+                return message;
+            }
+
+            return new AIMessage({
+                content: '',
+                tool_calls: message.tool_calls,
+                invalid_tool_calls: message.invalid_tool_calls,
+                additional_kwargs: message.additional_kwargs,
+                response_metadata: {
+                    ...message.response_metadata,
+                    output_version: 'v0',
+                },
+                usage_metadata: message.usage_metadata,
+                id: message.id,
+                name: message.name,
+            });
+        });
+    }
+
     private createAgentMessages(
         state: typeof AgentState.State,
         assignment: AgentAssignment,
@@ -801,13 +841,24 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 assignment,
             );
 
+            const modelMessages = this.normalizeToolCallMessages([
+                new SystemMessage(
+                    `${systemPrompt}\n${handoffPrompt}`,
+                ),
+                ...agentMessages,
+            ]);
+
+            console.dir(
+                convertMessagesToCompletionsMessageParams({
+                    messages: modelMessages,
+                }),
+                {
+                    depth: null,
+                },
+            );
+
             const response = await model.invoke(
-                [
-                    new SystemMessage(
-                        `${systemPrompt}\n${handoffPrompt}`,
-                    ),
-                    ...agentMessages,
-                ],
+                modelMessages,
                 {
                     ...config,
                     runName: `agent_model_decision_${domain}`,

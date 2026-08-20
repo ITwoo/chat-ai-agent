@@ -848,15 +848,6 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 ...agentMessages,
             ]);
 
-            console.dir(
-                convertMessagesToCompletionsMessageParams({
-                    messages: modelMessages,
-                }),
-                {
-                    depth: null,
-                },
-            );
-
             const response = await model.invoke(
                 modelMessages,
                 {

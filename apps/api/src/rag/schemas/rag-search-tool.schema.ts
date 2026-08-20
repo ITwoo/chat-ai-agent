@@ -6,7 +6,9 @@ export const ragSearchToolInputSchema = z.object({
         .trim()
         .min(1)
         .describe(
-            '업로드 문서에서 검색할 구체적인 질문 또는 검색 문장',
+            '업로드 문서에서 찾을 핵심 검색어. ' +
+            '문서, 업로드, 설명, 알려줘, 요약, 정리 같은 요청 표현은 제외하고 ' +
+            '실제 문서에 등장할 가능성이 높은 핵심 용어만 사용한다.',
         ),
     limit: z
         .number()

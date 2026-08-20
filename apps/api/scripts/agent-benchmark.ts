@@ -46,23 +46,23 @@ const TIMEOUT_MS = getPositiveNumberEnv(
 const ragQuery = process.env.BENCHMARK_RAG_QUERY?.trim();
 
 const scenarios: BenchmarkScenario[] = [
-    {
-        name: 'general',
-        content: '오늘 날짜와 현재 시간을 알려줘.',
-    },
-    {
-        name: 'expense-read',
-        content: '이번 달 지출 내역을 보여줘.',
-    },
-    {
-        name: 'schedule-read',
-        content: '이번 주 일정을 알려줘.',
-    },
-    {
-        name: 'multi-domain-read',
-        content:
-            '이번 달 지출 내역을 보여주고 이번 주 일정도 알려줘.',
-    },
+    // {
+    //     name: 'general',
+    //     content: '오늘 날짜와 현재 시간을 알려줘.',
+    // },
+    // {
+    //     name: 'expense-read',
+    //     content: '이번 달 지출 내역을 보여줘.',
+    // },
+    // {
+    //     name: 'schedule-read',
+    //     content: '이번 주 일정을 알려줘.',
+    // },
+    // {
+    //     name: 'multi-domain-read',
+    //     content:
+    //         '이번 달 지출 내역을 보여주고 이번 주 일정도 알려줘.',
+    // },
     ...(ragQuery
         ? [
             {

@@ -173,7 +173,10 @@ export class AgentToolsService {
             {
                 name: 'create_schedule',
                 description:
-                    '새로운 일정을 저장한다. 사용자가 약속, 예약, 일정 등을 등록해 달라고 요청할 때 사용한다. 상대적인 날짜나 시간을 계산해야 하면 먼저 get_current_date_time을 사용한다. 종료 시간이 명확하지 않으면 추측하지 않고 endsAt을 생략한다. 한 요청에 여러 일정이 포함되어 있으면 각 일정마다 이 tool을 각각 호출한다.',
+                    `새로운 일정을 저장한다. 사용자가 약속, 예약, 일정 등을 등록해 달라고 요청할 때 사용한다.
+                     상대적인 날짜나 시간을 계산할 때는 Agent에 제공된 현재 기준 시각을 사용한다.
+                     종료 시간이 명확하지 않으면 추측하지 않고 endsAt을 생략한다.
+                     한 요청에 여러 일정이 포함되어 있으면 각 일정마다 이 tool을 각각 호출한다.`,
                 schema: z.object({
                     title: z
                         .string()

@@ -29,6 +29,9 @@ export class RagAnswerService {
                 configService.getOrThrow<string>(
                     'OPENAI_MODEL',
                 ),
+            reasoning: {
+                effort: 'low',
+            },
             maxRetries: 2,
         });
     }

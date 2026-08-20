@@ -8,7 +8,7 @@ import {
     StateSchema,
 } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
-import { ChatOpenAI, convertMessagesToCompletionsMessageParams } from '@langchain/openai';
+import { ChatOpenAI } from '@langchain/openai';
 import { AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import { StructuredToolInterface } from '@langchain/core/tools';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
@@ -69,8 +69,11 @@ const supervisorRouteTool = {
     schema: agentDomainDecisionSchema,
 };
 
-const EXPENSE_TOOL_NAMES = new Set([
+const GENERAL_TOOL_NAMES = new Set([
     'get_current_date_time',
+]);
+
+const EXPENSE_TOOL_NAMES = new Set([
     'create_expense',
     'get_expense_summary',
     'get_expense_list',
@@ -81,7 +84,6 @@ const EXPENSE_TOOL_NAMES = new Set([
 ]);
 
 const SCHEDULE_TOOL_NAMES = new Set([
-    'get_current_date_time',
     'create_schedule',
     'get_schedule_list',
     'find_schedules',
@@ -202,71 +204,13 @@ allowMultipleTargets는 다음 규칙을 따른다.
 - 조회, 검색, 생성 요청에서는 false다.
 
 사용자의 현재 요청이 직전 Assistant가 제시한 후보를 선택하는 짧은 표현이라면
-직전 AssistantMessage를 확인하여 실제 대상을 식별한다.
+직전 AssistantMessage의 후보 범위 안에서 실제 대상을 식별한다.
 
-예를 들어 직전 Assistant가 다음 후보를 제시했다고 가정한다.
-
-- 일정 ID 3: 치과 예약
-- 일정 ID 5: 치과 검진
-- 일정 ID 6: 치과 치료
-
-사용자가 특정 후보를 선택하면 다음과 같이 처리한다.
-
-User:
-"5번"
-
-결과:
-{
-    "assignments": [
-        {
-            "domain": "schedule",
-            "task": "직전에 제시한 일정 ID 5를 삭제한다.",
-            "targetIds": [5],
-            "allowMultipleTargets": false
-        }
-    ]
-}
-
-사용자가 직전 후보 전체를 선택하는 의미로 답하면
-직전 Assistant가 제시한 후보의 실제 ID를 모두 targetIds에 넣는다.
-
-User:
-"전부 삭제해줘"
-
-결과:
-{
-    "assignments": [
-        {
-            "domain": "schedule",
-            "task": "직전에 제시한 일정 ID 3, 5, 6을 모두 삭제한다.",
-            "targetIds": [3, 5, 6],
-            "allowMultipleTargets": true
-        }
-    ]
-}
-
-하나의 요청에 여러 도메인이 포함된 예시는 다음과 같다.
-
-User:
-"오늘 점심 12000원 기록하고 내일 오후 3시에 치과 일정 등록해줘"
-
-결과:
-{
-    "assignments": [
-        {
-            "domain": "expense",
-            "task": "오늘 점심 12000원을 지출로 기록한다.",
-            "targetIds": [],
-            "allowMultipleTargets": false
-        },
-        {
-            "domain": "schedule",
-            "task": "내일 오후 3시에 치과 일정을 등록한다.",
-            "targetIds": [],
-            "allowMultipleTargets": false
-        }
-    ]
-}
+예:
+- 후보가 일정 ID 3, 5, 6일 때 "5번" → schedule, targetIds: [5], allowMultipleTargets: false
+- 같은 후보에서 "전부 삭제해줘" → schedule, targetIds: [3, 5, 6], allowMultipleTargets: true
+- "오늘 점심 12000원 기록하고 내일 오후 3시에 치과 일정 등록해줘"
+  → expense와 schedule을 각각 독립된 assignment로 만든다.
 
 task에는 다른 도메인의 작업을 포함하지 않는다.
 같은 domain의 작업은 가능한 하나의 assignment로 합친다.
@@ -289,6 +233,14 @@ rag와 데이터 변경 요청이 안전하게 분리될 수 없다면 general �
 대상과 작업 내용을 최대한 구체적으로 작성한다.
 
 사용자가 특정 후보를 선택했다면 task에도 해당 ID를 명시한다.
+
+task는 사용자의 요청 범위와 의도를 그대로 유지한다.
+사용자가 요청하지 않은 설명 항목, 예시, 사용 사례, 비교, 한계 등의 요구사항을 임의로 추가하지 않는다.
+task를 구체화할 때도 원래 요청의 범위를 확장하지 않는다.
+
+task는 사용자의 언어를 유지한다.
+task는 담당 Agent가 작업을 수행하는 데 필요한 내용만 포함하고 간결하게 작성한다.
+사용자의 요청을 불필요하게 재설명하거나 세부 항목을 추가하지 않는다.
 `;
 
 const BASE_SYSTEM_PROMPT = `
@@ -300,7 +252,10 @@ const BASE_SYSTEM_PROMPT = `
 tool의 이름, 설명과 입력 schema를 기준으로 적절한 tool을 사용한다.
 
 현재 날짜나 상대적인 기간을 정확히 알아야 하면
-현재 날짜와 시간을 확인한 뒤 처리한다.
+제공된 현재 기준 시각을 사용한다.
+
+현재 기준 시각이 제공되지 않은 경우에만
+get_current_date_time을 사용한다.
 
 현재 assignment에 할당된 작업만 처리한다.
 다른 도메인의 작업을 임의로 추가하거나 실행하지 않는다.
@@ -325,6 +280,11 @@ Tool 실행 결과가 cancelled 또는 사용자가 취소했다는 의미이면
 
 사용자가 취소한 작업을 임의로 다시 시도하거나
 재실행을 유도하지 않는다.
+
+최종 답변은 사용자가 요청한 결과를 중심으로 간결하게 작성한다.
+사용자가 요청하지 않은 후속 작업 목록이나 추가 제안을 붙이지 않는다.
+이미 성공한 작업에 대해 다시 승인이나 확정을 요구하지 않는다.
+
 `;
 
 const EXPENSE_SYSTEM_PROMPT = `
@@ -373,8 +333,9 @@ ${BASE_SYSTEM_PROMPT}
 
 일정의 날짜와 시간을 해석할 때는 다음 규칙을 반드시 따른다.
 
-- 오늘, 내일, 모레, 어제처럼 상대 날짜가 포함되면 get_current_date_time을 먼저 사용한다.
-- 상대 날짜는 get_current_date_time이 반환한 Asia/Seoul 날짜를 기준으로 계산한다.
+- 오늘, 내일, 모레, 어제처럼 상대 날짜가 포함되면 제공된 현재 기준 시각을 사용한다.
+- 현재 기준 시각이 제공되지 않은 경우에만 get_current_date_time을 사용한다.
+- 상대 날짜는 Asia/Seoul 날짜를 기준으로 계산한다.
 - 이전 대화에서 언급된 날짜를 현재 날짜로 간주하지 않는다.
 
 일정 검색에서는 다음 규칙을 반드시 따른다.
@@ -391,6 +352,9 @@ ${BASE_SYSTEM_PROMPT}
 
 - 사용자가 종료 시간을 말하지 않았다면 임의로 추측하지 않는다.
 - 한 요청에 여러 일정이 있으면 각각 create_schedule을 호출한다.
+- create_schedule이 성공하면 이미 저장이 완료된 것이므로 추가 승인이나 확정을 요구하지 않는다.
+- 성공 응답에서는 실제로 저장된 일정의 핵심 내용만 간단히 확인한다.
+- 현재 제공된 Tool로 지원하지 않는 반복 일정, 알림 등의 기능을 제안하지 않는다.
 
 일정 수정에서는 다음 규칙을 반드시 따른다.
 
@@ -534,15 +498,12 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
         domain: AgentDomain,
         tools: AgentTools,
     ): AgentTools {
-        if (domain === 'general') {
-            return tools;
-        }
-
         const toolNames = {
             expense: EXPENSE_TOOL_NAMES,
             schedule: SCHEDULE_TOOL_NAMES,
             memory: MEMORY_TOOL_NAMES,
             rag: RAG_TOOL_NAMES,
+            general: GENERAL_TOOL_NAMES,
         }[domain];
 
         return tools.filter((tool) => {
@@ -567,7 +528,9 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             rag: baseModel.bindTools(
                 this.getDomainTools('rag', tools),
             ),
-            general: baseModel.bindTools(tools),
+            general: baseModel.bindTools(
+                this.getDomainTools('general', tools),
+            ),
         };
     }
 
@@ -699,6 +662,19 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
         tools: AgentTools,
         context: AgentToolContext,
     ) {
+
+        const currentDateTime = new Date().toLocaleString('ko-KR', {
+            timeZone: 'Asia/Seoul',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            weekday: 'long',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+        });
+
         const domainModels = this.createDomainModels(
             baseModel,
             tools,
@@ -761,7 +737,15 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 };
             }
 
-            const assignments = decision.data.assignments;
+            const latestUserTask = this.getLatestUserMessageText(state);
+            const assignments = decision.data.assignments.length === 1 && latestUserTask
+            ? [
+                {
+                    ...decision.data.assignments[0],
+                    task: latestUserTask,
+                },
+            ]
+            : decision.data.assignments;
 
             const hasGeneral = assignments.some(
                 ({ domain }) => domain === 'general',
@@ -843,7 +827,11 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
 
             const modelMessages = this.normalizeToolCallMessages([
                 new SystemMessage(
-                    `${systemPrompt}\n${handoffPrompt}`,
+                    `${systemPrompt}
+
+                    현재 기준 시각: ${currentDateTime} (Asia/Seoul)
+
+                    ${handoffPrompt}`,
                 ),
                 ...agentMessages,
             ]);

@@ -120,6 +120,9 @@ export class AgentService {
         return new ChatOpenAI({
             apiKey: this.configService.getOrThrow<string>('OPENAI_API_KEY'),
             model: this.configService.getOrThrow<string>('OPENAI_MODEL'),
+            reasoning: {
+                effort: 'low',
+            },
         })
     }
 

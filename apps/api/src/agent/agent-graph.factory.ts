@@ -17,7 +17,7 @@ import { RagSearchService } from '../rag/rag-search.service';
 import { RagAnswerService } from '../rag/rag-answer.service';
 import { RAG_SEARCH_TOOL_NAME } from '../rag/rag.constants';
 import { AgentToolContext } from './types/agent-tool-context.type';
-import { ragSearchToolInputSchema } from '../rag/schemas/rag-search-tool.schema';
+import { MAX_RAG_SEARCH_QUERIES, ragSearchToolInputSchema } from '../rag/schemas/rag-search-tool.schema';
 import { z } from 'zod';
 import { ragCitationSchema } from '../rag/schemas/rag-citation.schema';
 import { createRagCitations } from '../rag/utils/rag-citation.util';
@@ -406,6 +406,10 @@ ${BASE_SYSTEM_PROMPT}
 문서, 파일, 이력서, 메모 또는 업로드 자료의 내용을 질문하면
 search_rag_documents를 사용한다.
 
+검색 query는 현재 요청 전체를 다시 쓰지 말고
+문서에 실제로 등장할 가능성이 높은 핵심 검색어와 표현 변형을 1~3개 생성한다.
+서로 같은 검색 표현만 불필요하게 반복하지 않는다.
+
 문서 검색 결과에 포함되지 않은 내용을
 해당 문서에 있다고 단정하지 않는다.
 
@@ -734,6 +738,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                     agentDomainIndex: 0,
                     agentTurnStartMessageIndex: state.messages.length,
                     agentResults: [],
+                    ragCitations: [],
                 };
             }
 
@@ -766,6 +771,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                     agentDomainIndex: 0,
                     agentTurnStartMessageIndex: state.messages.length,
                     agentResults: [],
+                    ragCitations: [],
                 };
             }
 
@@ -780,6 +786,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 agentDomainIndex: 0,
                 agentTurnStartMessageIndex: state.messages.length,
                 agentResults: [],
+                ragCitations: [],
             };
         };
 
@@ -862,7 +869,6 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
 
             return {
                 messages: [response],
-                ragCitations: [],
             };
         };
 
@@ -960,11 +966,9 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             };
         };
 
-        const ragAnswerNode =
-            this.createRagAnswerNode(context);
+        const ragAnswerNode = this.createRagAnswerNode(context);
 
-        const rejectRagCombinationNode =
-            this.createRejectRagCombinationNode();
+        const rejectRagCombinationNode = this.createRejectRagCombinationNode();
 
         const rejectToolLimitNode = this.createRejectToolLimitNode();
 
@@ -997,8 +1001,14 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 'rejectRagCombination',
                 'callModel',
             )
+            .addConditionalEdges(
+                'ragAnswer',
+                (state) =>
+                    this.hasNextAgentDomain(state)
+                        ? 'advanceDomain'
+                        : END,
+            )
             .addEdge('rejectToolLimit', END)
-            .addEdge('ragAnswer', END)
             .addEdge('rejectDuplicateMutation', END)
             .addEdge('rejectAmbiguousTarget', END)
             .compile({
@@ -1035,28 +1045,30 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 throw new Error('RAG Tool 호출 ID가 존재하지 않습니다.');
             }
 
-            const input = ragSearchToolInputSchema.parse(ragToolCall.args);
+            const normalizedRagToolArgs = {
+                ...ragToolCall.args,
+                queries: Array.isArray(ragToolCall.args.queries)
+                    ? ragToolCall.args.queries.slice(0, MAX_RAG_SEARCH_QUERIES)
+                    : ragToolCall.args.queries,
+            };
 
-            const userMessage = [...state.messages]
-                .reverse()
-                .find((message) =>
-                    HumanMessage.isInstance(message),
-                );
+            const input = ragSearchToolInputSchema.parse(normalizedRagToolArgs);
 
-            if (
-                !userMessage
-                || !HumanMessage.isInstance(userMessage)
-                || typeof userMessage.content !== 'string'
-            ) {
-                throw new Error('RAG 답변에 사용할 사용자 질문을 찾을 수 없습니다.');
+            const assignment = this.getCurrentAgentAssignment(state);
+
+            const question = assignment.task.trim();
+
+            if (!question) {
+                throw new Error('RAG 답변에 사용할 assignment task가 비어 있습니다.');
             }
 
-            const question = userMessage.content.trim();
+            const isFinalDomain = !this.hasNextAgentDomain(state);
 
             const results = await this.ragSearchService.search(
-                context.userId,
-                input.query,
-                input.limit,
+                    context.userId,
+                    question,
+                    input.limit,
+                    input.queries,
             );
 
             const contextResults = this.ragAnswerService.selectContextResults(results);
@@ -1068,10 +1080,13 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 contextResults,
                 {
                     ...config,
+                    tags: [
+                        ...(config.tags ?? []),
+                        ...(!isFinalDomain ? ['nostream'] : []),
+                    ],
                     metadata: {
                         ...config.metadata,
-                        agent_domain:
-                            this.getCurrentAgentAssignment(state).domain,
+                        agent_domain: assignment.domain,
                         assignment_index: state.agentDomainIndex,
                         assignment_count: state.agentAssignments.length,
                         trigger_decision_round: state.actionToolRoundCount,

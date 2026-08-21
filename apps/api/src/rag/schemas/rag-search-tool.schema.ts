@@ -1,14 +1,16 @@
 import { z } from 'zod';
 
+export const MAX_RAG_SEARCH_QUERIES = 3;
+
 export const ragSearchToolInputSchema = z.object({
-    query: z
-        .string()
-        .trim()
+    queries: z
+        .array(z.string().trim().min(1))
         .min(1)
+        .max(MAX_RAG_SEARCH_QUERIES)
         .describe(
-            '업로드 문서에서 찾을 핵심 검색어. ' +
+            '업로드 문서에서 찾을 핵심 검색어 후보 1~3개. ' +
             '문서, 업로드, 설명, 알려줘, 요약, 정리 같은 요청 표현은 제외하고 ' +
-            '실제 문서에 등장할 가능성이 높은 핵심 용어만 사용한다.',
+            '실제 문서에 등장할 가능성이 높은 핵심 용어와 표현 변형을 사용한다.',
         ),
     limit: z
         .number()

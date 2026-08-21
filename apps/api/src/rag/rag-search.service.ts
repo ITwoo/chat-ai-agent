@@ -7,6 +7,7 @@ import { RagEmbeddingService } from './rag-embedding.service';
 import type { RagSearchResult } from './rag.types';
 import { serializeVector } from './utils/rag-vector.util';
 import { RAG_MIN_SIMILARITY } from './rag.constants';
+import { Prisma } from '../generated/prisma/client';
 
 const DEFAULT_SEARCH_LIMIT = 5;
 const MAX_SEARCH_LIMIT = 10;
@@ -22,21 +23,32 @@ export class RagSearchService {
 
     async search(
         userId: number,
-        query: string,
+        semanticQuery: string,
         limit = DEFAULT_SEARCH_LIMIT,
+        lexicalQueries?: string[],
     ): Promise<RagSearchResult[]> {
-        const normalizedQuery = query?.trim();
-
-        if (!normalizedQuery) {
-            throw new BadRequestException(
-                '검색할 질문을 입력해주세요.',
-            );
+        const normalizedSemanticQuery = semanticQuery?.trim();
+        if (!normalizedSemanticQuery) {
+            throw new BadRequestException('검색할 질문을 입력해주세요.');
         }
+        const normalizedLexicalQueries = [...new Set(
+            [normalizedSemanticQuery, ...(lexicalQueries ?? [])]
+                .map((query) => query.trim())
+                .filter(Boolean),
+        )];
 
         const searchLimit = this.normalizeLimit(limit);
         const candidateLimit = searchLimit * SEARCH_CANDIDATE_MULTIPLIER;
-        const { embedding } = await this.ragEmbeddingService.embedText(normalizedQuery);
+        const { embedding } = await this.ragEmbeddingService.embedText(normalizedSemanticQuery);
         const vector = serializeVector(embedding);
+
+        const searchQueries = Prisma.join(
+            normalizedLexicalQueries.map((query, index) =>
+                Prisma.sql`
+                    (${index}, websearch_to_tsquery('simple'::regconfig, ${query}))
+                `,
+            ),
+        );
 
         const results = await this.prisma.$transaction(
             async (tx) => {
@@ -50,18 +62,24 @@ export class RagSearchService {
                 `;
 
                 return tx.$queryRaw<RagSearchResult[]>`
-                    WITH search_query AS (
-                        SELECT websearch_to_tsquery(
-                            'simple'::regconfig,
-                            ${normalizedQuery}
-                        ) AS query
+                    WITH raw_search_queries("queryIndex", query) AS (
+                        VALUES ${searchQueries}
+                    ),
+                    search_queries AS (
+                        SELECT
+                            MIN("queryIndex")::integer AS "queryIndex",
+                            query
+                        FROM raw_search_queries
+                        GROUP BY query
                     ),
                     vector_candidates AS (
                         SELECT
                             chunk."id" AS "chunkId",
                             (
                                 ROW_NUMBER() OVER (
-                                    ORDER BY chunk."embedding" <=> ${vector}::vector
+                                    ORDER BY
+                                    chunk."embedding" <=> ${vector}::vector,
+                                    chunk."id" ASC
                                 )
                             )::integer AS "vectorRank"
                         FROM "RagDocumentChunk" AS chunk
@@ -70,41 +88,74 @@ export class RagSearchService {
                         WHERE document."userId" = ${userId}
                         AND document."status" = 'READY'
                         AND chunk."embedding" IS NOT NULL
-                        ORDER BY chunk."embedding" <=> ${vector}::vector
+                        ORDER BY
+                            chunk."embedding" <=> ${vector}::vector,
+                            chunk."id" ASC
                         LIMIT ${candidateLimit}
                     ),
-                    keyword_candidates AS (
+                    keyword_ranked_by_query AS (
                         SELECT
-                            chunk."id" AS "chunkId",
+                            ranked."chunkId",
+                            search_query."queryIndex",
+                            ranked."keywordScore",
                             (
                                 ROW_NUMBER() OVER (
-                                    ORDER BY ts_rank_cd(
-                                        to_tsvector(
-                                            'simple'::regconfig,
-                                            chunk."content"
-                                        ),
-                                        search_query.query
-                                    ) DESC
+                                    PARTITION BY search_query."queryIndex"
+                                    ORDER BY
+                                        ranked."keywordScore" DESC,
+                                        ranked."chunkId" ASC
                                 )
                             )::integer AS "keywordRank"
-                        FROM "RagDocumentChunk" AS chunk
-                        INNER JOIN "RagDocument" AS document
-                            ON document."id" = chunk."documentId"
-                        CROSS JOIN search_query
-                        WHERE document."userId" = ${userId}
-                        AND document."status" = 'READY'
-                        AND chunk."embedding" IS NOT NULL
-                        AND to_tsvector(
+                        FROM search_queries AS search_query
+                        CROSS JOIN LATERAL (
+                            SELECT
+                                chunk."id" AS "chunkId",
+                                ts_rank_cd(
+                                    to_tsvector(
+                                        'simple'::regconfig,
+                                        chunk."content"
+                                    ),
+                                    search_query.query
+                                )::double precision AS "keywordScore"
+                            FROM "RagDocumentChunk" AS chunk
+                            INNER JOIN "RagDocument" AS document
+                                ON document."id" = chunk."documentId"
+                            WHERE document."userId" = ${userId}
+                            AND document."status" = 'READY'
+                            AND chunk."embedding" IS NOT NULL
+                            AND to_tsvector(
                                 'simple'::regconfig,
                                 chunk."content"
                             ) @@ search_query.query
-                        ORDER BY ts_rank_cd(
-                            to_tsvector(
-                                'simple'::regconfig,
-                                chunk."content"
-                            ),
-                            search_query.query
-                        ) DESC
+                            ORDER BY
+                                "keywordScore" DESC,
+                                chunk."id" ASC
+                            LIMIT ${candidateLimit}
+                        ) AS ranked
+                    ),
+                    keyword_fused AS (
+                        SELECT
+                            "chunkId",
+                            SUM(
+                                1.0 / (${RRF_K} + "keywordRank")
+                            )::double precision AS "lexicalRrfScore",
+                            MAX("keywordScore")::double precision AS "bestKeywordScore"
+                        FROM keyword_ranked_by_query
+                        GROUP BY "chunkId"
+                    ),
+                    keyword_candidates AS (
+                        SELECT
+                            "chunkId",
+                            (
+                                ROW_NUMBER() OVER (
+                                    ORDER BY
+                                        "lexicalRrfScore" DESC,
+                                        "bestKeywordScore" DESC,
+                                        "chunkId" ASC
+                                )
+                            )::integer AS "keywordRank"
+                        FROM keyword_fused
+                        ORDER BY "keywordRank" ASC
                         LIMIT ${candidateLimit}
                     ),
                     fused_candidates AS (
@@ -130,7 +181,9 @@ export class RagSearchService {
                         FULL OUTER JOIN keyword_candidates
                             ON keyword_candidates."chunkId" =
                             vector_candidates."chunkId"
-                        ORDER BY "rrfScore" DESC
+                        ORDER BY
+                            "rrfScore" DESC,
+                            "chunkId" ASC
                         LIMIT ${candidateLimit}
                     )
                     SELECT
@@ -157,10 +210,12 @@ export class RagSearchService {
                         ON chunk."id" = fused_candidates."chunkId"
                     INNER JOIN "RagDocument" AS document
                         ON document."id" = chunk."documentId"
-                    ORDER BY fused_candidates."rrfScore" DESC
+                    ORDER BY
+                        fused_candidates."rrfScore" DESC,
+                        chunk."id"
                 `;
             },
-        );
+        );      
 
         return this.selectDiverseResults(results, searchLimit);
     }

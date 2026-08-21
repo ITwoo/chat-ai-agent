@@ -1853,10 +1853,10 @@ export class AgentToolsService {
 
     private createSearchRagDocumentsTool() {
         return tool(
-            async ({ query, limit }) => {
+            async ({ queries, limit }) => {
                 return JSON.stringify({
                     handledBy: 'rag_answer_node',
-                    query,
+                    queries,
                     limit,
                 });
             },

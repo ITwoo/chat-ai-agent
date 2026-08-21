@@ -29,6 +29,12 @@ type AgentResult =
     | CompletedResult
     | NonCompletedResult;
 
+type RagAgentFailureReason =
+| 'NON_COMPLETED'
+| 'NO_CITATIONS'
+| 'WRONG_CITATION'
+| 'UNEXPECTED_CITATION';
+
 type RagAgentEvalResult = {
     name: string;
     status: ScenarioStatus;
@@ -36,6 +42,7 @@ type RagAgentEvalResult = {
     retrievedFiles: string;
     hit: boolean | null;
     passed: boolean;
+    failureReason: RagAgentFailureReason | null;
     elapsedMs: number;
 };
 
@@ -142,6 +149,7 @@ async function evaluateCase(
                     ? null
                     : false,
                 passed: false,
+                failureReason: 'NON_COMPLETED',
                 elapsedMs,
             };
         }
@@ -158,6 +166,8 @@ async function evaluateCase(
         ];
 
         if (testCase.negative) {
+            const passed = citations.length === 0;
+
             return {
                 name: testCase.name,
                 status: agentResult.status,
@@ -165,7 +175,10 @@ async function evaluateCase(
                 retrievedFiles:
                     retrievedFiles.join(', '),
                 hit: null,
-                passed: citations.length === 0,
+                passed,
+                failureReason: passed
+                    ? null
+                    : 'UNEXPECTED_CITATION',
                 elapsedMs,
             };
         }
@@ -191,6 +204,11 @@ async function evaluateCase(
                 retrievedFiles.join(', '),
             hit,
             passed: hit,
+            failureReason: hit
+                ? null
+                : citations.length === 0
+                    ? 'NO_CITATIONS'
+                    : 'WRONG_CITATION',
             elapsedMs,
         };
     } finally {
@@ -578,6 +596,20 @@ function printMetrics(
             completedCount / results.length,
         ),
     );
+
+    const failures = results.filter(
+        (result) => result.failureReason !== null,
+    );
+
+    if (failures.length > 0) {
+        console.log('Failures:');
+
+        for (const result of failures) {
+            console.log(
+                `- ${result.name}: ${result.failureReason}`,
+            );
+        }
+    }
 }
 
 async function request<T>(

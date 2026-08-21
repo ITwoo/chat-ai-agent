@@ -23,7 +23,10 @@
         "prisma:generate": "prisma generate",
         "prisma:migrate:dev": "dotenv -e .env.development.local -- prisma migrate dev",
         "prisma:migrate:deploy": "prisma migrate deploy",
-        "benchmark:agent": "dotenv -e .env.benchmark.local -- ts-node scripts/agent-benchmark.ts"
+        "benchmark:agent": "dotenv -e .env.benchmark.local -- ts-node scripts/agent-benchmark.ts",
+        "eval:rag": "dotenv -e .env.benchmark.local -v RAG_RETRIEVAL_EVAL_MODE=semantic -- ts-node scripts/rag-retrieval-eval.ts",
+        "eval:rag:manual": "dotenv -e .env.benchmark.local -v RAG_RETRIEVAL_EVAL_MODE=manual -- ts-node scripts/rag-retrieval-eval.ts",
+        "eval:rag:agent": "dotenv -e .env.benchmark.local -- ts-node scripts/rag-agent-retrieval-eval.ts"
     },
     "dependencies": {
         "@langchain/core": "^1.2.4",

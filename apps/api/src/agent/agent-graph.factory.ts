@@ -241,6 +241,18 @@ task를 구체화할 때도 원래 요청의 범위를 확장하지 않는다.
 task는 사용자의 언어를 유지한다.
 task는 담당 Agent가 작업을 수행하는 데 필요한 내용만 포함하고 간결하게 작성한다.
 사용자의 요청을 불필요하게 재설명하거나 세부 항목을 추가하지 않는다.
+
+문서 질의의 도메인 판단은 다음 규칙을 우선한다.
+
+- 사용자가 업로드한 문서, 파일, 첨부 자료의 내용을 근거로
+  설명, 요약, 확인 또는 질문에 답해달라고 요청하면 rag로 분류한다.
+- 질문 내용에 Agent, Queue, 승인, 지출, 일정 등 다른 도메인의
+  용어가 포함되어 있어도, 요청의 목적이 업로드 문서의 내용을
+  확인하는 것이라면 해당 용어만 보고 다른 도메인으로 분류하지 않는다.
+- 예:
+  "업로드한 문서에서 Queue retry를 설명해줘." → rag
+  "첨부 문서 기준으로 stale approval이 무엇인지 알려줘." → rag
+  "문서에서 operationKey가 어떻게 설명되는지 알려줘." → rag
 `;
 
 const BASE_SYSTEM_PROMPT = `
@@ -1064,6 +1076,15 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
 
             const isFinalDomain = !this.hasNextAgentDomain(state);
 
+            console.log(
+                '\n[RAG_AGENT_EVAL_DEBUG]',
+                {
+                    question,
+                    queries: input.queries,
+                    limit: input.limit,
+                },
+            );
+            
             const results = await this.ragSearchService.search(
                     context.userId,
                     question,
@@ -1071,6 +1092,22 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                     input.queries,
             );
 
+            console.log(
+                '[RAG_AGENT_EVAL_RESULT]',
+                {
+                    question,
+                    resultCount: results.length,
+                    results: results.map((result) => ({
+                        fileName: result.fileName,
+                        similarity: Number(
+                            result.similarity.toFixed(4),
+                        ),
+                        vectorRank: result.vectorRank,
+                        keywordRank: result.keywordRank,
+                    })),
+                },
+            );
+            
             const contextResults = this.ragAnswerService.selectContextResults(results);
 
             const citations = createRagCitations(contextResults);

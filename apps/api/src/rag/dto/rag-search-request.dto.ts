@@ -1,4 +1,5 @@
 import {
+    IsArray,
     IsInt,
     IsOptional,
     IsString,
@@ -13,6 +14,13 @@ export class RagSearchRequestDto {
     @MinLength(1)
     @MaxLength(2000)
     query!: string;
+
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    @MinLength(1, { each: true })
+    @MaxLength(200, { each: true })
+    lexicalQueries?: string[];
 
     @IsOptional()
     @IsInt()

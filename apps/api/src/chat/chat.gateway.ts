@@ -1620,6 +1620,14 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         userId: number,
         messageId: number,
     ): Promise<void> {
+        if (
+            this.configService.get<string>(
+                'RAG_EVAL_DISABLE_MEMORY',
+            ) === 'true'
+        ) {
+            return;
+        }
+        
         try {
             const preparation =
                 await this.userMemoryJobStateService.prepareForEnqueue(

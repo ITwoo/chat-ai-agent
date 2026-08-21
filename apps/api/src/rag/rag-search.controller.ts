@@ -26,6 +26,7 @@ export class RagSearchController {
             user.id,
             body.query,
             body.limit,
+            body.lexicalQueries,
         );
     }
 }

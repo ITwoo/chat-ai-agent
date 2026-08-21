@@ -461,6 +461,15 @@ export class AgentService {
         userId: number,
         context: ChatAgentContext,
     ): Promise<RelevantUserMemory[]> {
+
+        if (
+            this.configService.get<string>(
+                'RAG_EVAL_DISABLE_MEMORY',
+            ) === 'true'
+        ) {
+            return [];
+        }
+        
         const query = this.getLatestUserMessageContent(context);
         if (!query) return [];
 

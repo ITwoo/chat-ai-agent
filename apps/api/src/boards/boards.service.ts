@@ -45,10 +45,6 @@ export class BoardsService {
 
     async deleteBoard(id: number, user: AuthUser): Promise<void> {
         const result = await this.prisma.board.delete({ where: { id, userId: user.id } });
-        console.log('result:', result);
-        // if(result.affected === 0) {
-        //     throw new NotFoundException(`Can't find Board with id ${id}`);
-        // }
     }
 
     async updateBoard(id: number, userId: number, updateBoardDto: UpdateBoardDto): Promise<Board> {

@@ -37,8 +37,6 @@ services:
       - /home/ec2-user/env/chat-ai-agent-api.env
     expose:
       - "3000"
-    volumes:
-      - /home/ec2-user/data/rag:/app/apps/api/uploads/rag
     depends_on:
       redis:
         condition: service_healthy

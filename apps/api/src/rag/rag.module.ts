@@ -16,6 +16,7 @@ import { RagDocumentRecoveryService } from './rag-document-recovery.service';
 import { RagTextFileExtractor } from './extractors/rag-text-file-extractor.service';
 import { RagDocumentExtractorService } from './extractors/rag-document-extractor.service';
 import { RagPdfFileExtractor } from './extractors/rag-pdf-file-extractor.service';
+import { ragFileStorageProvider } from './storage/rag-file-storage.provider';
 
 @Module({
     imports: [
@@ -40,6 +41,7 @@ import { RagPdfFileExtractor } from './extractors/rag-pdf-file-extractor.service
         RagDocumentExtractorService,
         RagPdfFileExtractor,
         RagTextFileExtractor,
+        ragFileStorageProvider,
     ],
     exports: [
         RagDocumentService,

@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { UnrecoverableError } from 'bullmq';
 import {
     extname,
@@ -11,7 +10,8 @@ import {
 import type { RagDocumentExtractionInput, RagDocumentExtractionResult, RagDocumentTextExtractor } from './rag-document-extractor.types';
 import { RagTextFileExtractor } from './rag-text-file-extractor.service';
 import { RagPdfFileExtractor } from './rag-pdf-file-extractor.service';
-import { open } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
+import { RagFileStorageService } from '../storage/rag-file-storage.service';
 
 const FILE_SIGNATURE_SAMPLE_SIZE = 8 * 1024;
 const PDF_SIGNATURE = Buffer.from('%PDF-', 'ascii');
@@ -21,7 +21,7 @@ export class RagDocumentExtractorService {
     private readonly extractors: RagDocumentTextExtractor[];
 
     constructor(
-        private readonly configService: ConfigService,
+        private readonly ragFileStorageService: RagFileStorageService,
         ragTextFileExtractor: RagTextFileExtractor,
         ragPdfFileExtractor: RagPdfFileExtractor,
     ) {
@@ -31,26 +31,7 @@ export class RagDocumentExtractorService {
         ];
     }
 
-    async extract(storageKey: string): Promise<RagDocumentExtractionResult> {
-        const uploadDir = resolve(
-            process.cwd(),
-            this.configService.get<string>('RAG_UPLOAD_DIR') ??
-                'uploads/rag',
-        );
-
-        const filePath = resolve(uploadDir, storageKey);
-        const relativeFilePath = relative(uploadDir, filePath);
-
-        if (
-            relativeFilePath === '..' ||
-            relativeFilePath.startsWith(`..${sep}`) ||
-            isAbsolute(relativeFilePath)
-        ) {
-            throw new UnrecoverableError(
-                `허용되지 않는 RAG 파일 경로입니다: storageKey=${storageKey}`,
-            );
-        }
-
+    async extract(storageKey: string): Promise<RagDocumentExtractionResult> {        
         const extension = extname(storageKey).toLowerCase();
         const extractor = this.extractors.find((candidate) =>
             candidate.supports(extension),
@@ -62,46 +43,19 @@ export class RagDocumentExtractorService {
             );
         }
 
-        const input: RagDocumentExtractionInput = {
-            filePath,
-            storageKey,
-            extension,
-        };
+        const data = await this.ragFileStorageService.read(storageKey);
 
-        await this.validateFileContent(input);
+        if (!data) {
+            throw new UnrecoverableError(
+                `RAG 원본 파일을 찾을 수 없습니다: storageKey=${storageKey}`,
+            );
+        }
+
+        const input: RagDocumentExtractionInput = { data, storageKey, extension };
+
+        this.validateFileContent(input);
 
         return extractor.extract(input);
-    }
-
-    private async readFileSample(
-        filePath: string,
-        storageKey: string,
-    ): Promise<Buffer> {
-        try {
-            const fileHandle = await open(filePath, 'r');
-
-            try {
-                const sample = Buffer.alloc(FILE_SIGNATURE_SAMPLE_SIZE);
-                const { bytesRead } = await fileHandle.read(
-                    sample,
-                    0,
-                    sample.length,
-                    0,
-                );
-
-                return sample.subarray(0, bytesRead);
-            } finally {
-                await fileHandle.close();
-            }
-        } catch (error) {
-            if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-                throw new UnrecoverableError(
-                    `RAG 원본 파일을 찾을 수 없습니다: storageKey=${storageKey}`,
-                );
-            }
-
-            throw error;
-        }
     }
 
     private validatePdfSignature(sample: Buffer): void {
@@ -134,13 +88,8 @@ export class RagDocumentExtractorService {
         }
     }
 
-    private async validateFileContent(
-        input: RagDocumentExtractionInput,
-    ): Promise<void> {
-        const sample = await this.readFileSample(
-            input.filePath,
-            input.storageKey,
-        );
+    private validateFileContent(input: RagDocumentExtractionInput): void {
+        const sample = input.data.subarray(0, FILE_SIGNATURE_SAMPLE_SIZE);
 
         if (input.extension === '.pdf') {
             this.validatePdfSignature(sample);

@@ -1,5 +1,5 @@
 export type RagDocumentExtractionInput = {
-    filePath: string;
+    data: Buffer;
     storageKey: string;
     extension: string;
 };

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { UnrecoverableError } from 'bullmq';
-import { readFile } from 'node:fs/promises';
+
 import type {
     RagDocumentExtractionInput,
     RagDocumentExtractionResult,
@@ -14,20 +14,7 @@ export class RagTextFileExtractor implements RagDocumentTextExtractor {
     }
 
     async extract(input: RagDocumentExtractionInput): Promise<RagDocumentExtractionResult> {
-        let content: string;
-
-        try {
-            content = await readFile(input.filePath, 'utf8');
-        } catch (error) {
-            if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-                throw new UnrecoverableError(
-                    `RAG 원본 파일을 찾을 수 없습니다: storageKey=${input.storageKey}`,
-                );
-            }
-
-            throw error;
-        }
-
+        const content = input.data.toString('utf8');
         const normalizedContent = content.replace(/^\uFEFF/, '').trim();
 
         if (!normalizedContent) {

@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { UnrecoverableError } from 'bullmq';
-import { readFile } from 'node:fs/promises';
 import { PasswordException, PDFParse } from 'pdf-parse';
 import type {
     RagDocumentExtractionInput,
@@ -18,21 +17,7 @@ export class RagPdfFileExtractor implements RagDocumentTextExtractor {
     }
 
     async extract(input: RagDocumentExtractionInput): Promise<RagDocumentExtractionResult> {
-        let data: Buffer;
-
-        try {
-            data = await readFile(input.filePath);
-        } catch (error) {
-            if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-                throw new UnrecoverableError(
-                    `RAG 원본 파일을 찾을 수 없습니다: storageKey=${input.storageKey}`,
-                );
-            }
-
-            throw error;
-        }
-
-        const parser = new PDFParse({ data });
+        const parser = new PDFParse({ data: input.data });
 
         try {
             const info = await parser.getInfo();

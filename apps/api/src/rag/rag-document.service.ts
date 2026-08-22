@@ -1,11 +1,12 @@
 import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { access, unlink } from 'node:fs/promises';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueProducerService } from '../queue/queue-producer.service';
 import { GetRagDocumentsQueryDto } from './dto/get-rag-documents-query.dto';
 import { DeleteRagDocumentResult, RagDocumentsPageResult, RecoverStuckRagDocumentsResult, ReprocessRagDocumentResult } from './rag.types';
-import { ConfigService } from '@nestjs/config';
-import { resolve } from 'node:path';
+
+import { RagFileStorageService } from './storage/rag-file-storage.service';
+import { randomUUID } from 'node:crypto';
+import { extname } from 'node:path';
 
 const DEFAULT_DOCUMENT_LIST_LIMIT = 20;
 
@@ -19,7 +20,7 @@ export class RagDocumentService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly queueProducerService: QueueProducerService,
-        private readonly configService: ConfigService,
+        private readonly ragFileStorageService: RagFileStorageService,
     ) {}
 
     async getDocuments(userId: number, query: GetRagDocumentsQueryDto): Promise<RagDocumentsPageResult> {
@@ -58,6 +59,11 @@ export class RagDocumentService {
         userId: number,
         file: Express.Multer.File,
     ) {
+        const extension = extname(file.originalname).toLowerCase();
+        const storageKey = `${randomUUID()}${extension}`;
+
+        await this.ragFileStorageService.write(storageKey, file.buffer);
+
         let documentId: number | undefined;
 
         try {
@@ -65,7 +71,7 @@ export class RagDocumentService {
                 data: {
                     userId,
                     fileName: file.originalname,
-                    storageKey: file.filename,
+                    storageKey,
                     mimeType: file.mimetype,
                     sizeBytes: file.size,
                 },
@@ -119,10 +125,8 @@ export class RagDocumentService {
                         );
                     });
             } else {
-                await unlink(file.path).catch((cleanupError: unknown) => {
-                    this.logger.warn(
-                        `RAG 업로드 파일 정리 실패: ${String(cleanupError)}`,
-                    );
+                await this.ragFileStorageService.delete(storageKey).catch((cleanupError: unknown) => {
+                    this.logger.warn(`RAG 업로드 파일 정리 실패: ${String(cleanupError)}`);
                 });
             }
 
@@ -204,31 +208,18 @@ export class RagDocumentService {
         return { documentId: document.id, deleted: true };
     }
 
-    private getStoredFilePath(storageKey: string): string {
-        const uploadDir = this.configService.get<string>('RAG_UPLOAD_DIR') ?? 'uploads/rag';
-        return resolve(process.cwd(), uploadDir, storageKey);
-    }
-
     private async assertStoredFileExists(storageKey: string): Promise<void> {
-        try {
-            await access(this.getStoredFilePath(storageKey));
-        } catch (error) {
-            if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-                throw new ConflictException('원본 파일이 없어 문서를 재처리할 수 없습니다.');
-            }
+        const exists = await this.ragFileStorageService.exists(storageKey);
 
-            throw error;
+        if (!exists) {
+            throw new ConflictException('원본 파일이 없어 문서를 재처리할 수 없습니다.');
         }
     }
 
     private async deleteStoredFile(storageKey: string): Promise<void> {
-        const filePath = this.getStoredFilePath(storageKey);
-
         try {
-            await unlink(filePath);
+            await this.ragFileStorageService.delete(storageKey);
         } catch (error) {
-            if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
-
             this.logger.warn(`RAG 원본 파일 삭제 실패: storageKey=${storageKey}, error=${String(error)}`);
         }
     }

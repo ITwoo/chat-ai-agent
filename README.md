@@ -140,6 +140,9 @@ Agent는 기존 TypeScript Tool과 Python MCP Tool을 함께 선택할 수 있�
 - LLM·Tool 호출의 latency, token usage, error 확인
 - `/api/health`에서 PostgreSQL 연결 상태 확인
 
+### LangSmith
+- [RAG Evaluation](./docs/evaluation.md) — Semantic/Hybrid/Agent Retrieval 및 Faithfulness·Answer Relevance 정량 평가
+
 ---
 
 ## 핵심 설계

@@ -59,3 +59,5 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # RAG upload files
 uploads/
+
+eval-results/*.json

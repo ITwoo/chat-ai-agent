@@ -543,6 +543,9 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
             ),
             rag: baseModel.bindTools(
                 this.getDomainTools('rag', tools),
+                {
+                    tool_choice: RAG_SEARCH_TOOL_NAME,
+                },
             ),
             general: baseModel.bindTools(
                 this.getDomainTools('general', tools),

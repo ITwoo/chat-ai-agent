@@ -5,6 +5,7 @@ export type RagRetrievalEvalCase = {
     lexicalQueries?: string[];
     hardNegative?: boolean;
     negative?: boolean;
+    answerable?: boolean;
 };
 
 export const RAG_RETRIEVAL_EVAL_K = 5;
@@ -154,6 +155,7 @@ RagRetrievalEvalCase[] = [
             '제주도 흑돼지 맛집 중 평점 1위 식당 이름을 알려줘.',
         expectedFile:
             '06_household_meal_planning.pdf',
+        answerable: false,
     },
     {
         name: 'negative-kubernetes',

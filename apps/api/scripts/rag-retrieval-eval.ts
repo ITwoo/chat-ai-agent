@@ -274,15 +274,6 @@ function formatPercent(
     return `${(value * 100).toFixed(1)}%`;
 }
 
-void main().catch((error) => {
-    console.error(
-        'RAG retrieval eval failed:',
-        error,
-    );
-
-    process.exitCode = 1;
-});
-
 function getEvalMode(): RagRetrievalEvalMode {
     const value =
         process.env.RAG_RETRIEVAL_EVAL_MODE
@@ -301,3 +292,12 @@ function getEvalMode(): RagRetrievalEvalMode {
         'RAG_RETRIEVAL_EVAL_MODE must be semantic or manual.',
     );
 }
+
+void main().catch((error) => {
+    console.error(
+        'RAG retrieval eval failed:',
+        error,
+    );
+
+    process.exitCode = 1;
+});

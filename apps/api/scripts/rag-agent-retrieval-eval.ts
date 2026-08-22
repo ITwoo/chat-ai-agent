@@ -8,6 +8,8 @@ import {
     RAG_RETRIEVAL_EVAL_CASES,
     type RagRetrievalEvalCase,
 } from './eval/rag-retrieval-eval.dataset';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 
 type ScenarioStatus =
     | 'COMPLETED'
@@ -37,12 +39,21 @@ type RagAgentFailureReason =
 
 type RagAgentEvalResult = {
     name: string;
+    query: string;
+    expectedFile: string | null;
+    negative: boolean;
     status: ScenarioStatus;
+    messageId: number | null;
+    answer: string | null;
+    citations: ChatMessageResponse['ragCitations'];
     resultCount: number;
     retrievedFiles: string;
     hit: boolean | null;
     passed: boolean;
+
+    // 이전 단계에서 추가했다면 그대로 유지
     failureReason: RagAgentFailureReason | null;
+
     elapsedMs: number;
 };
 
@@ -73,7 +84,6 @@ async function main(): Promise<void> {
     try {
         const evalCases = getEvalCases();
 
-        console.log('RAG agent retrieval eval started');
         console.log(
             `Cases: ${evalCases.map((testCase) => testCase.name).join(', ')}`,
         );
@@ -98,9 +108,24 @@ async function main(): Promise<void> {
         socket.disconnect();
     }
 
-    console.table(results);
+    console.table(
+        results.map((result) => ({
+            name: result.name,
+            status: result.status,
+            resultCount: result.resultCount,
+            retrievedFiles:
+                result.retrievedFiles,
+            hit: result.hit,
+            passed: result.passed,
+            failureReason:
+                result.failureReason,
+            elapsedMs: result.elapsedMs,
+        })),
+    );
 
     printMetrics(results);
+
+    await saveResults(results);
 
     if (results.some((result) => !result.passed)) {
         process.exitCode = 1;
@@ -136,13 +161,26 @@ async function evaluateCase(
             performance.now() - startedAt,
         );
 
+        const baseResult = {
+            name: testCase.name,
+            query: testCase.query,
+            expectedFile:
+                testCase.expectedFile ?? null,
+            negative:
+                testCase.negative === true,
+            elapsedMs,
+        };
+
         if (
             agentResult.status !== 'COMPLETED' ||
             !agentResult.message
         ) {
             return {
-                name: testCase.name,
+                ...baseResult,
                 status: agentResult.status,
+                messageId: null,
+                answer: null,
+                citations: [],
                 resultCount: 0,
                 retrievedFiles: '',
                 hit: testCase.negative
@@ -150,7 +188,6 @@ async function evaluateCase(
                     : false,
                 passed: false,
                 failureReason: 'NON_COMPLETED',
-                elapsedMs,
             };
         }
 
@@ -169,8 +206,11 @@ async function evaluateCase(
             const passed = citations.length === 0;
 
             return {
-                name: testCase.name,
+                ...baseResult,
                 status: agentResult.status,
+                messageId: agentResult.message.id,
+                answer: agentResult.message.content,
+                citations,
                 resultCount: citations.length,
                 retrievedFiles:
                     retrievedFiles.join(', '),
@@ -179,7 +219,6 @@ async function evaluateCase(
                 failureReason: passed
                     ? null
                     : 'UNEXPECTED_CITATION',
-                elapsedMs,
             };
         }
 
@@ -197,8 +236,11 @@ async function evaluateCase(
         );
 
         return {
-            name: testCase.name,
+            ...baseResult,
             status: agentResult.status,
+            messageId: agentResult.message.id,
+            answer: agentResult.message.content,
+            citations,
             resultCount: citations.length,
             retrievedFiles:
                 retrievedFiles.join(', '),
@@ -209,7 +251,6 @@ async function evaluateCase(
                 : citations.length === 0
                     ? 'NO_CITATIONS'
                     : 'WRONG_CITATION',
-            elapsedMs,
         };
     } finally {
         await leaveRoom(socket, room.id);
@@ -557,22 +598,10 @@ function printMetrics(
             (result) => result.hit,
         ).length;
 
-    const hitRate =
-        positiveResults.length > 0
-            ? hitCount /
-                positiveResults.length
-            : 0;
-
     const negativePassed =
         negativeResults.filter(
             (result) => result.passed,
         ).length;
-
-    const negativeAccuracy =
-        negativeResults.length > 0
-            ? negativePassed /
-                negativeResults.length
-            : 0;
 
     const completedCount =
         results.filter(
@@ -582,12 +611,26 @@ function printMetrics(
 
     console.log(
         'Agent Citation Hit Rate: ' +
-        formatPercent(hitRate),
+        (
+            positiveResults.length > 0
+                ? formatPercent(
+                    hitCount /
+                    positiveResults.length,
+                )
+                : 'N/A'
+        ),
     );
 
     console.log(
         'Negative Accuracy: ' +
-        formatPercent(negativeAccuracy),
+        (
+            negativeResults.length > 0
+                ? formatPercent(
+                    negativePassed /
+                    negativeResults.length,
+                )
+                : 'N/A'
+        ),
     );
 
     console.log(
@@ -693,15 +736,6 @@ function formatPercent(
     return `${(value * 100).toFixed(1)}%`;
 }
 
-void main().catch((error) => {
-    console.error(
-        'RAG agent retrieval eval failed:',
-        error,
-    );
-
-    process.exitCode = 1;
-});
-
 function getEvalCases() {
     const value =
         process.env.RAG_AGENT_EVAL_CASES?.trim();
@@ -734,3 +768,47 @@ function getEvalCases() {
         (testCase) => names.has(testCase.name),
     );
 }
+
+async function saveResults(
+    results: RagAgentEvalResult[],
+): Promise<void> {
+    const outputPath = resolve(
+        process.cwd(),
+        process.env.RAG_AGENT_EVAL_OUTPUT?.trim() ||
+            'eval-results/rag-agent-latest.json',
+    );
+
+    await mkdir(
+        dirname(outputPath),
+        {
+            recursive: true,
+        },
+    );
+
+    await writeFile(
+        outputPath,
+        JSON.stringify(
+            {
+                createdAt:
+                    new Date().toISOString(),
+                results,
+            },
+            null,
+            2,
+        ),
+        'utf8',
+    );
+
+    console.log(
+        `Eval results saved: ${outputPath}`,
+    );
+}
+
+void main().catch((error) => {
+    console.error(
+        'RAG agent retrieval eval failed:',
+        error,
+    );
+
+    process.exitCode = 1;
+});

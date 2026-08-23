@@ -2,7 +2,6 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { QueueProducerService } from './queue-producer.service';
-import { AgentJobProcessor } from './agent-job.processor';
 import { createBullRootOptions, queueOptions } from './queue.config';
 
 @Module({
@@ -14,7 +13,7 @@ import { createBullRootOptions, queueOptions } from './queue.config';
         BullModule.registerQueue(...queueOptions),
     ],
     controllers: [],
-    providers: [QueueProducerService, AgentJobProcessor],
+    providers: [QueueProducerService],
     exports: [BullModule, QueueProducerService],
 })
 export class QueueModule {}

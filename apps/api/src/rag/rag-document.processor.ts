@@ -1,10 +1,9 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { UnrecoverableError, type Job } from 'bullmq';
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+
 import { PrismaService } from '../prisma/prisma.service';
 import {
     RAG_DOCUMENT_JOB_NAME,

@@ -5,12 +5,15 @@ import { PrismaExceptionFilter } from './prisma/prisma-exception.filter';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
 import { RedisIoAdapter } from './redis/redis-io.adapter';
-
+import { createApplicationLogger } from './observability/logger.config';
 
 async function bootstrap() {
     const logger = new Logger('Bootstrap');
 
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, {
+        logger: createApplicationLogger(),
+    });
+
     app.enableShutdownHooks();
 
     const configService = app.get(ConfigService);

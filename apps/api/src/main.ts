@@ -6,12 +6,28 @@ import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
 import { RedisIoAdapter } from './redis/redis-io.adapter';
 import { createApplicationLogger } from './observability/logger.config';
+import { randomUUID } from 'node:crypto';
+import type { NextFunction, Request, Response } from 'express';
+import { requestContextStorage } from './observability/request-context';
 
 async function bootstrap() {
     const logger = new Logger('Bootstrap');
 
     const app = await NestFactory.create(AppModule, {
         logger: createApplicationLogger(),
+    });
+
+    app.use((request: Request, response: Response, next: NextFunction) => {
+        const requestId = randomUUID();
+
+        response.setHeader('X-Request-Id', requestId);
+
+        requestContextStorage.run(
+            {
+                requestId,
+            },
+            next,
+        );
     });
 
     app.enableShutdownHooks();

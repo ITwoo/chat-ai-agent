@@ -14,6 +14,7 @@ import type {
 } from '../queue/queue.types';
 import { UserMemoryExtractionService } from './user-memory-extraction.service';
 import { UserMemoryJobStateService } from './user-memory-job-state.service';
+import { runWithRequestId } from '../observability/request-context';
 
 const EMPTY_EXTRACTION_RESULT: UserMemoryExtractionJobResult = {
     extractedCount: 0,
@@ -35,6 +36,18 @@ export class UserMemoryJobProcessor extends WorkerHost {
     }
 
     async process(
+        job: Job<
+            UserMemoryExtractionJobData,
+            UserMemoryExtractionJobResult
+        >,
+    ): Promise<UserMemoryExtractionJobResult> {
+        return runWithRequestId(
+            job.data.requestId,
+            () => this.processJob(job),
+        );
+    }
+
+    private async processJob(
         job: Job<
             UserMemoryExtractionJobData,
             UserMemoryExtractionJobResult

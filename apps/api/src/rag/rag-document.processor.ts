@@ -17,6 +17,7 @@ import { RagEmbeddingService } from './rag-embedding.service';
 import { EmbeddedChunk } from './rag.types';
 import { serializeVector } from './utils/rag-vector.util';
 import { RagDocumentExtractorService } from './extractors/rag-document-extractor.service';
+import { runWithRequestId } from '../observability/request-context';
 
 const CHUNK_SIZE = 1000;
 const CHUNK_OVERLAP = 200;
@@ -42,6 +43,15 @@ export class RagDocumentProcessor extends WorkerHost {
     }
 
     async process(
+        job: Job<DocumentIngestionJobData, DocumentIngestionJobResult>,
+    ): Promise<DocumentIngestionJobResult> {
+        return runWithRequestId(
+            job.data.requestId,
+            () => this.processJob(job),
+        );
+    }
+
+    private async processJob(
         job: Job<DocumentIngestionJobData, DocumentIngestionJobResult>,
     ): Promise<DocumentIngestionJobResult> {
         if (job.name !== RAG_DOCUMENT_JOB_NAME.INGEST) {

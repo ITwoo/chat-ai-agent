@@ -5,3 +5,12 @@ export interface RequestContext {
 }
 
 export const requestContextStorage = new AsyncLocalStorage<RequestContext>();
+
+export function runWithRequestId<T>(
+    requestId: string | undefined,
+    callback: () => T,
+): T {
+    if (!requestId) return callback();
+
+    return requestContextStorage.run({ requestId }, callback);
+}

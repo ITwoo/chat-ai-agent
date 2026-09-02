@@ -1,4 +1,8 @@
-export type HealthCheckJobData = {
+export type QueueJobContext = {
+    requestId?: string;
+};
+
+export type HealthCheckJobData = QueueJobContext & {
     requestedAt: string;
 };
 
@@ -8,7 +12,7 @@ export type HealthCheckJobResult = {
     elapsedMs: number;
 };
 
-export type DocumentIngestionJobData = {
+export type DocumentIngestionJobData = QueueJobContext & {
     documentId: number;
     userId: number;
     storageKey: string;
@@ -34,7 +38,7 @@ export type DocumentIngestionJobSnapshot =
         failedReason: string | null
     };
 
-export type UserMemoryExtractionJobData = {
+export type UserMemoryExtractionJobData = QueueJobContext & {
     userId: number;
     messageId: number;
 };

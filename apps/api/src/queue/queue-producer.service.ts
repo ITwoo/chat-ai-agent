@@ -2,7 +2,8 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Job, Queue } from 'bullmq';
 import { AGENT_JOB_NAME, AGENT_JOB_QUEUE, RAG_DOCUMENT_JOB_NAME, RAG_DOCUMENT_QUEUE, USER_MEMORY_JOB_NAME, USER_MEMORY_QUEUE } from './queue.constants';
-import { DocumentIngestionJobData, DocumentIngestionJobResult, DocumentIngestionJobSnapshot, HealthCheckJobData, HealthCheckJobResult, RemoveDocumentIngestionJobResult, UserMemoryExtractionJobData, UserMemoryExtractionJobResult, UserMemoryExtractionJobSnapshot } from './queue.types';
+import { DocumentIngestionJobData, DocumentIngestionJobResult, DocumentIngestionJobSnapshot, HealthCheckJobData, HealthCheckJobResult, QueueJobContext, RemoveDocumentIngestionJobResult, UserMemoryExtractionJobData, UserMemoryExtractionJobResult, UserMemoryExtractionJobSnapshot } from './queue.types';
+import { requestContextStorage } from '../observability/request-context';
 
 @Injectable()
 export class QueueProducerService {
@@ -15,10 +16,20 @@ export class QueueProducerService {
         private readonly userMemoryQueue: Queue<UserMemoryExtractionJobData, UserMemoryExtractionJobResult>,
     ) {}
 
+    private withRequestId<T extends object>(data: T): T & QueueJobContext {
+        return {
+            ...data,
+            requestId: requestContextStorage.getStore()?.requestId,
+        };
+    }
+
     enqueueHealthCheck(): Promise<Job<HealthCheckJobData, HealthCheckJobResult>> {
-        return this.agentJobQueue.add(AGENT_JOB_NAME.HEALTH_CHECK, {
-            requestedAt: new Date().toISOString(),
-        });
+        return this.agentJobQueue.add(
+            AGENT_JOB_NAME.HEALTH_CHECK,
+            this.withRequestId({
+                requestedAt: new Date().toISOString(),
+            }),
+        );
     }
 
     enqueueDocumentIngestion(
@@ -26,7 +37,7 @@ export class QueueProducerService {
     ): Promise<Job<DocumentIngestionJobData, DocumentIngestionJobResult>> {
         return this.ragDocumentQueue.add(
             RAG_DOCUMENT_JOB_NAME.INGEST,
-            data,
+            this.withRequestId(data),
             {
                 jobId: `rag-document-${data.documentId}`,
             },
@@ -43,7 +54,7 @@ export class QueueProducerService {
     > {
         return this.userMemoryQueue.add(
             USER_MEMORY_JOB_NAME.EXTRACT,
-            data,
+            this.withRequestId(data),
             {
                 jobId: `user-memory-${data.messageId}`,
             },

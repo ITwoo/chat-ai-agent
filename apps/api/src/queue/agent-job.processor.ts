@@ -3,12 +3,22 @@ import { Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import { AGENT_JOB_NAME, AGENT_JOB_QUEUE } from './queue.constants';
 import type { HealthCheckJobData, HealthCheckJobResult } from './queue.types'
+import { runWithRequestId } from '../observability/request-context';
 
 @Processor(AGENT_JOB_QUEUE)
 export class AgentJobProcessor extends WorkerHost {
     private readonly logger = new Logger(AgentJobProcessor.name);
 
     async process(
+        job: Job<HealthCheckJobData, HealthCheckJobResult>,
+    ): Promise<HealthCheckJobResult> {
+        return runWithRequestId(
+            job.data.requestId,
+            () => this.processJob(job),
+        );
+    }
+
+    private async processJob(
         job: Job<HealthCheckJobData, HealthCheckJobResult>,
     ): Promise<HealthCheckJobResult> {
         if (job.name !== AGENT_JOB_NAME.HEALTH_CHECK) {

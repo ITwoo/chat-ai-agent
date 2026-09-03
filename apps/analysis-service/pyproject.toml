@@ -1,0 +1,14 @@
+[project]
+name = "chat-ai-agent-analysis-service"
+version = "0.1.0"
+description = "FastAPI analysis service for chat-ai-agent"
+requires-python = ">=3.12,<4.0"
+
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pandas",
+    "numpy",
+    "psycopg[binary,pool]>=3.3.5",
+    "pydantic-settings>=2.15.0",
+]

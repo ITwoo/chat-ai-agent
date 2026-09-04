@@ -167,3 +167,28 @@ class SpendingAnomaly(BaseModel):
 class SpendingAnomalyResponse(BaseModel):
     threshold: float
     anomalies: list[SpendingAnomaly]
+
+class SpendingForecastRequest(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        validate_by_alias=True,
+    )
+
+    user_id: int = Field(alias="userId", gt=0)
+    as_of_date: datetime = Field(alias="asOfDate")
+    category: str | None = None
+
+
+class SpendingForecastResponse(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        validate_by_alias=True,
+    )
+
+    current_amount: int = Field(alias="currentAmount")
+    forecast_amount: int = Field(alias="forecastAmount")
+    daily_average: float = Field(alias="dailyAverage")
+    days_in_month: int = Field(alias="daysInMonth")
+    elapsed_days: float = Field(alias="elapsedDays")
+    remaining_days: float = Field(alias="remainingDays")
+    method: Literal["daily_average"]

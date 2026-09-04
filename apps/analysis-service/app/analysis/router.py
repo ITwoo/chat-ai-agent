@@ -9,12 +9,15 @@ from app.analysis.schemas import (
     SpendingTrendResponse,
     SpendingAnomalyRequest,
     SpendingAnomalyResponse,
+    SpendingForecastRequest,
+    SpendingForecastResponse,
 )
 from app.analysis.service import (
     analyze_spending_comparison,
     analyze_spending_summary,
     analyze_spending_trend,
     analyze_spending_anomalies,
+    analyze_spending_forecast,
 )
 
 router = APIRouter(
@@ -58,3 +61,12 @@ def spending_anomalies(
     request: SpendingAnomalyRequest,
 ) -> SpendingAnomalyResponse:
     return analyze_spending_anomalies(request)
+
+@router.post(
+    "/forecast",
+    response_model=SpendingForecastResponse,
+)
+def spending_forecast(
+    request: SpendingForecastRequest,
+) -> SpendingForecastResponse:
+    return analyze_spending_forecast(request)

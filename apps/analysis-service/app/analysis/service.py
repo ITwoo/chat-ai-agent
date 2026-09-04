@@ -1,3 +1,6 @@
+import pandas as pd
+from calendar import monthrange
+from app.db.postgres import pool
 from app.analysis.schemas import (
     CategoryComparison,
     CategorySummary,
@@ -11,9 +14,9 @@ from app.analysis.schemas import (
     SpendingAnomaly,
     SpendingAnomalyRequest,
     SpendingAnomalyResponse,
+    SpendingForecastRequest,
+    SpendingForecastResponse,
 )
-from app.db.postgres import pool
-import pandas as pd
 
 def _calculate_change_rate(
     current_amount: int,
@@ -432,4 +435,72 @@ def analyze_spending_anomalies(
     return SpendingAnomalyResponse(
         threshold=request.threshold,
         anomalies=anomalies,
+    )
+
+def analyze_spending_forecast(
+    request: SpendingForecastRequest,
+) -> SpendingForecastResponse:
+    month_start = request.as_of_date.replace(
+        day=1,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+
+    days_in_month = monthrange(
+        request.as_of_date.year,
+        request.as_of_date.month,
+    )[1]
+
+    elapsed_days = (
+        request.as_of_date - month_start
+    ).total_seconds() / 86400
+
+    remaining_days = max(
+        days_in_month - elapsed_days,
+        0,
+    )
+
+    with pool.connection() as connection:
+        with connection.cursor() as cursor:
+            query = """
+                SELECT COALESCE(SUM("amount"), 0)
+                FROM "Expense"
+                WHERE "userId" = %s
+                  AND "spentAt" >= %s
+                  AND "spentAt" < %s
+            """
+            params = [
+                request.user_id,
+                month_start,
+                request.as_of_date,
+            ]
+
+            if request.category is not None:
+                query += ' AND "category" = %s'
+                params.append(request.category)
+
+            cursor.execute(query, params)
+            row = cursor.fetchone()
+
+    current_amount = int(row[0]) if row else 0
+
+    if elapsed_days <= 0:
+        daily_average = 0.0
+        forecast_amount = current_amount
+    else:
+        daily_average = current_amount / elapsed_days
+        forecast_amount = round(
+            daily_average * days_in_month
+        )
+
+    return SpendingForecastResponse(
+        current_amount=current_amount,
+        forecast_amount=forecast_amount,
+        daily_average=round(daily_average, 2),
+        days_in_month=days_in_month,
+        elapsed_days=round(elapsed_days, 2),
+        remaining_days=round(remaining_days, 2),
+        method="daily_average",
     )

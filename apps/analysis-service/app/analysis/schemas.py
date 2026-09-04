@@ -1,5 +1,5 @@
 from datetime import datetime
-
+from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
@@ -92,3 +92,39 @@ class SpendingComparisonResponse(BaseModel):
     difference: int
     change_rate: float | None = Field(alias="changeRate")
     categories: list[CategoryComparison]
+
+class SpendingTrendRequest(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        validate_by_alias=True,
+    )
+
+    user_id: int = Field(alias="userId", gt=0)
+    start_date: datetime = Field(alias="startDate")
+    end_date: datetime = Field(alias="endDate")
+    category: str | None = None
+    granularity: Literal["day", "month"] = "day"
+
+    @model_validator(mode="after")
+    def validate_period(self):
+        if self.start_date >= self.end_date:
+            raise ValueError("startDate must be earlier than endDate")
+
+        return self
+
+class SpendingTrendPoint(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        validate_by_alias=True,
+    )
+
+    period: datetime
+    amount: int
+    count: int
+    change_rate: float | None = Field(alias="changeRate")
+    moving_average: float = Field(alias="movingAverage")
+
+
+class SpendingTrendResponse(BaseModel):
+    granularity: Literal["day", "month"]
+    points: list[SpendingTrendPoint]

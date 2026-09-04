@@ -5,6 +5,9 @@ from app.analysis.schemas import (
     SpendingComparisonResponse,
     SpendingSummaryRequest,
     SpendingSummaryResponse,
+    SpendingTrendPoint,
+    SpendingTrendRequest,
+    SpendingTrendResponse,
 )
 from app.db.postgres import pool
 import pandas as pd
@@ -192,4 +195,143 @@ def analyze_spending_comparison(
         difference=difference,
         change_rate=change_rate,
         categories=categories,
+    )
+
+def analyze_spending_trend(
+    request: SpendingTrendRequest,
+) -> SpendingTrendResponse:
+    with pool.connection() as connection:
+        with connection.cursor() as cursor:
+            query = """
+                SELECT
+                    date_trunc(%s, "spentAt") AS period,
+                    SUM("amount") AS amount,
+                    COUNT(*) AS count
+                FROM "Expense"
+                WHERE "userId" = %s
+                  AND "spentAt" >= %s
+                  AND "spentAt" < %s
+            """
+            params = [
+                request.granularity,
+                request.user_id,
+                request.start_date,
+                request.end_date,
+            ]
+
+            if request.category is not None:
+                query += ' AND "category" = %s'
+                params.append(request.category)
+
+            query += """
+                GROUP BY period
+                ORDER BY period
+            """
+
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+
+    start = pd.Timestamp(request.start_date).tz_localize(None)
+    end = pd.Timestamp(request.end_date).tz_localize(None)
+
+    if request.granularity == "day":
+        start_period = start.normalize()
+        end_period = end.normalize()
+
+        if end != end_period:
+            end_period += pd.Timedelta(days=1)
+
+        frequency = "D"
+    else:
+        start_period = start.replace(
+            day=1,
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+        end_period = end.replace(
+            day=1,
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+
+        if end != end_period:
+            end_period += pd.offsets.MonthBegin(1)
+
+        frequency = "MS"
+
+    periods = pd.date_range(
+        start=start_period,
+        end=end_period,
+        freq=frequency,
+        inclusive="left",
+    )
+
+    period_df = pd.DataFrame({
+        "period": periods,
+    })
+
+    df = pd.DataFrame(
+        rows,
+        columns=["period", "amount", "count"],
+    )
+
+    if not df.empty:
+        df["period"] = pd.to_datetime(df["period"])
+
+    df = (
+        period_df
+        .merge(df, on="period", how="left")
+        .fillna({
+            "amount": 0,
+            "count": 0,
+        })
+    )
+
+    df["amount"] = df["amount"].astype("int64")
+    df["count"] = df["count"].astype("int64")
+
+    previous_amount = df["amount"].shift(1)
+
+    df["change_rate"] = (
+        (
+            (df["amount"] - previous_amount)
+            / previous_amount
+            * 100
+        )
+        .where(previous_amount > 0)
+        .round(1)
+    )
+
+    df["moving_average"] = (
+        df["amount"]
+        .rolling(
+            window=3,
+            min_periods=1,
+        )
+        .mean()
+        .round(2)
+    )
+
+    points = [
+        SpendingTrendPoint(
+            period=row["period"],
+            amount=int(row["amount"]),
+            count=int(row["count"]),
+            change_rate=(
+                None
+                if pd.isna(row["change_rate"])
+                else float(row["change_rate"])
+            ),
+            moving_average=float(row["moving_average"]),
+        )
+        for row in df.to_dict(orient="records")
+    ]
+
+    return SpendingTrendResponse(
+        granularity=request.granularity,
+        points=points,
     )

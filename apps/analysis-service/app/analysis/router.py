@@ -5,11 +5,13 @@ from app.analysis.schemas import (
     SpendingComparisonResponse,
     SpendingSummaryRequest,
     SpendingSummaryResponse,
+    SpendingTrendRequest,
+    SpendingTrendResponse,
 )
-from app.analysis.service import analyze_spending_summary
 from app.analysis.service import (
     analyze_spending_comparison,
     analyze_spending_summary,
+    analyze_spending_trend,
 )
 
 router = APIRouter(
@@ -35,3 +37,12 @@ def spending_comparison(
     request: SpendingComparisonRequest,
 ) -> SpendingComparisonResponse:
     return analyze_spending_comparison(request)
+
+@router.post(
+    "/trend",
+    response_model=SpendingTrendResponse,
+)
+def spending_trend(
+    request: SpendingTrendRequest,
+) -> SpendingTrendResponse:
+    return analyze_spending_trend(request)

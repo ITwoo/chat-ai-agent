@@ -9,6 +9,20 @@ from app.analysis.schemas import (
 from app.db.postgres import pool
 import pandas as pd
 
+def _calculate_change_rate(
+    current_amount: int,
+    previous_amount: int,
+) -> float | None:
+    if previous_amount == 0:
+        return None
+
+    return round(
+        (current_amount - previous_amount)
+        / previous_amount
+        * 100,
+        1,
+    )
+    
 def analyze_spending_summary(
     request: SpendingSummaryRequest,
 ) -> SpendingSummaryResponse:
@@ -126,23 +140,7 @@ def analyze_spending_comparison(
     df = pd.DataFrame(
         rows,
         columns=["period", "category", "amount"],
-    )
-
-    current_total = int(
-        df.loc[df["period"] == "current", "amount"].sum()
-    )
-
-    previous_total = int(
-        df.loc[df["period"] == "previous", "amount"].sum()
-    )
-
-    difference = current_total - previous_total
-
-    change_rate = (
-        round(difference / previous_total * 100, 1)
-        if previous_total > 0
-        else None
-    )
+    )    
 
     category_df = (
         df
@@ -159,6 +157,16 @@ def analyze_spending_comparison(
         if period not in category_df.columns:
             category_df[period] = 0
 
+    current_total = int(category_df["current"].sum())
+    previous_total = int(category_df["previous"].sum())
+
+    difference = current_total - previous_total
+
+    change_rate = _calculate_change_rate(
+        current_total,
+        previous_total,
+    )
+
     category_df["difference"] = (
         category_df["current"]
         - category_df["previous"]
@@ -170,13 +178,9 @@ def analyze_spending_comparison(
             current_amount=int(row["current"]),
             previous_amount=int(row["previous"]),
             difference=int(row["difference"]),
-            change_rate=(
-                round(
-                    row["difference"] / row["previous"] * 100,
-                    1,
-                )
-                if row["previous"] > 0
-                else None
+            change_rate=_calculate_change_rate(
+                int(row["current"]),
+                int(row["previous"]),
             ),
         )
         for row in category_df.to_dict(orient="records")

@@ -161,7 +161,7 @@ class SpendingAnomaly(BaseModel):
     amount: int
     spent_at: datetime = Field(alias="spentAt")
     category_average: float = Field(alias="categoryAverage")
-    z_score: float = Field(alias="zScore")
+    z_score: float | None = Field(alias="zScore")
 
 
 class SpendingAnomalyResponse(BaseModel):

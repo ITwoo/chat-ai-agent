@@ -393,24 +393,63 @@ def analyze_spending_anomalies(
 
     category_group = df.groupby("category")["amount"]
 
-    df["category_average"] = category_group.transform("mean")
-    df["category_std"] = category_group.transform(
-        lambda amounts: amounts.std(ddof=0)
+    category_sum = category_group.transform("sum")
+    category_count = category_group.transform("size")
+
+    baseline_count = category_count - 1
+    baseline_sum = category_sum - df["amount"]
+
+    df["category_average"] = (
+        baseline_sum / baseline_count
     )
-    df["category_count"] = category_group.transform("size")
+
+    squared_sum = (
+        df["amount"]
+        .pow(2)
+        .groupby(df["category"])
+        .transform("sum")
+    )
+
+    baseline_squared_sum = (
+        squared_sum - df["amount"].pow(2)
+    )
+
+    baseline_variance = (
+        baseline_squared_sum / baseline_count
+        - df["category_average"].pow(2)
+    ).clip(lower=0)
+
+    df["category_std"] = baseline_variance.pow(0.5)
+    df["category_count"] = category_count
 
     df["z_score"] = (
-        (df["amount"] - df["category_average"])
+        (
+            df["amount"] - df["category_average"]
+        )
         / df["category_std"]
+    ).where(df["category_std"] > 0)
+
+    enough_data = df["category_count"] >= 4
+
+    z_score_anomaly = (
+        (df["category_std"] > 0)
+        & (df["z_score"] >= request.threshold)
+    )
+
+    zero_std_anomaly = (
+        (df["category_std"] == 0)
+        & (df["amount"] > df["category_average"])
     )
 
     anomaly_df = (
         df[
-            (df["category_count"] >= 3)
-            & (df["category_std"] > 0)
-            & (df["z_score"] >= request.threshold)
+            enough_data
+            & (z_score_anomaly | zero_std_anomaly)
         ]
-        .sort_values("z_score", ascending=False)
+        .sort_values(
+            "amount",
+            ascending=False,
+        )
     )
 
     anomalies = [
@@ -424,9 +463,13 @@ def analyze_spending_anomalies(
                 float(row["category_average"]),
                 2,
             ),
-            z_score=round(
-                float(row["z_score"]),
-                2,
+            z_score=(
+                None
+                if pd.isna(row["z_score"])
+                else round(
+                    float(row["z_score"]),
+                    2,
+                )
             ),
         )
         for row in anomaly_df.to_dict(orient="records")

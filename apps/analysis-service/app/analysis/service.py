@@ -8,6 +8,9 @@ from app.analysis.schemas import (
     SpendingTrendPoint,
     SpendingTrendRequest,
     SpendingTrendResponse,
+    SpendingAnomaly,
+    SpendingAnomalyRequest,
+    SpendingAnomalyResponse,
 )
 from app.db.postgres import pool
 import pandas as pd
@@ -334,4 +337,99 @@ def analyze_spending_trend(
     return SpendingTrendResponse(
         granularity=request.granularity,
         points=points,
+    )
+
+def analyze_spending_anomalies(
+    request: SpendingAnomalyRequest,
+) -> SpendingAnomalyResponse:
+    with pool.connection() as connection:
+        with connection.cursor() as cursor:
+            query = """
+                SELECT
+                    "id",
+                    "title",
+                    "category",
+                    "amount",
+                    "spentAt"
+                FROM "Expense"
+                WHERE "userId" = %s
+                  AND "spentAt" >= %s
+                  AND "spentAt" < %s
+            """
+            params = [
+                request.user_id,
+                request.start_date,
+                request.end_date,
+            ]
+
+            if request.category is not None:
+                query += ' AND "category" = %s'
+                params.append(request.category)
+
+            query += ' ORDER BY "spentAt"'
+
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+
+    if not rows:
+        return SpendingAnomalyResponse(
+            threshold=request.threshold,
+            anomalies=[],
+        )
+
+    df = pd.DataFrame(
+        rows,
+        columns=[
+            "id",
+            "title",
+            "category",
+            "amount",
+            "spent_at",
+        ],
+    )
+
+    category_group = df.groupby("category")["amount"]
+
+    df["category_average"] = category_group.transform("mean")
+    df["category_std"] = category_group.transform(
+        lambda amounts: amounts.std(ddof=0)
+    )
+    df["category_count"] = category_group.transform("size")
+
+    df["z_score"] = (
+        (df["amount"] - df["category_average"])
+        / df["category_std"]
+    )
+
+    anomaly_df = (
+        df[
+            (df["category_count"] >= 3)
+            & (df["category_std"] > 0)
+            & (df["z_score"] >= request.threshold)
+        ]
+        .sort_values("z_score", ascending=False)
+    )
+
+    anomalies = [
+        SpendingAnomaly(
+            id=int(row["id"]),
+            title=row["title"],
+            category=row["category"],
+            amount=int(row["amount"]),
+            spent_at=row["spent_at"],
+            category_average=round(
+                float(row["category_average"]),
+                2,
+            ),
+            z_score=round(
+                float(row["z_score"]),
+                2,
+            ),
+        )
+        for row in anomaly_df.to_dict(orient="records")
+    ]
+
+    return SpendingAnomalyResponse(
+        threshold=request.threshold,
+        anomalies=anomalies,
     )

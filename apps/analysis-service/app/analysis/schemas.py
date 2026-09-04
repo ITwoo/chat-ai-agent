@@ -128,3 +128,42 @@ class SpendingTrendPoint(BaseModel):
 class SpendingTrendResponse(BaseModel):
     granularity: Literal["day", "month"]
     points: list[SpendingTrendPoint]
+
+class SpendingAnomalyRequest(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        validate_by_alias=True,
+    )
+
+    user_id: int = Field(alias="userId", gt=0)
+    start_date: datetime = Field(alias="startDate")
+    end_date: datetime = Field(alias="endDate")
+    category: str | None = None
+    threshold: float = Field(default=2.0, gt=0)
+
+    @model_validator(mode="after")
+    def validate_period(self):
+        if self.start_date >= self.end_date:
+            raise ValueError("startDate must be earlier than endDate")
+
+        return self
+
+
+class SpendingAnomaly(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        validate_by_alias=True,
+    )
+
+    id: int
+    title: str
+    category: str
+    amount: int
+    spent_at: datetime = Field(alias="spentAt")
+    category_average: float = Field(alias="categoryAverage")
+    z_score: float = Field(alias="zScore")
+
+
+class SpendingAnomalyResponse(BaseModel):
+    threshold: float
+    anomalies: list[SpendingAnomaly]

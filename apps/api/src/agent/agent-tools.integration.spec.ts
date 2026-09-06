@@ -15,10 +15,10 @@ const integrationDescribe =
 integrationDescribe(
     'AgentToolsService Analysis Integration',
     () => {
+        const analysisServiceUrl = process.env.ANALYSIS_SERVICE_URL ?? 'http://localhost:8001';
+
         const configService = {
-            getOrThrow: jest
-                .fn()
-                .mockReturnValue('http://localhost:8001'),
+            getOrThrow: jest.fn().mockReturnValue(analysisServiceUrl),
         };
 
         const analysisClient = new AnalysisClientService(

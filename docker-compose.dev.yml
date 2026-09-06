@@ -30,6 +30,21 @@ services:
       start_period: 5s
     restart: unless-stopped
 
+  analysis-service:
+    build:
+      context: .
+      dockerfile: apps/analysis-service/Dockerfile
+    env_file:
+      - ./apps/analysis-service/.env.docker.local
+    expose:
+      - "8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
   api:
     build:
       context: .
@@ -38,6 +53,9 @@ services:
       - ./apps/api/.env.docker.local
     expose:
       - "3000"
+    depends_on:
+      analysis-service:
+        condition: service_healthy
     restart: always
 
   worker:
@@ -48,7 +66,10 @@ services:
       - ./apps/api/.env.docker.local
     command: ["node", "dist/worker.js"]
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      analysis-service:
+        condition: service_healthy
     restart: always
     
   web:

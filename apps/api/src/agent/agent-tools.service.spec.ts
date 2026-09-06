@@ -14,6 +14,7 @@ import {
     StateSchema,
 } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
+import { AnalysisClientService } from '../analysis/analysis-client.service';
 
 const expense = {
     id: 1,
@@ -37,7 +38,7 @@ describe('AgentToolsService', () => {
         .fn<() => Promise<typeof expense>>()
         .mockResolvedValue(expense);
 
-        
+
     const findExpense = jest.fn<
         () => Promise<typeof expense | null>
     >();
@@ -98,7 +99,100 @@ describe('AgentToolsService', () => {
         getTools: jest.fn<() => []>().mockReturnValue([]),
     };
 
+    const getSpendingSummary = jest
+        .fn<AnalysisClientService['getSpendingSummary']>()
+        .mockResolvedValue({
+            totalAmount: 80000,
+            count: 3,
+            averageAmount: 26666.67,
+            topCategory: '식비',
+            categories: [
+                {
+                    category: '식비',
+                    amount: 80000,
+                    count: 3,
+                    percentage: 100,
+                },
+            ],
+        });
+
+    const getSpendingComparison = jest
+        .fn<AnalysisClientService['getSpendingComparison']>()
+        .mockResolvedValue({
+            currentTotalAmount: 500000,
+            previousTotalAmount: 400000,
+            difference: 100000,
+            changeRate: 25,
+            categories: [
+                {
+                    category: '식비',
+                    currentAmount: 200000,
+                    previousAmount: 150000,
+                    difference: 50000,
+                    changeRate: 33.3,
+                },
+            ],
+        });
+
+    const getSpendingTrend = jest
+        .fn<AnalysisClientService['getSpendingTrend']>()
+        .mockResolvedValue({
+            granularity: 'day',
+            points: [
+                {
+                    period: '2026-08-01T00:00:00',
+                    amount: 30000,
+                    count: 2,
+                    changeRate: null,
+                    movingAverage: 30000,
+                },
+            ],
+        });
+
+    const getSpendingAnomalies = jest
+        .fn<AnalysisClientService['getSpendingAnomalies']>()
+        .mockResolvedValue({
+            threshold: 2,
+            anomalies: [
+                {
+                    id: 10,
+                    title: '파인다이닝',
+                    category: '식비',
+                    amount: 100000,
+                    spentAt: '2026-08-10T10:00:00Z',
+                    categoryAverage: 11500,
+                    zScore: 79.16,
+                },
+            ],
+        });
+
+    const getSpendingForecast = jest
+        .fn<AnalysisClientService['getSpendingForecast']>()
+        .mockResolvedValue({
+            currentAmount: 285000,
+            forecastAmount: 900000,
+            dailyAverage: 30000,
+            daysInMonth: 30,
+            elapsedDays: 9.5,
+            remainingDays: 20.5,
+            method: 'daily_average',
+        });
+
+    const analysisClient = {
+        getSpendingSummary,
+        getSpendingComparison,
+        getSpendingTrend,
+        getSpendingAnomalies,
+        getSpendingForecast,
+    };
+
     beforeEach(async () => {
+        getSpendingSummary.mockClear();
+        getSpendingComparison.mockClear();
+        getSpendingTrend.mockClear();
+        getSpendingAnomalies.mockClear();
+        getSpendingForecast.mockClear();
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 AgentToolsService,
@@ -109,6 +203,10 @@ describe('AgentToolsService', () => {
                 {
                     provide: UserMemoryToolsService,
                     useValue: userMemoryToolsService,
+                },
+                {
+                    provide: AnalysisClientService,
+                    useValue: analysisClient,
                 },
             ],
         }).compile();
@@ -303,6 +401,178 @@ describe('AgentToolsService', () => {
         expect(resultMessage.content).toContain(
             '"currentVersion":2',
         );
+    });
+
+    it('get_expense_summary는 Analysis Service에서 지출 요약을 조회한다', async () => {
+        const tools = service.getTools({
+            userId: 1,
+        });
+
+        const expenseSummaryTool = tools.find(
+            (tool) => tool.name === 'get_expense_summary',
+        );
+
+        expect(expenseSummaryTool).toBeDefined();
+
+        const result = await expenseSummaryTool!.invoke({
+            startDate: '2026-08-01T00:00:00+09:00',
+            endDate: '2026-09-01T00:00:00+09:00',
+            category: '식비',
+        });
+
+        expect(getSpendingSummary).toHaveBeenCalledWith({
+            userId: 1,
+            startDate: '2026-07-31T15:00:00.000Z',
+            endDate: '2026-08-31T15:00:00.000Z',
+            category: '식비',
+        });
+
+        expect(JSON.parse(result as string)).toEqual({
+            totalAmount: 80000,
+            count: 3,
+            categorySummary: {
+                식비: 80000,
+            },
+            startDate: '2026-07-31T15:00:00.000Z',
+            endDate: '2026-08-31T15:00:00.000Z',
+            category: '식비',
+        });
+    });
+
+    it('get_expense_comparison은 Analysis Service에서 두 기간의 지출을 비교한다', async () => {
+        const tools = service.getTools({ userId: 1 });
+        const comparisonTool = tools.find((tool) => tool.name === 'get_expense_comparison');
+
+        expect(comparisonTool).toBeDefined();
+
+        const result = await comparisonTool!.invoke({
+            currentStartDate: '2026-09-01T00:00:00+09:00',
+            currentEndDate: '2026-10-01T00:00:00+09:00',
+            previousStartDate: '2026-08-01T00:00:00+09:00',
+            previousEndDate: '2026-09-01T00:00:00+09:00',
+        });
+
+        expect(getSpendingComparison).toHaveBeenCalledWith({
+            userId: 1,
+            currentStartDate: '2026-08-31T15:00:00.000Z',
+            currentEndDate: '2026-09-30T15:00:00.000Z',
+            previousStartDate: '2026-07-31T15:00:00.000Z',
+            previousEndDate: '2026-08-31T15:00:00.000Z',
+        });
+
+        expect(JSON.parse(result as string)).toEqual({
+            currentTotalAmount: 500000,
+            previousTotalAmount: 400000,
+            difference: 100000,
+            changeRate: 25,
+            categories: [
+                {
+                    category: '식비',
+                    currentAmount: 200000,
+                    previousAmount: 150000,
+                    difference: 50000,
+                    changeRate: 33.3,
+                },
+            ],
+        });
+    });
+
+    it('get_expense_trend는 Analysis Service에서 지출 추세를 조회한다', async () => {
+        const tools = service.getTools({ userId: 1 });
+        const trendTool = tools.find((tool) => tool.name === 'get_expense_trend');
+
+        expect(trendTool).toBeDefined();
+
+        const result = await trendTool!.invoke({
+            startDate: '2026-08-01T00:00:00+09:00',
+            endDate: '2026-09-01T00:00:00+09:00',
+            category: '식비',
+            granularity: 'day',
+        });
+
+        expect(getSpendingTrend).toHaveBeenCalledWith({
+            userId: 1,
+            startDate: '2026-07-31T15:00:00.000Z',
+            endDate: '2026-08-31T15:00:00.000Z',
+            category: '식비',
+            granularity: 'day',
+        });
+
+        expect(JSON.parse(result as string)).toEqual({
+            granularity: 'day',
+            points: [
+                {
+                    period: '2026-08-01T00:00:00',
+                    amount: 30000,
+                    count: 2,
+                    changeRate: null,
+                    movingAverage: 30000,
+                },
+            ],
+        });
+    });
+
+    it('get_expense_anomalies는 Analysis Service에서 이상 소비를 조회한다', async () => {
+        const tools = service.getTools({ userId: 1 });
+        const anomalyTool = tools.find((tool) => tool.name === 'get_expense_anomalies');
+
+        expect(anomalyTool).toBeDefined();
+
+        const result = await anomalyTool!.invoke({
+            startDate: '2026-08-01T00:00:00+09:00',
+            endDate: '2026-09-01T00:00:00+09:00',
+            category: '식비',
+            threshold: 2,
+        });
+
+        expect(getSpendingAnomalies).toHaveBeenCalledWith({
+            userId: 1,
+            startDate: '2026-07-31T15:00:00.000Z',
+            endDate: '2026-08-31T15:00:00.000Z',
+            category: '식비',
+            threshold: 2,
+        });
+
+        expect(JSON.parse(result as string)).toEqual({
+            threshold: 2,
+            anomalies: [
+                {
+                    id: 10,
+                    title: '파인다이닝',
+                    category: '식비',
+                    amount: 100000,
+                    spentAt: '2026-08-10T10:00:00Z',
+                    categoryAverage: 11500,
+                    zScore: 79.16,
+                },
+            ],
+        });
+    });
+
+    it('get_expense_forecast는 Analysis Service에서 월말 예상 지출을 조회한다', async () => {
+        const tools = service.getTools({ userId: 1 });
+        const forecastTool = tools.find((tool) => tool.name === 'get_expense_forecast');
+
+        expect(forecastTool).toBeDefined();
+
+        const result = await forecastTool!.invoke({
+            asOfDate: '2026-09-10T12:00:00+09:00',
+        });
+
+        expect(getSpendingForecast).toHaveBeenCalledWith({
+            userId: 1,
+            asOfDate: '2026-09-10T03:00:00.000Z',
+        });
+
+        expect(JSON.parse(result as string)).toEqual({
+            currentAmount: 285000,
+            forecastAmount: 900000,
+            dailyAverage: 30000,
+            daysInMonth: 30,
+            elapsedDays: 9.5,
+            remainingDays: 20.5,
+            method: 'daily_average',
+        });
     });
 
 });

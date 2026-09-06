@@ -9,6 +9,7 @@ import { ragSearchToolInputSchema } from '../rag/schemas/rag-search-tool.schema'
 import { AgentToolContext } from './types/agent-tool-context.type';
 import { UserMemoryToolsService } from '../user-memory/user-memory-tools.service';
 import { createHash } from 'crypto';
+import { AnalysisClientService } from '../analysis/analysis-client.service';
 
 const EXPENSE_CATEGORIES = [
     '식비',
@@ -34,7 +35,8 @@ export class AgentToolsService {
 
     constructor(
         private readonly prisma: PrismaService,
-        private readonly userMemoryToolsService: UserMemoryToolsService, 
+        private readonly userMemoryToolsService: UserMemoryToolsService,
+        private readonly analysisClient: AnalysisClientService,
     ) { }
 
     getTools(context: AgentToolContext): StructuredToolInterface[] {
@@ -47,6 +49,10 @@ export class AgentToolsService {
             this.createDeleteScheduleTool(context),
             this.createExpenseTool(context),
             this.createExpenseSummaryTool(context),
+            this.createExpenseComparisonTool(context),
+            this.createExpenseTrendTool(context),
+            this.createExpenseAnomalyTool(context),
+            this.createExpenseForecastTool(context),
             this.createExpenseListTool(context),
             this.createFindExpensesTool(context),
             this.createUpdateExpenseTool(context),
@@ -984,41 +990,28 @@ export class AgentToolsService {
                     return '조회 시작 날짜는 종료 날짜보다 이전이어야 합니다.';
                 }
 
-                const expenses = await this.prisma.expense.findMany({
-                    where: {
+                const summary =
+                    await this.analysisClient.getSpendingSummary({
                         userId: context.userId,
-                        spentAt: {
-                            gte: parsedStartDate,
-                            lt: parsedEndDate
-                        },
+                        startDate: parsedStartDate.toISOString(),
+                        endDate: parsedEndDate.toISOString(),
                         ...(category
                             ? {
                                 category,
                             }
                             : {}),
-                    },
-                    orderBy: {
-                        spentAt: 'asc',
-                    },
-                });
+                    });
 
-                const totalAmount = expenses.reduce(
-                    (sum, expenses) => sum + expenses.amount,
-                    0
-                );
-
-                const categorySummary = expenses.reduce<Record<string, number>>(
-                    (summary, expense) => {
-                        summary[expense.category] = (summary[expense.category] ?? 0) + expense.amount;
-
-                        return summary;
-                    },
-                    {},
+                const categorySummary = Object.fromEntries(
+                    summary.categories.map((item) => [
+                        item.category,
+                        item.amount,
+                    ]),
                 );
 
                 return JSON.stringify({
-                    totalAmount,
-                    count: expenses.length,
+                    totalAmount: summary.totalAmount,
+                    count: summary.count,
                     categorySummary,
                     startDate: parsedStartDate.toISOString(),
                     endDate: parsedEndDate.toISOString(),
@@ -1039,6 +1032,164 @@ export class AgentToolsService {
                     category: expenseCategorySchema
                         .optional()
                         .describe('선택 카테고리. 특정 카테고리만 조회할 때 사용한다.'),
+                }),
+            },
+        );
+    }
+
+    private createExpenseComparisonTool(context: AgentToolContext) {
+        return tool(
+            async ({ currentStartDate, currentEndDate, previousStartDate, previousEndDate }) => {
+                this.logger.log('[tool] get_expense_comparison');
+
+                const currentStart = new Date(currentStartDate);
+                const currentEnd = new Date(currentEndDate);
+                const previousStart = new Date(previousStartDate);
+                const previousEnd = new Date(previousEndDate);
+
+                if (
+                    Number.isNaN(currentStart.getTime())
+                    || Number.isNaN(currentEnd.getTime())
+                    || Number.isNaN(previousStart.getTime())
+                    || Number.isNaN(previousEnd.getTime())
+                ) {
+                    return '비교 기간 날짜 형식이 올바르지 않습니다.';
+                }
+
+                if (currentStart >= currentEnd) {
+                    return '현재 기간의 시작 날짜는 종료 날짜보다 이전이어야 합니다.';
+                }
+
+                if (previousStart >= previousEnd) {
+                    return '이전 기간의 시작 날짜는 종료 날짜보다 이전이어야 합니다.';
+                }
+
+                const comparison = await this.analysisClient.getSpendingComparison({
+                    userId: context.userId,
+                    currentStartDate: currentStart.toISOString(),
+                    currentEndDate: currentEnd.toISOString(),
+                    previousStartDate: previousStart.toISOString(),
+                    previousEndDate: previousEnd.toISOString(),
+                });
+
+                return JSON.stringify(comparison);
+            },
+            {
+                name: 'get_expense_comparison',
+                description: '두 기간의 지출 총액, 증감률, 카테고리별 증감을 비교할 때 사용한다.',
+                schema: z.object({
+                    currentStartDate: z.string().describe('현재 비교 기간 시작 날짜. ISO 8601 문자열.'),
+                    currentEndDate: z.string().describe('현재 비교 기간 종료 날짜. 해당 시각은 포함하지 않는다.'),
+                    previousStartDate: z.string().describe('이전 비교 기간 시작 날짜. ISO 8601 문자열.'),
+                    previousEndDate: z.string().describe('이전 비교 기간 종료 날짜. 해당 시각은 포함하지 않는다.'),
+                }),
+            },
+        );
+    }
+    
+    private createExpenseTrendTool(context: AgentToolContext) {
+        return tool(
+            async ({ startDate, endDate, category, granularity }) => {
+                this.logger.log('[tool] get_expense_trend');
+
+                const parsedStartDate = new Date(startDate);
+                const parsedEndDate = new Date(endDate);
+
+                if (Number.isNaN(parsedStartDate.getTime()) || Number.isNaN(parsedEndDate.getTime())) {
+                    return '조회 기간 날짜 형식이 올바르지 않습니다.';
+                }
+
+                if (parsedStartDate >= parsedEndDate) {
+                    return '시작 날짜는 종료 날짜보다 이전이어야 합니다.';
+                }
+
+                const trend = await this.analysisClient.getSpendingTrend({
+                    userId: context.userId,
+                    startDate: parsedStartDate.toISOString(),
+                    endDate: parsedEndDate.toISOString(),
+                    granularity,
+                    ...(category ? { category } : {}),
+                });
+
+                return JSON.stringify(trend);
+            },
+            {
+                name: 'get_expense_trend',
+                description: '기간별 지출 추세를 조회한다. 일별 또는 월별 소비 변화와 이동평균을 확인할 때 사용한다.',
+                schema: z.object({
+                    startDate: z.string().describe('조회 시작 날짜. ISO 8601 문자열.'),
+                    endDate: z.string().describe('조회 종료 날짜. 해당 시각은 포함하지 않는다.'),
+                    category: z.string().optional().describe('특정 지출 카테고리. 생략하면 전체 지출을 조회한다.'),
+                    granularity: z.enum(['day', 'month']).describe('추세 집계 단위. day 또는 month.'),
+                }),
+            },
+        );
+    }
+
+    private createExpenseAnomalyTool(context: AgentToolContext) {
+        return tool(
+            async ({ startDate, endDate, category, threshold }) => {
+                this.logger.log('[tool] get_expense_anomalies');
+
+                const parsedStartDate = new Date(startDate);
+                const parsedEndDate = new Date(endDate);
+
+                if (Number.isNaN(parsedStartDate.getTime()) || Number.isNaN(parsedEndDate.getTime())) {
+                    return '조회 기간 날짜 형식이 올바르지 않습니다.';
+                }
+
+                if (parsedStartDate >= parsedEndDate) {
+                    return '시작 날짜는 종료 날짜보다 이전이어야 합니다.';
+                }
+
+                const anomalies = await this.analysisClient.getSpendingAnomalies({
+                    userId: context.userId,
+                    startDate: parsedStartDate.toISOString(),
+                    endDate: parsedEndDate.toISOString(),
+                    ...(category ? { category } : {}),
+                    ...(threshold !== undefined ? { threshold } : {}),
+                });
+
+                return JSON.stringify(anomalies);
+            },
+            {
+                name: 'get_expense_anomalies',
+                description: '평소 같은 카테고리의 지출보다 비정상적으로 큰 개별 지출을 찾을 때 사용한다.',
+                schema: z.object({
+                    startDate: z.string().describe('조회 시작 날짜. ISO 8601 문자열.'),
+                    endDate: z.string().describe('조회 종료 날짜. 해당 시각은 포함하지 않는다.'),
+                    category: z.string().optional().describe('특정 지출 카테고리. 생략하면 전체 카테고리를 분석한다.'),
+                    threshold: z.number().positive().optional().describe('이상치 판정 기준 z-score. 생략하면 기본값을 사용한다.'),
+                }),
+            },
+        );
+    }
+
+    private createExpenseForecastTool(context: AgentToolContext) {
+        return tool(
+            async ({ asOfDate, category }) => {
+                this.logger.log('[tool] get_expense_forecast');
+
+                const parsedAsOfDate = new Date(asOfDate);
+
+                if (Number.isNaN(parsedAsOfDate.getTime())) {
+                    return '기준 날짜 형식이 올바르지 않습니다.';
+                }
+
+                const forecast = await this.analysisClient.getSpendingForecast({
+                    userId: context.userId,
+                    asOfDate: parsedAsOfDate.toISOString(),
+                    ...(category ? { category } : {}),
+                });
+
+                return JSON.stringify(forecast);
+            },
+            {
+                name: 'get_expense_forecast',
+                description: '현재까지의 소비 속도를 기준으로 이번 달 월말 예상 지출을 계산할 때 사용한다.',
+                schema: z.object({
+                    asOfDate: z.string().describe('예측 기준 날짜와 시간. ISO 8601 문자열.'),
+                    category: z.string().optional().describe('특정 지출 카테고리. 생략하면 전체 지출을 예측한다.'),
                 }),
             },
         );

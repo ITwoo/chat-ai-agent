@@ -76,6 +76,10 @@ const GENERAL_TOOL_NAMES = new Set([
 const EXPENSE_TOOL_NAMES = new Set([
     'create_expense',
     'get_expense_summary',
+    'get_expense_comparison',
+    'get_expense_trend',
+    'get_expense_anomalies',
+    'get_expense_forecast',
     'get_expense_list',
     'find_expenses',
     'update_expense',

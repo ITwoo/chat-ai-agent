@@ -28,7 +28,9 @@
         "eval:rag": "dotenv -e .env.benchmark.local -v RAG_RETRIEVAL_EVAL_MODE=semantic -- ts-node scripts/rag-retrieval-eval.ts",
         "eval:rag:manual": "dotenv -e .env.benchmark.local -v RAG_RETRIEVAL_EVAL_MODE=manual -- ts-node scripts/rag-retrieval-eval.ts",
         "eval:rag:agent": "dotenv -e .env.benchmark.local -- ts-node scripts/rag-agent-retrieval-eval.ts",
-        "eval:rag:answer": "dotenv -e .env.development.local -- ts-node scripts/rag-answer-eval.ts"
+        "eval:rag:answer": "dotenv -e .env.development.local -- ts-node scripts/rag-answer-eval.ts",
+        "eval:agent:analysis": "dotenv -e .env.development.local -- ts-node scripts/agent-analysis-tool-eval.ts"
+        
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.1116.0",

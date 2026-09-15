@@ -176,6 +176,7 @@ def _forecast_month_end_with_daily_average(
 def forecast_month_end_with_ridge(
     daily: pd.DataFrame,
     as_of_date: datetime,
+    alpha: float = 1.0,
 ) -> dict[str, object]:
     as_of = pd.Timestamp(as_of_date).tz_localize(None).normalize()
 
@@ -198,7 +199,7 @@ def forecast_month_end_with_ridge(
 
     model = Pipeline([
         ("scaler", StandardScaler()),
-        ("ridge", Ridge(alpha=1.0)),
+        ("ridge", Ridge(alpha=alpha)),
     ])
 
     model.fit(X, y)
@@ -233,6 +234,7 @@ def backtest_month_end_forecast(
     start_date: datetime,
     end_date: datetime,
     forecast_day: int = 10,
+    alpha: float = 1.0,
 ) -> dict[str, object]:
     if not 1 <= forecast_day <= 28:
         raise ValueError("forecast_day must be between 1 and 28")
@@ -277,6 +279,7 @@ def backtest_month_end_forecast(
         ridge_result = forecast_month_end_with_ridge(
             daily,
             as_of.to_pydatetime(),
+            alpha=alpha,
         )
 
         ridge_forecast = float(ridge_result["forecastAmount"])
@@ -313,6 +316,7 @@ def backtest_month_end_forecast(
 
     return {
         "forecastDay": forecast_day,
+        "alpha": alpha,
         "evaluatedMonths": len(results),
         "baselineMae": round(baseline_mae, 2),
         "ridgeMae": round(ridge_mae, 2),
@@ -323,6 +327,42 @@ def backtest_month_end_forecast(
         ),
         "ridgeBetter": ridge_mae < baseline_mae,
         "months": results,
+    }
+
+def tune_ridge_alpha(
+    daily: pd.DataFrame,
+    start_date: datetime,
+    end_date: datetime,
+    forecast_day: int = 10,
+    alphas: tuple[float, ...] = (0.01, 0.1, 1.0, 10.0, 100.0),
+) -> dict[str, object]:
+    evaluations: list[dict[str, object]] = []
+
+    for alpha in alphas:
+        result = backtest_month_end_forecast(
+            daily=daily,
+            start_date=start_date,
+            end_date=end_date,
+            forecast_day=forecast_day,
+            alpha=alpha,
+        )
+
+        evaluations.append({
+            "alpha": alpha,
+            "ridgeMae": result["ridgeMae"],
+            "baselineMae": result["baselineMae"],
+            "improvementRate": result["improvementRate"],
+        })
+
+    best = min(
+        evaluations,
+        key=lambda evaluation: float(evaluation["ridgeMae"]),
+    )
+
+    return {
+        "bestAlpha": best["alpha"],
+        "bestRidgeMae": best["ridgeMae"],
+        "evaluations": evaluations,
     }
 
 def evaluate_spending_daily_forecast(
@@ -405,7 +445,7 @@ def main() -> None:
 
     parser.add_argument(
         "--mode",
-        choices=["daily", "month-end"],
+        choices=["daily", "month-end", "tune"],
         default="daily",
     )
     parser.add_argument("--forecast-day", type=int, default=10)
@@ -425,7 +465,14 @@ def main() -> None:
             category=args.category,
         )
 
-        if args.mode == "month-end":
+        if args.mode == "tune":
+            result = tune_ridge_alpha(
+                daily=daily,
+                start_date=start_date,
+                end_date=end_date,
+                forecast_day=args.forecast_day,
+            )
+        elif args.mode == "month-end":
             result = backtest_month_end_forecast(
                 daily=daily,
                 start_date=start_date,

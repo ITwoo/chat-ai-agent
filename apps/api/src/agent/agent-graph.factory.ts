@@ -8,7 +8,6 @@ import {
     StateSchema,
 } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
-import { ChatOpenAI } from '@langchain/openai';
 import { AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import { StructuredToolInterface } from '@langchain/core/tools';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
@@ -23,6 +22,7 @@ import { ragCitationSchema } from '../rag/schemas/rag-citation.schema';
 import { createRagCitations } from '../rag/utils/rag-citation.util';
 import { RunnableConfig } from '@langchain/core/runnables';
 import { routeAgentToolCalls } from './agent-route.util';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
 const AGENT_MODEL_TIMEOUT_MS = 60_000;
 const SUPERVISOR_PROMPT_VERSION = 'supervisor-v1';
@@ -474,7 +474,11 @@ const AgentState = new StateSchema({
     agentResults: z.array(z.string()).default(() => []),
 });
 
-type AgentModel = ReturnType<ChatOpenAI['bindTools']>;
+type ToolCallingChatModel = BaseChatModel & {
+    bindTools: NonNullable<BaseChatModel['bindTools']>;
+};
+
+type AgentModel = ReturnType<ToolCallingChatModel['bindTools']>;
 type AgentTools = StructuredToolInterface[];
 
 export type AgentGraph = ReturnType<AgentGraphFactory['createGraph']>;
@@ -532,7 +536,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
     }
 
     private createDomainModels(
-        baseModel: ChatOpenAI,
+        baseModel: ToolCallingChatModel,
         tools: AgentTools,
     ): Record<AgentDomain, AgentModel> {
         return {
@@ -681,7 +685,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
     }
 
     createGraph(
-        baseModel: ChatOpenAI,
+        baseModel: ToolCallingChatModel,
         tools: AgentTools,
         context: AgentToolContext,
     ) {
@@ -711,7 +715,6 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 [supervisorRouteTool],
                 {
                     tool_choice: SUPERVISOR_ROUTE_TOOL_NAME,
-                    strict: true,
                 },
             );
 

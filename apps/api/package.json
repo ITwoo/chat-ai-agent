@@ -30,11 +30,11 @@
         "eval:rag:agent": "dotenv -e .env.benchmark.local -- ts-node scripts/rag-agent-retrieval-eval.ts",
         "eval:rag:answer": "dotenv -e .env.development.local -- ts-node scripts/rag-answer-eval.ts",
         "eval:agent:analysis": "dotenv -e .env.development.local -- ts-node scripts/agent-analysis-tool-eval.ts"
-        
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.1116.0",
-        "@langchain/core": "^1.2.4",
+        "@langchain/core": "^1.2.11",
+        "@langchain/google": "^0.2.6",
         "@langchain/langgraph": "^1.4.7",
         "@langchain/langgraph-checkpoint-postgres": "^1.0.4",
         "@langchain/mcp-adapters": "^1.1.3",

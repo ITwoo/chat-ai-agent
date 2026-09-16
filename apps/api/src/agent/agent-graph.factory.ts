@@ -22,7 +22,7 @@ import { ragCitationSchema } from '../rag/schemas/rag-citation.schema';
 import { createRagCitations } from '../rag/utils/rag-citation.util';
 import { RunnableConfig } from '@langchain/core/runnables';
 import { routeAgentToolCalls } from './agent-route.util';
-import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { ToolCallingChatModel } from '../llm/llm-model.type';
 
 const AGENT_MODEL_TIMEOUT_MS = 60_000;
 const SUPERVISOR_PROMPT_VERSION = 'supervisor-v1';
@@ -473,10 +473,6 @@ const AgentState = new StateSchema({
     agentTurnStartMessageIndex: z.number().int().nonnegative().default(0),
     agentResults: z.array(z.string()).default(() => []),
 });
-
-type ToolCallingChatModel = BaseChatModel & {
-    bindTools: NonNullable<BaseChatModel['bindTools']>;
-};
 
 type AgentModel = ReturnType<ToolCallingChatModel['bindTools']>;
 type AgentTools = StructuredToolInterface[];

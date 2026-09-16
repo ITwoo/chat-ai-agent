@@ -18,6 +18,13 @@ from app.analysis.schemas import (
     SpendingForecastResponse,
 )
 
+from app.core.config import settings
+from app.analysis.ml_evaluation import (
+    forecast_month_end_live_with_ridge,
+    has_enough_ml_forecast_samples,
+    load_daily_spending,
+)
+
 def _calculate_change_rate(
     current_amount: int,
     previous_amount: int,
@@ -529,6 +536,29 @@ def analyze_spending_forecast(
 
     current_amount = int(row[0]) if row else 0
 
+    with pool.connection() as connection:
+        with connection.cursor() as cursor:
+            query = """
+                SELECT MIN("spentAt")
+                FROM "Expense"
+                WHERE "userId" = %s
+                  AND "spentAt" < %s
+            """
+
+            params = [
+                request.user_id,
+                request.as_of_date,
+            ]
+
+            if request.category is not None:
+                query += ' AND "category" = %s'
+                params.append(request.category)
+
+            cursor.execute(query, params)
+            row = cursor.fetchone()
+
+    first_spent_at = row[0] if row and row[0] is not None else None
+
     if elapsed_days <= 0:
         daily_average = 0.0
         forecast_amount = current_amount
@@ -538,6 +568,36 @@ def analyze_spending_forecast(
             daily_average * days_in_month
         )
 
+    method = "daily_average"
+
+    if (
+        settings.analysis_ml_forecast_enabled
+        and first_spent_at is not None
+    ):
+        daily = load_daily_spending(
+            user_id=request.user_id,
+            start_date=first_spent_at,
+            end_date=request.as_of_date,
+            category=request.category,
+        )
+
+        if has_enough_ml_forecast_samples(
+            daily=daily,
+            as_of_date=request.as_of_date,
+            min_samples=settings.analysis_ml_forecast_min_samples,
+        ):
+            ml_forecast = forecast_month_end_live_with_ridge(
+                daily=daily,
+                as_of_date=request.as_of_date,
+                alpha=settings.analysis_ml_forecast_alpha,
+            )
+
+            forecast_amount = round(
+                float(ml_forecast["forecastAmount"])
+            )
+
+            method = "ridge_recursive"
+
     return SpendingForecastResponse(
         current_amount=current_amount,
         forecast_amount=forecast_amount,
@@ -545,5 +605,5 @@ def analyze_spending_forecast(
         days_in_month=days_in_month,
         elapsed_days=round(elapsed_days, 2),
         remaining_days=round(remaining_days, 2),
-        method="daily_average",
+        method=method,
     )

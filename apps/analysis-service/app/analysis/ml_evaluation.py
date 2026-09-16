@@ -8,19 +8,24 @@ import pandas as pd
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from app.db.postgres import pool
 
-
-FEATURES = [
+CATEGORICAL_FEATURES = [
     "day_of_week",
-    "is_weekend",
+]
+
+NUMERIC_FEATURES = [
     "day_of_month",
     "recent_7d_average",
     "last_week_same_day",
 ]
 
+FEATURES = CATEGORICAL_FEATURES + NUMERIC_FEATURES
+
+MIN_ML_FORECAST_SAMPLES = 60
 
 def _load_daily_spending(
     user_id: int,
@@ -80,7 +85,6 @@ def _build_dataset(daily: pd.DataFrame) -> pd.DataFrame:
     dataset = daily.copy()
 
     dataset["day_of_week"] = dataset["date"].dt.dayofweek
-    dataset["is_weekend"] = (dataset["day_of_week"] >= 5).astype(int)
     dataset["day_of_month"] = dataset["date"].dt.day
 
     dataset["recent_7d_average"] = (
@@ -99,6 +103,61 @@ def _build_dataset(daily: pd.DataFrame) -> pd.DataFrame:
         .reset_index(drop=True)
     )
 
+def load_daily_spending(
+    user_id: int,
+    start_date: datetime,
+    end_date: datetime,
+    category: str | None = None,
+) -> pd.DataFrame:
+    return _load_daily_spending(
+        user_id=user_id,
+        start_date=start_date,
+        end_date=end_date,
+        category=category,
+    )
+
+
+def has_enough_ml_forecast_samples(
+    daily: pd.DataFrame,
+    as_of_date: datetime,
+    min_samples: int,
+) -> bool:
+    today = pd.Timestamp(as_of_date).tz_localize(None).normalize()
+
+    complete_history = (
+        daily.loc[daily["date"] < today]
+        .copy()
+        .sort_values("date")
+        .reset_index(drop=True)
+    )
+
+    dataset = _build_dataset(complete_history)
+
+    return len(dataset) >= min_samples
+
+def _build_ridge_model(alpha: float = 1.0) -> Pipeline:
+    preprocessor = ColumnTransformer([
+        (
+            "categorical",
+            OneHotEncoder(
+                drop="first",
+                handle_unknown="ignore",
+                sparse_output=False,
+            ),
+            CATEGORICAL_FEATURES,
+        ),
+        (
+            "numeric",
+            StandardScaler(),
+            NUMERIC_FEATURES,
+        ),
+    ])
+
+    return Pipeline([
+        ("preprocessor", preprocessor),
+        ("ridge", Ridge(alpha=alpha)),
+    ])
+
 def _build_feature_row(history: pd.DataFrame, target_date: pd.Timestamp) -> pd.DataFrame:
     recent_7d = history.tail(7)["amount"]
 
@@ -115,7 +174,6 @@ def _build_feature_row(history: pd.DataFrame, target_date: pd.Timestamp) -> pd.D
 
     return pd.DataFrame([{
         "day_of_week": day_of_week,
-        "is_weekend": int(day_of_week >= 5),
         "day_of_month": target_date.day,
         "recent_7d_average": float(recent_7d.mean()),
         "last_week_same_day": float(last_week.iloc[0]),
@@ -197,10 +255,7 @@ def forecast_month_end_with_ridge(
     X = dataset[FEATURES]
     y = dataset["amount"]
 
-    model = Pipeline([
-        ("scaler", StandardScaler()),
-        ("ridge", Ridge(alpha=alpha)),
-    ])
+    model = _build_ridge_model(alpha=alpha)
 
     model.fit(X, y)
 
@@ -227,6 +282,166 @@ def forecast_month_end_with_ridge(
         "forecastAmount": round(current_amount + future_amount, 2),
         "predictedDays": len(future),
         "method": "ridge_recursive",
+    }
+
+def forecast_month_end_live_with_ridge(
+    daily: pd.DataFrame,
+    as_of_date: datetime,
+    alpha: float = 1.0,
+) -> dict[str, object]:
+    as_of = pd.Timestamp(as_of_date).tz_localize(None)
+    today = as_of.normalize()
+
+    complete_history = (
+        daily.loc[daily["date"] < today]
+        .copy()
+        .sort_values("date")
+        .reset_index(drop=True)
+    )
+
+    dataset = _build_dataset(complete_history)
+
+    if len(dataset) < 30:
+        raise ValueError(
+            f"Not enough samples for ML forecast: {len(dataset)}. At least 30 are required."
+        )
+
+    model = _build_ridge_model(alpha=alpha)
+    model.fit(dataset[FEATURES], dataset["amount"])
+
+    today_feature = _build_feature_row(
+        complete_history,
+        today,
+    )
+
+    predicted_today_amount = max(
+        float(model.predict(today_feature)[0]),
+        0,
+    )
+
+    today_actual = daily.loc[
+        daily["date"] == today,
+        "amount",
+    ]
+
+    current_today_amount = (
+        float(today_actual.iloc[0])
+        if not today_actual.empty
+        else 0.0
+    )
+
+    predicted_today_remaining = max(
+        predicted_today_amount - current_today_amount,
+        0,
+    )
+
+    forecast_history = pd.concat([
+        complete_history,
+        pd.DataFrame([{
+            "date": today,
+            "amount": predicted_today_amount,
+        }]),
+    ], ignore_index=True)
+
+    tomorrow = today + pd.Timedelta(days=1)
+    month_end = today + pd.offsets.MonthBegin(1)
+
+    future = _forecast_future_days(
+        model,
+        forecast_history,
+        tomorrow,
+        month_end,
+    )
+
+    month_start = today.replace(day=1)
+
+    current_amount = float(
+        daily.loc[
+            (daily["date"] >= month_start)
+            & (daily["date"] <= today),
+            "amount",
+        ].sum()
+    )
+
+    future_days_amount = (
+        float(future["amount"].sum())
+        if not future.empty
+        else 0.0
+    )
+
+    predicted_remaining_amount = (
+        predicted_today_remaining
+        + future_days_amount
+    )
+
+    return {
+        "currentAmount": round(current_amount, 2),
+        "predictedRemainingAmount": round(
+            predicted_remaining_amount,
+            2,
+        ),
+        "forecastAmount": round(
+            current_amount + predicted_remaining_amount,
+            2,
+        ),
+        "predictedTodayAmount": round(
+            predicted_today_amount,
+            2,
+        ),
+        "predictedDays": len(future) + 1,
+        "method": "ridge_recursive",
+    }
+
+def forecast_month_end_with_fallback(
+    daily: pd.DataFrame,
+    as_of_date: datetime,
+    *,
+    ml_enabled: bool,
+    alpha: float,
+    min_samples: int = MIN_ML_FORECAST_SAMPLES,
+) -> dict[str, object]:
+    as_of = pd.Timestamp(as_of_date).tz_localize(None).normalize()
+
+    history = (
+        daily.loc[daily["date"] <= as_of]
+        .copy()
+        .sort_values("date")
+        .reset_index(drop=True)
+    )
+
+    dataset = _build_dataset(history)
+
+    if ml_enabled and len(dataset) >= min_samples:
+        return forecast_month_end_with_ridge(
+            daily=daily,
+            as_of_date=as_of_date,
+            alpha=alpha,
+        )
+
+    month_start = as_of.replace(day=1)
+
+    current_amount = float(
+        history.loc[
+            (history["date"] >= month_start)
+            & (history["date"] <= as_of),
+            "amount",
+        ].sum()
+    )
+
+    forecast_amount = _forecast_month_end_with_daily_average(
+        daily=daily,
+        as_of_date=as_of,
+    )
+
+    return {
+        "currentAmount": round(current_amount, 2),
+        "forecastAmount": round(forecast_amount, 2),
+        "predictedRemainingAmount": round(
+            max(forecast_amount - current_amount, 0),
+            2,
+        ),
+        "predictedDays": max(as_of.days_in_month - as_of.day, 0),
+        "method": "daily_average",
     }
 
 def backtest_month_end_forecast(
@@ -365,6 +580,56 @@ def tune_ridge_alpha(
         "evaluations": evaluations,
     }
 
+def evaluate_ridge_validation_test(
+    daily: pd.DataFrame,
+    start_date: datetime,
+    split_date: datetime,
+    end_date: datetime,
+    forecast_day: int = 10,
+    alphas: tuple[float, ...] = (0.01, 0.1, 1.0, 10.0, 100.0),
+) -> dict[str, object]:
+    start = pd.Timestamp(start_date).tz_localize(None)
+    split = pd.Timestamp(split_date).tz_localize(None)
+    end = pd.Timestamp(end_date).tz_localize(None)
+
+    if not start < split < end:
+        raise ValueError("start_date < split_date < end_date must be satisfied")
+
+    if split.day != 1:
+        raise ValueError("split_date must be the first day of a month")
+
+    validation = tune_ridge_alpha(
+        daily=daily,
+        start_date=start.to_pydatetime(),
+        end_date=split.to_pydatetime(),
+        forecast_day=forecast_day,
+        alphas=alphas,
+    )
+
+    best_alpha = float(validation["bestAlpha"])
+
+    test = backtest_month_end_forecast(
+        daily=daily,
+        start_date=split.to_pydatetime(),
+        end_date=end.to_pydatetime(),
+        forecast_day=forecast_day,
+        alpha=best_alpha,
+    )
+
+    return {
+        "validationPeriod": {
+            "startDate": start.strftime("%Y-%m-%d"),
+            "endDate": split.strftime("%Y-%m-%d"),
+        },
+        "testPeriod": {
+            "startDate": split.strftime("%Y-%m-%d"),
+            "endDate": end.strftime("%Y-%m-%d"),
+        },
+        "selectedAlpha": best_alpha,
+        "validation": validation,
+        "test": test,
+    }
+    
 def evaluate_spending_daily_forecast(
     user_id: int,
     start_date: datetime,
@@ -393,10 +658,7 @@ def evaluate_spending_daily_forecast(
     X_test = test[FEATURES]
     y_test = test["amount"]
 
-    model = Pipeline([
-        ("scaler", StandardScaler()),
-        ("ridge", Ridge(alpha=1.0)),
-    ])
+    model = _build_ridge_model(alpha=1.0)
 
     model.fit(X_train, y_train)
 
@@ -412,11 +674,14 @@ def evaluate_spending_daily_forecast(
         else None
     )
 
+    preprocessor = model.named_steps["preprocessor"]
     ridge = model.named_steps["ridge"]
+
+    feature_names = preprocessor.get_feature_names_out()
 
     coefficients = {
         feature: round(float(coefficient), 2)
-        for feature, coefficient in zip(FEATURES, ridge.coef_, strict=True)
+        for feature, coefficient in zip(feature_names, ridge.coef_, strict=True)
     }
 
     return {
@@ -445,10 +710,11 @@ def main() -> None:
 
     parser.add_argument(
         "--mode",
-        choices=["daily", "month-end", "tune"],
+        choices=["daily", "month-end", "tune", "final"],
         default="daily",
     )
     parser.add_argument("--forecast-day", type=int, default=10)
+    parser.add_argument("--split-date")
 
     args = parser.parse_args()
 
@@ -465,7 +731,19 @@ def main() -> None:
             category=args.category,
         )
 
-        if args.mode == "tune":
+        if args.mode == "final":
+            if args.split_date is None:
+                parser.error("--split-date is required when --mode final")
+
+            result = evaluate_ridge_validation_test(
+                daily=daily,
+                start_date=start_date,
+                split_date=datetime.fromisoformat(args.split_date),
+                end_date=end_date,
+                forecast_day=args.forecast_day,
+            )
+
+        elif args.mode == "tune":
             result = tune_ridge_alpha(
                 daily=daily,
                 start_date=start_date,

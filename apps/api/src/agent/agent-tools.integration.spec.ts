@@ -175,9 +175,14 @@ integrationDescribe(
                     daysInMonth: expect.any(Number),
                     elapsedDays: expect.any(Number),
                     remainingDays: expect.any(Number),
-                    method: 'daily_average',
                 }),
             );
+
+            expect([
+                'daily_average',
+                'ridge_recursive',
+            ]).toContain(parsed.method);
+
         });
     },
 );

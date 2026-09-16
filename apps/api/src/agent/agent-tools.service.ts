@@ -1186,7 +1186,7 @@ export class AgentToolsService {
             },
             {
                 name: 'get_expense_forecast',
-                description: '현재까지의 소비 속도를 기준으로 이번 달 월말 예상 지출을 계산할 때 사용한다.',
+                description: '현재 지출과 과거 소비 패턴을 기반으로 이번 달 월말 예상 지출을 계산할 때 사용한다.',
                 schema: z.object({
                     asOfDate: z.string().describe('예측 기준 날짜와 시간. ISO 8601 문자열.'),
                     category: z.string().optional().describe('특정 지출 카테고리. 생략하면 전체 지출을 예측한다.'),

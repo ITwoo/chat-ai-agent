@@ -191,4 +191,4 @@ class SpendingForecastResponse(BaseModel):
     days_in_month: int = Field(alias="daysInMonth")
     elapsed_days: float = Field(alias="elapsedDays")
     remaining_days: float = Field(alias="remainingDays")
-    method: Literal["daily_average"]
+    method: Literal["daily_average", "ridge_recursive"]

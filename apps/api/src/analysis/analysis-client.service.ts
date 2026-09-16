@@ -98,7 +98,7 @@ export type SpendingForecastResponse = {
     daysInMonth: number;
     elapsedDays: number;
     remainingDays: number;
-    method: 'daily_average';
+    method: 'daily_average' | 'ridge_recursive';
 };
 
 @Injectable()

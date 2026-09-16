@@ -7,6 +7,7 @@ import { UserMemoryService } from '../user-memory/user-memory.service';
 import { AgentContextBuilderService } from './agent-context-builder.service';
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { AgentMcpToolsService } from './agent-mcp-tools.service';
+import { LlmModelFactory } from '../llm/llm-model.factory';
 
 describe('AgentService', () => {
     let service: AgentService;
@@ -22,6 +23,10 @@ describe('AgentService', () => {
                     },
                     {
                         provide: AgentToolsService,
+                        useValue: {},
+                    },
+                    {
+                        provide: LlmModelFactory,
                         useValue: {},
                     },
                     {

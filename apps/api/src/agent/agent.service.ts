@@ -1,7 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ChatOpenAI } from '@langchain/openai'
-import { AIMessage, BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
-import type { UserMemory } from '../generated/prisma/client';
+import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { ConfigService } from '@nestjs/config';
 import { ChatMessageRole } from '@repo/shared';
 import { AgentGraph, AgentGraphFactory } from './agent-graph.factory';
@@ -15,6 +13,7 @@ import { RelevantUserMemory } from '../user-memory/user-memory.types';
 import { RunnableConfig } from '@langchain/core/runnables';
 import { AGENT_CONTEXT_VERSION, AgentContextBuilderService } from './agent-context-builder.service';
 import { AgentMcpToolsService } from './agent-mcp-tools.service';
+import { LlmModelFactory } from '../llm/llm-model.factory';
 
 
 export type AgentStreamEvent =
@@ -114,17 +113,8 @@ export class AgentService {
         private readonly agentGraphFactory: AgentGraphFactory,
         private readonly userMemoryService: UserMemoryService,
         private readonly agentContextBuilderService: AgentContextBuilderService,
+        private readonly llmModelFactory: LlmModelFactory,
     ) { }
-
-    private createModel(): ChatOpenAI {
-        return new ChatOpenAI({
-            apiKey: this.configService.getOrThrow<string>('OPENAI_API_KEY'),
-            model: this.configService.getOrThrow<string>('OPENAI_MODEL'),
-            reasoning: {
-                effort: 'low',
-            },
-        })
-    }
 
     async classifyApprovalIntent(
         request: AgentApprovalRequest,
@@ -139,7 +129,7 @@ export class AgentService {
             };
         }
 
-        const classifier = this.createModel().withStructuredOutput(
+        const classifier = this.llmModelFactory.createModel().withStructuredOutput(
             approvalIntentSchema,
             {
                 name: 'classify_agent_approval_intent',
@@ -213,7 +203,7 @@ export class AgentService {
         const mcpTools = await this.agentMcpToolsService.getTools();
         const tools = [...agentTools, ...mcpTools];
 
-        const model = this.createModel();
+        const model = this.llmModelFactory.createModel();
 
         return this.agentGraphFactory.createGraph(
             model,

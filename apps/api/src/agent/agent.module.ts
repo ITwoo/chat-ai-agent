@@ -7,12 +7,14 @@ import { UserMemoryModule } from '../user-memory/user-memory.module';
 import { AgentContextBuilderService } from './agent-context-builder.service';
 import { AgentMcpToolsService } from './agent-mcp-tools.service';
 import { AnalysisModule } from '../analysis/analysis.module';
+import { LlmModule } from '../llm/llm.module';
 
 @Module({
     imports: [
         RagModule,
         UserMemoryModule,
         AnalysisModule,
+        LlmModule,
     ],
     providers: [
         AgentService,

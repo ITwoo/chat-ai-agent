@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { ToolCallingChatModel } from './llm-model.type';
 import { ChatGoogle } from '@langchain/google';
 import { ChatAnthropic } from '@langchain/anthropic';
+import { isLlmProvider, LlmProvider } from './llm-provider.type';
 
 @Injectable()
 export class LlmModelFactory {
@@ -11,11 +12,13 @@ export class LlmModelFactory {
         private readonly configService: ConfigService,
     ) { }
 
-    createModel(): ToolCallingChatModel {
-        const provider =
-            this.configService.get<string>('LLM_PROVIDER') ?? 'openai';
+    createModel(
+        provider?: LlmProvider,
+    ): ToolCallingChatModel {
+        const selectedProvider =
+            provider ?? this.getConfiguredProvider();
 
-        switch (provider) {
+        switch (selectedProvider) {
             case 'openai':
                 return this.createOpenAiModel();
 
@@ -27,9 +30,23 @@ export class LlmModelFactory {
 
             default:
                 throw new Error(
-                    `지원하지 않는 LLM_PROVIDER입니다: ${provider}`,
+                    `지원하지 않는 LLM Provider입니다: ${selectedProvider}`,
                 );
         }
+    }
+
+    private getConfiguredProvider(): LlmProvider {
+        const provider =
+            this.configService.get<string>('LLM_PROVIDER') ??
+            'openai';
+
+        if (!isLlmProvider(provider)) {
+            throw new Error(
+                `지원하지 않는 LLM_PROVIDER입니다: ${provider}`,
+            );
+        }
+
+        return provider;
     }
 
     private createOpenAiModel(): ChatOpenAI {

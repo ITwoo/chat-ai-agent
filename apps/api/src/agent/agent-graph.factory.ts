@@ -8,7 +8,7 @@ import {
     StateSchema,
 } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
-import { AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
+import { AIMessage, BaseMessage, HumanMessage, mergeMessageRuns, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import { StructuredToolInterface } from '@langchain/core/tools';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { ConfigService } from '@nestjs/config';
@@ -577,6 +577,27 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
         );
     }
 
+    private mergeLeadingSystemMessages(
+        messages: BaseMessage[],
+    ): BaseMessage[] {
+        const firstNonSystemIndex = messages.findIndex(
+            (message) => !SystemMessage.isInstance(message),
+        );
+
+        if (firstNonSystemIndex <= 1) {
+            return messages;
+        }
+
+        const mergedSystemMessages = mergeMessageRuns(
+            messages.slice(0, firstNonSystemIndex),
+        );
+
+        return [
+            ...mergedSystemMessages,
+            ...messages.slice(firstNonSystemIndex),
+        ];
+    }
+
     private normalizeToolCallMessages(
         messages: BaseMessage[],
     ): BaseMessage[] {
@@ -735,11 +756,14 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
 
             const startedAt = Date.now();
 
-            const response = await router.invoke(
-                [
+            const supervisorMessages =
+                this.mergeLeadingSystemMessages([
                     new SystemMessage(SUPERVISOR_SYSTEM_PROMPT),
                     ...state.messages,
-                ],
+                ]);
+
+            const response = await router.invoke(
+                supervisorMessages,
                 {
                     ...config,
                     runName: 'agent_supervisor_route',
@@ -878,16 +902,18 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 assignment,
             );
 
-            const modelMessages = this.normalizeToolCallMessages([
-                new SystemMessage(
-                    `${systemPrompt}
+            const modelMessages = this.normalizeToolCallMessages(
+                this.mergeLeadingSystemMessages([
+                    new SystemMessage(
+                        `${systemPrompt}
 
-                    현재 기준 시각: ${currentDateTime} (Asia/Seoul)
+                        현재 기준 시각: ${currentDateTime} (Asia/Seoul)
 
-                    ${handoffPrompt}`,
-                ),
-                ...agentMessages,
-            ]);
+                        ${handoffPrompt}`,
+                    ),
+                    ...agentMessages,
+                ]),
+            );
 
             const startedAt = Date.now();
 

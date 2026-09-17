@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ToolCallingChatModel } from './llm-model.type';
 import { ChatGoogle } from '@langchain/google';
+import { ChatAnthropic } from '@langchain/anthropic';
 
 @Injectable()
 export class LlmModelFactory {
@@ -20,6 +21,9 @@ export class LlmModelFactory {
 
             case 'google':
                 return this.createGoogleModel();
+
+            case 'anthropic':
+                return this.createAnthropicModel();
 
             default:
                 throw new Error(
@@ -56,5 +60,18 @@ export class LlmModelFactory {
                 ),
         });
     }
-    
+ 
+    private createAnthropicModel(): ChatAnthropic {
+        return new ChatAnthropic({
+            apiKey:
+                this.configService.getOrThrow<string>(
+                    'ANTHROPIC_API_KEY',
+                ),
+            model:
+                this.configService.getOrThrow<string>(
+                    'ANTHROPIC_MODEL',
+                ),
+        });
+    }
+
 }

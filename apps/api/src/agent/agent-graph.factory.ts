@@ -645,6 +645,25 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
         ];
     }
 
+    private logModelObservation(
+        operation: string,
+        model: ToolCallingChatModel,
+        response: Awaited<ReturnType<AgentModel['invoke']>>,
+        latencyMs: number,
+    ): void {
+        const toolNames =
+            response.tool_calls?.map(({ name }) => name) ?? [];
+
+        this.logger.debug(
+            `[agent:llm] operation=${operation}, ` +
+            `model=${model.constructor.name}, ` +
+            `latencyMs=${latencyMs}, ` +
+            `tools=${toolNames.join(',') || 'none'}, ` +
+            `usage=${JSON.stringify(response.usage_metadata ?? {})}, ` +
+            `metadata=${JSON.stringify(response.response_metadata ?? {})}`,
+        );
+    }
+
     private getAiMessageText(message: AIMessage): string {
         if (typeof message.content === 'string') {
             return message.content;
@@ -714,6 +733,8 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 },
             );
 
+            const startedAt = Date.now();
+
             const response = await router.invoke(
                 [
                     new SystemMessage(SUPERVISOR_SYSTEM_PROMPT),
@@ -733,6 +754,13 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                         prompt_version: SUPERVISOR_PROMPT_VERSION,
                     },
                 },
+            );
+
+            this.logModelObservation(
+                'supervisor',
+                baseModel,
+                response,
+                Date.now() - startedAt,
             );
 
             const routeCall = response.tool_calls?.[0];
@@ -861,6 +889,8 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                 ...agentMessages,
             ]);
 
+            const startedAt = Date.now();
+
             const response = await model.invoke(
                 modelMessages,
                 {
@@ -883,6 +913,13 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                     },
                     timeout: AGENT_MODEL_TIMEOUT_MS,
                 }
+            );
+
+            this.logModelObservation(
+                `domain:${domain}`,
+                baseModel,
+                response,
+                Date.now() - startedAt,
             );
 
             return {

@@ -1076,7 +1076,7 @@ export class AgentToolsService {
             },
             {
                 name: 'get_expense_comparison',
-                description: '두 기간의 지출 총액, 증감률, 카테고리별 증감을 비교할 때 사용한다.',
+                description: '두 개의 특정 기간을 직접 비교하여 지출 총액, 증감률, 카테고리별 증감을 확인할 때 사용한다. 이번 달과 지난달처럼 두 기간의 차이를 묻는 경우 사용한다. 여러 기간에 걸친 변화 흐름이나 추세를 확인할 때는 get_expense_trend를 사용한다.',
                 schema: z.object({
                     currentStartDate: z.string().describe('현재 비교 기간 시작 날짜. ISO 8601 문자열.'),
                     currentEndDate: z.string().describe('현재 비교 기간 종료 날짜. 해당 시각은 포함하지 않는다.'),
@@ -1115,7 +1115,7 @@ export class AgentToolsService {
             },
             {
                 name: 'get_expense_trend',
-                description: '기간별 지출 추세를 조회한다. 일별 또는 월별 소비 변화와 이동평균을 확인할 때 사용한다.',
+                description: '여러 시점에 걸친 지출 변화 흐름을 일별 또는 월별로 조회하고 이동평균을 확인할 때 사용한다. 최근 몇 달 동안 소비가 증가하거나 감소했는지처럼 시간에 따른 추세를 확인할 때 사용한다. 두 개의 특정 기간만 직접 비교할 때는 get_expense_comparison을 사용한다.',
                 schema: z.object({
                     startDate: z.string().describe('조회 시작 날짜. ISO 8601 문자열.'),
                     endDate: z.string().describe('조회 종료 날짜. 해당 시각은 포함하지 않는다.'),

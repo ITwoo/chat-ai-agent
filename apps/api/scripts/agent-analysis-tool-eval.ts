@@ -1,4 +1,4 @@
-import { HumanMessage } from '@langchain/core/messages';
+import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { MemorySaver } from '@langchain/langgraph';
 
 import { AnalysisClientService } from '../src/analysis/analysis-client.service';
@@ -13,6 +13,8 @@ import { LlmModelFactory } from '../src/llm/llm-model.factory';
 import { LLM_PROVIDERS } from '../src/llm/llm-provider.type';
 import { mkdir, writeFile } from 'fs/promises';
 import { resolve } from 'path';
+import { BaseCallbackHandler } from '@langchain/core/callbacks/base';
+import type { LLMResult } from '@langchain/core/outputs';
 
 const ANALYSIS_TOOL_NAMES = new Set([
     'get_expense_summary',
@@ -51,8 +53,61 @@ type AnalysisToolEvalResult = {
     expectedTool: string;
     selectedTools: string[];
     latencyMs: number;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
     passed: boolean;
 };
+
+type EvalTokenUsage = {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+};
+
+function createTokenUsageTracker() {
+    const usage: EvalTokenUsage = {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+    };
+
+    const callback = BaseCallbackHandler.fromMethods({
+        handleLLMEnd(output: LLMResult) {
+            const generation =
+                output.generations[0]?.[0];
+
+            if (
+                !generation
+                || !('message' in generation)
+                || !AIMessage.isInstance(generation.message)
+            ) {
+                return;
+            }
+
+            const metadata =
+                generation.message.usage_metadata;
+
+            if (!metadata) {
+                return;
+            }
+
+            usage.inputTokens +=
+                metadata.input_tokens;
+
+            usage.outputTokens +=
+                metadata.output_tokens;
+
+            usage.totalTokens +=
+                metadata.total_tokens;
+        },
+    });
+
+    return {
+        usage,
+        callback,
+    };
+}
 
 async function main() {
 
@@ -205,6 +260,11 @@ async function main() {
         for (const [index, evalCase] of evalCases.entries()) {
             selectedTools.length = 0;
 
+            const {
+                usage: tokenUsage,
+                callback: tokenUsageCallback,
+            } = createTokenUsageTracker();
+
             const startedAt = performance.now();
 
             await graph.invoke(
@@ -218,6 +278,9 @@ async function main() {
                         thread_id:
                             `analysis-tool-eval-${provider}-${index}-${Date.now()}`,
                     },
+                    callbacks: [
+                        tokenUsageCallback,
+                    ],
                 },
             );
 
@@ -241,6 +304,9 @@ async function main() {
                 expectedTool: evalCase.expectedTool,
                 selectedTools: [...selectedTools],
                 latencyMs,
+                inputTokens: tokenUsage.inputTokens,
+                outputTokens: tokenUsage.outputTokens,
+                totalTokens: tokenUsage.totalTokens,
                 passed,
             });
 
@@ -249,6 +315,9 @@ async function main() {
                 question: evalCase.question,
                 expected: evalCase.expectedTool,
                 selected: selectedTools,
+                inputTokens: tokenUsage.inputTokens,
+                outputTokens: tokenUsage.outputTokens,
+                totalTokens: tokenUsage.totalTokens,
                 passed,
             });
         }
@@ -309,7 +378,51 @@ async function saveResults(
                             0,
                         ) / resultsByProvider.length,
                     );
-                    
+
+            const totalInputTokens =
+                resultsByProvider.reduce(
+                    (total, result) =>
+                        total + result.inputTokens,
+                    0,
+                );
+
+            const totalOutputTokens =
+                resultsByProvider.reduce(
+                    (total, result) =>
+                        total + result.outputTokens,
+                    0,
+                );
+
+            const totalTokens =
+                resultsByProvider.reduce(
+                    (total, result) =>
+                        total + result.totalTokens,
+                    0,
+                );
+
+            const averageInputTokens =
+                resultsByProvider.length === 0
+                    ? 0
+                    : Math.round(
+                        totalInputTokens
+                        / resultsByProvider.length,
+                    );
+
+            const averageOutputTokens =
+                resultsByProvider.length === 0
+                    ? 0
+                    : Math.round(
+                        totalOutputTokens
+                        / resultsByProvider.length,
+                    );
+
+            const averageTotalTokens =
+                resultsByProvider.length === 0
+                    ? 0
+                    : Math.round(
+                        totalTokens
+                        / resultsByProvider.length,
+                    );
             return [
                 provider,
                 {
@@ -318,6 +431,12 @@ async function saveResults(
                     failed:
                         resultsByProvider.length - passed,
                     averageLatencyMs,
+                    totalInputTokens,
+                    totalOutputTokens,
+                    totalTokens,
+                    averageInputTokens,
+                    averageOutputTokens,
+                    averageTotalTokens,                    
                 },
             ];
         }),

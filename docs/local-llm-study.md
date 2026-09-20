@@ -358,3 +358,18 @@ get_expense_summary
 따라서 Local LLM에서는 cold start와 warm request 성능을 구분해서 측정해야 한다.
 
 다음 단계에서는 `ollama`를 `LlmModelFactory`의 정식 Provider로 등록한다.
+## 10. LlmModelFactory Ollama Provider 통합
+
+`ollama`를 `LlmProvider`와 `LlmModelFactory`에 정식 등록했다.
+
+검증 경로:
+
+```text
+LlmModelFactory
+→ ollama
+→ ChatOllama
+→ AgentGraphFactory
+→ Supervisor
+→ Expense Domain
+→ get_expense_summary
+→ Final Answer

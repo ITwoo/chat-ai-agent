@@ -2,6 +2,7 @@ export const LLM_PROVIDERS = [
     'openai',
     'google',
     'anthropic',
+    'ollama',
 ] as const;
 
 export type LlmProvider =

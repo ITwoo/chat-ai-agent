@@ -292,3 +292,69 @@ Zod validation           ✅
 → 기존 ToolCallingChatModel 타입 호환 확인
 → LlmModelFactory에 local provider 연결
 ```
+## 8. Qwen3.5 Thinking 비교
+
+`ChatOllama`에서 `think` 옵션에 따른 차이를 확인했다.
+
+### Thinking 활성화
+
+기본 대화:
+
+- input tokens: 18
+- output tokens: 469
+- total tokens: 487
+
+Tool Calling:
+
+- input tokens: 337
+- output tokens: 172
+- total tokens: 509
+
+### Thinking 비활성화
+
+설정:
+
+```ts
+think: false
+## 9. 기존 AgentGraph에서 Local LLM 실행
+
+`qwen3.5:4b`를 `ChatOllama`로 생성하여 기존 `AgentGraphFactory`에 직접 연결했다.
+
+테스트 질문:
+
+```text
+이번 달 지금까지 총 얼마 썼어?
+```
+
+실행 흐름:
+
+```text
+ChatOllama
+→ Supervisor
+→ expense Domain 선택
+→ get_expense_summary 선택
+→ Analysis Tool 실행
+→ 최종 자연어 응답
+```
+
+Tool 선택 결과:
+
+```text
+get_expense_summary
+```
+
+최종 응답:
+
+```text
+이번 달 (2026 년 9 월) 까지 총 지출은 10 만 원입니다.
+```
+
+기존 AgentGraph를 수정하지 않고 Local LLM으로 Supervisor routing, Domain Tool Calling, Tool 실행 후 최종 응답까지 정상 동작했다.
+
+첫 Supervisor 호출은 약 4.8초가 소요됐으며, 이 중 약 3.27초가 모델 cold start 로딩 시간이었다.
+
+모델 로딩 이후에는 load duration이 수 ms 수준으로 감소했다.
+
+따라서 Local LLM에서는 cold start와 warm request 성능을 구분해서 측정해야 한다.
+
+다음 단계에서는 `ollama`를 `LlmModelFactory`의 정식 Provider로 등록한다.

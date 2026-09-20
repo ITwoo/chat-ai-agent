@@ -5,6 +5,7 @@ import { ToolCallingChatModel } from './llm-model.type';
 import { ChatGoogle } from '@langchain/google';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { isLlmProvider, LlmProvider } from './llm-provider.type';
+import { ChatOllama } from '@langchain/ollama';
 
 @Injectable()
 export class LlmModelFactory {
@@ -28,6 +29,8 @@ export class LlmModelFactory {
             case 'anthropic':
                 return this.createAnthropicModel();
 
+            case 'ollama':
+                return this.createOllamaModel();
             default:
                 throw new Error(
                     `지원하지 않는 LLM Provider입니다: ${selectedProvider}`,
@@ -91,4 +94,18 @@ export class LlmModelFactory {
         });
     }
 
+    private createOllamaModel(): ChatOllama {
+        return new ChatOllama({
+            model:
+                this.configService.get<string>(
+                    'OLLAMA_MODEL',
+                ) ?? 'qwen3.5:4b',
+            baseUrl:
+                this.configService.get<string>(
+                    'OLLAMA_BASE_URL',
+                ) ?? 'http://127.0.0.1:11434',
+            temperature: 0,
+            think: false,
+        });
+    }
 }

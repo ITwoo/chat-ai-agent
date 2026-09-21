@@ -106,6 +106,7 @@ export class LlmModelFactory {
                 ) ?? 'http://127.0.0.1:11434',
             temperature: 0,
             think: false,
+            numCtx: 8192,
         });
     }
 }

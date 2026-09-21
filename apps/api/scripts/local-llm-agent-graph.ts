@@ -1,4 +1,4 @@
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages';
 import { MemorySaver } from '@langchain/langgraph';
 
 import { AnalysisClientService } from '../src/analysis/analysis-client.service';
@@ -65,7 +65,44 @@ async function main() {
     const model =
         llmModelFactory.createModel('ollama');
 
-        console.log('\n=== Expense Tool Selection Only ===');
+    console.log('\n=== Local Multi-step Tool Calling ===');
+
+    const mutationTools = allTools.filter((tool) => ['find_expenses', 'update_expense'].includes(tool.name));
+    const mutationModel = model.bindTools(mutationTools);
+    const mutationQuestion = '오늘 점심 지출 10000원에서 11000원으로 수정해줘';
+
+    const firstResponse = await mutationModel.invoke([new HumanMessage(mutationQuestion)]);
+    const findCall = firstResponse.tool_calls?.find((toolCall) => toolCall.name === 'find_expenses');
+
+    console.log('first:', firstResponse.tool_calls?.map(({ name, id, args }) => ({ name, id, args })) ?? []);
+
+    if (!findCall) throw new Error('find_expenses 호출이 생성되지 않았습니다.');
+
+    console.log('findCallId:', findCall.id || '(empty)');
+
+    if (findCall.id) {
+        const findResult = new ToolMessage({
+            name: 'find_expenses',
+            tool_call_id: findCall.id,
+            content: JSON.stringify({
+                count: 1,
+                expenses: [{
+                    id: 1,
+                    amount: 10000,
+                    category: '식비',
+                    title: '점심',
+                    memo: null,
+                    spentAt: '2026-09-21T12:00:00+09:00',
+                }],
+            }),
+        });
+
+        const secondResponse = await mutationModel.invoke([new HumanMessage(mutationQuestion), firstResponse, findResult]);
+
+        console.log('second:', secondResponse.tool_calls?.map(({ name, id, args }) => ({ name, id, args })) ?? []);
+    }
+
+    console.log('\n=== Expense Tool Selection Only ===');
 
     const expenseModel = model.bindTools(expenseTools);
 

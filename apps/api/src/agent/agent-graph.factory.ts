@@ -311,6 +311,7 @@ ${BASE_SYSTEM_PROMPT}
 
 요청 목적에 따라 다음 기준으로 Tool을 선택한다.
 
+- 새로운 지출을 기록하거나 저장해 달라는 요청이면 create_expense를 사용한다.
 - 지출 총액, 건수, 카테고리별 합계처럼 기간 집계가 필요하면 get_expense_summary를 사용한다.
 - 두 기간의 지출 차이를 비교하면 get_expense_comparison을 사용한다.
 - 여러 시점의 소비 변화 흐름을 확인하면 get_expense_trend를 사용한다.

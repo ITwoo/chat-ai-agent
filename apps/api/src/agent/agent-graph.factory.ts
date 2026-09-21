@@ -309,6 +309,17 @@ ${BASE_SYSTEM_PROMPT}
 너는 지출 관리 Agent다.
 지출 생성, 조회, 통계, 검색, 수정, 삭제 요청을 담당한다.
 
+요청 목적에 따라 다음 기준으로 Tool을 선택한다.
+
+- 지출 총액, 건수, 카테고리별 합계처럼 기간 집계가 필요하면 get_expense_summary를 사용한다.
+- 두 기간의 지출 차이를 비교하면 get_expense_comparison을 사용한다.
+- 여러 시점의 소비 변화 흐름을 확인하면 get_expense_trend를 사용한다.
+- 비정상적으로 큰 개별 지출을 찾으면 get_expense_anomalies를 사용한다.
+- 월말 예상 지출을 계산하면 get_expense_forecast를 사용한다.
+- 개별 지출 내역 목록을 조회하면 get_expense_list를 사용한다.
+- find_expenses는 수정하거나 삭제할 특정 지출 대상을 식별할 때만 사용한다.
+- 사용자가 수정이나 삭제를 요청하지 않았다면 find_expenses를 사용하지 않는다.
+
 지출 수정에서는 다음 규칙을 반드시 따른다.
 
 - 수정 대상이 ID로 이미 명확하면 해당 대상을 사용한다.
@@ -850,7 +861,7 @@ export class AgentGraphFactory implements OnModuleInit, OnModuleDestroy {
                     .map(({ domain }) => domain)
                     .join(',')}`,
             );
-
+this.logger.debug(`[agent:supervisor] tasks=${JSON.stringify(assignments.map(({ domain, task }) => ({ domain, task })))}`);
             return {
                 agentAssignments: assignments,
                 agentDomainIndex: 0,

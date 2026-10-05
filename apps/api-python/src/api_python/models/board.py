@@ -1,22 +1,30 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum as SqlEnum, ForeignKey, Index, String, Text, func, text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import (
+    DateTime,
+    Enum as SqlEnum,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    func,
+    text,
+)
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+    relationship,
+)
 
 from api_python.models.base import Base
+from api_python.models.enums import BoardStatus
 
 
 if TYPE_CHECKING:
     from api_python.models.user import User
-
-
-class BoardStatus(str, Enum):
-    PUBLIC = "PUBLIC"
-    PRIVATE = "PRIVATE"
 
 
 class Board(Base):
@@ -77,7 +85,16 @@ class Board(Base):
     )
 
     __table_args__ = (
-        Index("Board_userId_idx", "userId"),
-        Index("Board_status_idx", "status"),
-        Index("Board_createdAt_idx", "createdAt"),
+        Index(
+            "Board_userId_idx",
+            "userId",
+        ),
+        Index(
+            "Board_status_idx",
+            "status",
+        ),
+        Index(
+            "Board_createdAt_idx",
+            "createdAt",
+        ),
     )

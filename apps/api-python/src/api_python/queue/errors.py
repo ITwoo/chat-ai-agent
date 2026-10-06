@@ -1,0 +1,4 @@
+class UnrecoverableJobError(
+    RuntimeError
+):
+    pass

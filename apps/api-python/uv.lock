@@ -285,10 +285,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-<<<<<<< HEAD
-=======
     { name = "aioboto3", specifier = ">=15.5.0" },
->>>>>>> 966583acf2af83086ab4e7c3cdb067cd46bb337a
     { name = "arq", specifier = ">=0.25.0" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "bcrypt", specifier = ">=5.0.0" },

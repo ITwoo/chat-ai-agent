@@ -1,0 +1,25 @@
+AGENT_JOB_QUEUE = "agent-jobs"
+
+AGENT_JOB_NAME_HEALTH_CHECK = "health-check"
+
+
+RAG_DOCUMENT_QUEUE = "rag-document-jobs"
+
+RAG_DOCUMENT_JOB_NAME_INGEST = "ingest-document"
+
+
+USER_MEMORY_QUEUE = "user-memory-jobs"
+
+USER_MEMORY_JOB_NAME_EXTRACT = (
+    "extract-user-memories"
+)
+
+
+JOB_MAX_ATTEMPTS = 3
+
+JOB_BACKOFF_BASE_SECONDS = 1
+
+
+REMOVE_ON_COMPLETE_COUNT = 100
+
+REMOVE_ON_FAIL_COUNT = 500

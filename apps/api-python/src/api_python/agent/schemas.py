@@ -1,4 +1,3 @@
-import turtle
 from typing import Literal, Annotated
 
 from pydantic import (
@@ -9,9 +8,6 @@ from pydantic import (
     UUID4,
     field_validator,
 )
-from sqlalchemy import true
-from uvicorn import Config
-
 
 class ExpenseApprovalTarget(BaseModel):
     model_config = ConfigDict(
@@ -194,16 +190,6 @@ class ScheduleDeleteApprovalRequest(BaseModel):
     message: str
     schedule: ScheduleDeleteApprovalTarget
 
-AgentApprovalRequest = Annotated[
-    ExpenseUpdateApprovalRequest
-    | ExpenseDeleteApprovalRequest
-    | ScheduleUpdateApprovalRequest
-    | ScheduleDeleteApprovalRequest,
-    Field(discriminator="type"),
-]
-
-agent_approval_request_adapter = TypeAdapter(AgentApprovalRequest)
-
 class ApproveDecision(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -212,7 +198,7 @@ class ApproveDecision(BaseModel):
     )
 
     action: Literal["approve"]
-    expected_version: int | None = Field(default=None, gt=0, alias="expectedVersion")
+    expected_version: int | None = Field(default=None, ge=0, alias="expectedVersion")
 
 class CancelDecision(BaseModel):
     model_config = ConfigDict(
@@ -282,3 +268,38 @@ class ApprovalIntent(BaseModel):
             "의미가 불명확하면 unclear"
         ),
     )
+
+class UserMemoryDeleteApprovalTarget(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        validate_by_name=True,
+        validate_by_alias=True,
+    )
+
+    id: int = Field(gt=0)
+    type: Literal["PROFILE", "PREFERENCE", "GOAL", "CONSTRAINT"]
+    memory_key: str = Field(alias="memoryKey")
+    content: str
+
+class UserMemoryDeleteApprovalRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        validate_by_name=True,
+        validate_by_alias=True,
+    )
+
+    type: Literal["user_memory_delete_approval"]
+    action: Literal["delete_user_memory"]
+    message: str
+    memory: UserMemoryDeleteApprovalTarget
+
+AgentApprovalRequest = Annotated[
+    ExpenseUpdateApprovalRequest
+    | ExpenseDeleteApprovalRequest
+    | ScheduleUpdateApprovalRequest
+    | ScheduleDeleteApprovalRequest
+    | UserMemoryDeleteApprovalRequest,
+    Field(discriminator="type"),
+]
+
+agent_approval_request_adapter = TypeAdapter(AgentApprovalRequest)
